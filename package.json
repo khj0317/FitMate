@@ -1,0 +1,14 @@
+{
+  "name": "fitmate",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w @fitmate/web",
+    "build:web": "npm run build -w @fitmate/web",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose down"
+  }
+}
