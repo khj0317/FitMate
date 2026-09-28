@@ -49,7 +49,7 @@ public class User {
     @Column(nullable = false, unique = true, length = 30)
     private String loginId;
 
-    /** 선택 입력 */
+    /** 아이디·비밀번호 찾기용. 신규 가입은 필수, 예전에 이메일 없이 가입한 계정만 null일 수 있다 */
     @Column(unique = true)
     private String email;
 

@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgis/postgis:17-3.5
     container_name: fitmate-postgres
+    restart: unless-stopped # Docker Desktop이 다시 켜지면 자동으로 함께 켜진다
     environment:
       POSTGRES_DB: fitmate
       POSTGRES_USER: fitmate
@@ -19,6 +20,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: fitmate-redis
+    restart: unless-stopped # Docker Desktop이 다시 켜지면 자동으로 함께 켜진다
     ports:
       - "6379:6379"
     healthcheck:
@@ -31,6 +33,7 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     container_name: fitmate-mailpit
+    restart: unless-stopped # Docker Desktop이 다시 켜지면 자동으로 함께 켜진다
     ports:
       - "1025:1025"
       - "8025:8025"

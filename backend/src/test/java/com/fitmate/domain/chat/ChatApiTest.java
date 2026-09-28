@@ -87,6 +87,20 @@ class ChatApiTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("이모티콘(합성 이모티콘, 피부색 포함)이 깨지지 않고 저장·조회된다")
+    void emojiRoundTrip() throws Exception {
+        TestUser a = signupWithGym();
+        TestUser b = signupWithGym();
+        Long roomId = matchedRoomId(a, b);
+        String emoji = "💪🔥 오늘 운동 완료 😮‍💨👍🏻";
+
+        send(a, roomId, emoji);
+
+        String page = getMessages(b, roomId, null);
+        assertThat(contents(page)).containsExactly(emoji);
+    }
+
+    @Test
     @DisplayName("참여하지 않은 채팅방은 조회도 전송도 할 수 없다 (404)")
     void nonMemberCannotAccess() throws Exception {
         TestUser a = signupWithGym();

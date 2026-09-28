@@ -63,7 +63,7 @@ export interface SignupInput {
   password: string
   passwordConfirm: string
   nickname: string
-  email?: string
+  email: string
   birthDate: string
   gender: Gender
   location: LocationInput

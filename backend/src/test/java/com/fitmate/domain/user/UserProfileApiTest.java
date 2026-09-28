@@ -247,7 +247,7 @@ class UserProfileApiTest extends IntegrationTest {
     }
 
     @Test
-    @DisplayName("다른 사람이 쓰는 이메일로는 바꿀 수 없고, 빈 값으로 보내면 이메일이 지워진다")
+    @DisplayName("다른 사람이 쓰는 이메일로는 바꿀 수 없고, 이메일을 비울 수도 없다")
     void changeEmail() throws Exception {
         TestUser me = signupAndLogin();
         TestUser other = signupAndLogin();
@@ -260,7 +260,8 @@ class UserProfileApiTest extends IntegrationTest {
                 .andExpect(jsonPath("$.code").value("DUPLICATE_EMAIL"));
 
         call(HttpMethod.PATCH, "/api/users/me", "{\"email\": \"\"}", other.accessToken())
-                .andExpect(jsonPath("$.email").value(org.hamcrest.Matchers.nullValue()));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("EMAIL_REQUIRED"));
     }
 
     private static String updateAllJson(String nickname, int sportId) {

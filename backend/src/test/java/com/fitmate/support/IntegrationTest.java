@@ -110,12 +110,12 @@ public abstract class IntegrationTest {
     }
 
     protected static String signupJson(String loginId, String password, String nickname) {
-        return signupJson(loginId, password, password, nickname, null);
+        return signupJson(loginId, password, password, nickname, loginId + "@fitmate.test");
     }
 
     /**
      * 활동 지역은 매번 지구 위 임의의 지점으로 넣어서, 매칭 테스트가 다른 테스트의 사용자와 섞이지 않게 한다.
-     * email이 null이면 필드를 보내지 않는다 (선택 입력).
+     * email이 null이면 필드를 보내지 않는다 (필수 항목 누락 테스트용).
      */
     protected static String signupJson(String loginId, String password, String passwordConfirm, String nickname, String email) {
         double latitude = ThreadLocalRandom.current().nextDouble(-60, 60);

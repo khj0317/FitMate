@@ -52,7 +52,7 @@ export function FindAccountPage() {
         </Card>
 
         <p className="mt-6 text-center text-sm leading-relaxed text-ink-400">
-          이메일을 등록하지 않았다면 계정을 찾을 수 없어요.
+          예전에 이메일 없이 가입했다면 계정을 찾을 수 없어요.
           <br />
           로그인한 뒤 <b className="text-ink-600">내 프로필</b>에서 이메일을 등록해 두세요.
         </p>

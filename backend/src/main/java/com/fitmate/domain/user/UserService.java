@@ -69,7 +69,7 @@ public class UserService {
     public UserResponses.MyProfile updateAll(Long userId, UserRequests.UpdateAll request) {
         User user = getUser(userId);
         applyNickname(user, request.nickname());
-        applyEmail(user, request.email() == null ? "" : request.email());
+        applyEmail(user, request.email());
         user.changeBio(request.bio() == null ? "" : request.bio());
         user.changeGender(request.gender());
         applyBirthDate(user, request.birthDate());
@@ -113,10 +113,13 @@ public class UserService {
         user.changeNickname(nickname);
     }
 
-    /** 빈 문자열이면 이메일을 지운다 */
+    /** 이메일은 아이디·비밀번호 찾기에 쓰이므로 지울 수 없다 */
     private void applyEmail(User user, String rawEmail) {
         String email = rawEmail.strip().toLowerCase(Locale.ROOT);
-        if (!email.isEmpty() && userRepository.existsByEmailAndIdNot(email, user.getId())) {
+        if (email.isEmpty()) {
+            throw new BusinessException(ErrorCode.EMAIL_REQUIRED);
+        }
+        if (userRepository.existsByEmailAndIdNot(email, user.getId())) {
             throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
         }
         user.changeEmail(email);

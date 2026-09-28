@@ -37,7 +37,7 @@ public class AuthService {
         if (userRepository.existsByLoginId(request.loginId())) {
             throw new BusinessException(ErrorCode.DUPLICATE_LOGIN_ID);
         }
-        if (request.email() != null && userRepository.existsByEmail(request.email())) {
+        if (userRepository.existsByEmail(request.email())) {
             throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
         }
         if (userRepository.existsByNickname(request.nickname())) {

@@ -40,7 +40,8 @@ public final class AuthRequests {
             @Pattern(regexp = "^[가-힣a-zA-Z0-9_]+$", message = "닉네임은 한글, 영문, 숫자, _만 사용할 수 있습니다.")
             String nickname,
 
-            /* 선택 입력 */
+            /* 아이디·비밀번호 찾기에 쓰이므로 필수 */
+            @NotBlank(message = "이메일을 입력해 주세요.")
             @Email(message = "올바른 이메일 형식이 아닙니다.") @Size(max = 255)
             String email,
 

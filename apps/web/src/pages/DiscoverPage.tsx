@@ -193,40 +193,43 @@ function CandidateCard({
         ))}
       </div>
 
-      <p className="mt-3 flex items-center gap-1.5 text-sm text-ink-500">
-        <CalendarClock className="size-4 text-ink-400" />
-        운동 가능 시간 {formatMinutes(candidate.overlapMinutesPerWeek)}
-        {candidate.overlapMinutesPerWeek > 0 && ' 겹쳐요'}
-      </p>
+      {/* 공통 종목 수에 따라 카드 높이가 달라져도, 아래 영역은 항상 카드 바닥에 붙여 버튼 위치를 맞춘다 */}
+      <div className="mt-auto pt-3">
+        <p className="flex items-center gap-1.5 text-sm text-ink-500">
+          <CalendarClock className="size-4 text-ink-400" />
+          운동 가능 시간 {formatMinutes(candidate.overlapMinutesPerWeek)}
+          {candidate.overlapMinutesPerWeek > 0 && ' 겹쳐요'}
+        </p>
 
-      {/* 점수 내역 */}
-      <div className="mt-4 grid grid-cols-4 gap-2">
-        {SCORE_PARTS.map(({ key, label, max }) => (
-          <div key={key}>
-            <div className="h-1.5 overflow-hidden rounded-full bg-ink-100">
-              <div
-                className="h-full rounded-full bg-linear-to-r from-brand-300 to-brand-500"
-                style={{ width: `${(candidate.scoreDetail[key] / max) * 100}%` }}
-              />
+        {/* 점수 내역 */}
+        <div className="mt-4 grid grid-cols-4 gap-2">
+          {SCORE_PARTS.map(({ key, label, max }) => (
+            <div key={key}>
+              <div className="h-1.5 overflow-hidden rounded-full bg-ink-100">
+                <div
+                  className="h-full rounded-full bg-linear-to-r from-brand-300 to-brand-500"
+                  style={{ width: `${(candidate.scoreDetail[key] / max) * 100}%` }}
+                />
+              </div>
+              <p className="mt-1 text-[11px] text-ink-400">
+                {label} <span className="font-semibold text-ink-600">{candidate.scoreDetail[key]}</span>/{max}
+              </p>
             </div>
-            <p className="mt-1 text-[11px] text-ink-400">
-              {label} <span className="font-semibold text-ink-600">{candidate.scoreDetail[key]}</span>/{max}
-            </p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <Button className="mt-5 w-full" variant={requested ? 'secondary' : 'primary'} disabled={requested} onClick={onRequest}>
-        {requested ? (
-          <>
-            <Check className="size-4" /> 요청 보냄
-          </>
-        ) : (
-          <>
-            <Send className="size-4" /> 같이 운동하기
-          </>
-        )}
-      </Button>
+        <Button className="mt-5 w-full" variant={requested ? 'secondary' : 'primary'} disabled={requested} onClick={onRequest}>
+          {requested ? (
+            <>
+              <Check className="size-4" /> 요청 보냄
+            </>
+          ) : (
+            <>
+              <Send className="size-4" /> 같이 운동하기
+            </>
+          )}
+        </Button>
+      </div>
     </Card>
   )
 }

@@ -54,7 +54,7 @@ public final class UserRequests {
 
     /**
      * 프로필 전체를 한 번에 저장한다 (PUT). 하나의 트랜잭션이라 중간에 실패하면 모두 취소된다.
-     * email, bio는 비우면 삭제된다.
+     * bio는 비우면 삭제된다. 이메일은 계정 찾기에 쓰이므로 필수.
      */
     public record UpdateAll(
             @NotBlank
@@ -62,6 +62,7 @@ public final class UserRequests {
             @Pattern(regexp = "^[가-힣a-zA-Z0-9_]+$", message = "닉네임은 한글, 영문, 숫자, _만 사용할 수 있습니다.")
             String nickname,
 
+            @NotBlank(message = "이메일을 입력해 주세요.")
             @Email(message = "올바른 이메일 형식이 아닙니다.") @Size(max = 255)
             String email,
 

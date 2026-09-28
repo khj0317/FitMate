@@ -90,7 +90,8 @@ type DraftErrors = Partial<Record<keyof Draft, string>>
 function validate(draft: Draft): DraftErrors {
   const errors: DraftErrors = {}
   if (draft.nickname.trim().length < 2) errors.nickname = '닉네임은 2자 이상이어야 해요'
-  if (draft.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)) errors.email = '올바른 이메일 형식이 아니에요'
+  if (!draft.email.trim()) errors.email = '이메일을 입력해 주세요 (아이디·비밀번호 찾기에 사용돼요)'
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email.trim())) errors.email = '올바른 이메일 형식이 아니에요'
   if (!draft.birthDate) errors.birthDate = '생년월일을 입력해 주세요'
   if (!draft.gender) errors.gender = '성별을 선택해 주세요'
   if (!draft.location) errors.location = '목록에서 활동 지역을 선택해 주세요'
@@ -100,6 +101,7 @@ function validate(draft: Draft): DraftErrors {
 const SERVER_ERROR_FIELD: Record<string, keyof Draft> = {
   DUPLICATE_NICKNAME: 'nickname',
   DUPLICATE_EMAIL: 'email',
+  EMAIL_REQUIRED: 'email',
   INVALID_BIRTH_DATE: 'birthDate',
 }
 
@@ -219,8 +221,8 @@ function ProfileForm({ me }: { me: MyProfile }) {
               <Input value={me.loginId} disabled className="cursor-not-allowed text-ink-500" />
             </Field>
             <Field
-              label="이메일 (선택)"
-              hint={draft.email ? '아이디·비밀번호 찾기에 사용돼요' : '⚠️ 이메일이 없으면 아이디·비밀번호를 찾을 수 없어요'}
+              label="이메일"
+              hint={me.email ? '아이디·비밀번호 찾기에 사용돼요' : '⚠️ 이메일을 등록해야 아이디·비밀번호를 찾을 수 있어요'}
               error={errors.email}
             >
               <Input type="email" value={draft.email} onChange={(e) => set('email', e.target.value)} placeholder="you@example.com" />

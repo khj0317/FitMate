@@ -189,7 +189,8 @@ function validate(form: SignupForm): FieldErrors {
   if (!PASSWORD_PATTERN.test(form.password)) errors.password = '영문과 숫자를 포함해 8자 이상이어야 해요'
   if (!form.passwordConfirm || form.passwordConfirm !== form.password) errors.passwordConfirm = '비밀번호가 일치하지 않아요'
   if (form.nickname.trim().length < 2) errors.nickname = '닉네임은 2자 이상이어야 해요'
-  if (form.email && !EMAIL_PATTERN.test(form.email)) errors.email = '올바른 이메일 형식이 아니에요'
+  if (!form.email.trim()) errors.email = '이메일을 입력해 주세요'
+  else if (!EMAIL_PATTERN.test(form.email.trim())) errors.email = '올바른 이메일 형식이 아니에요'
   if (!form.birthDate) errors.birthDate = '생년월일을 입력해 주세요'
   if (!form.gender) errors.gender = '성별을 선택해 주세요'
   if (!form.location) errors.location = '목록에서 활동 지역을 선택해 주세요'
@@ -238,7 +239,7 @@ export function SignupPage() {
         password: form.password,
         passwordConfirm: form.passwordConfirm,
         nickname: form.nickname.trim(),
-        email: form.email.trim() || undefined,
+        email: form.email.trim(),
         birthDate: form.birthDate,
         gender: form.gender,
         location: form.location,
@@ -311,7 +312,7 @@ export function SignupPage() {
               maxLength={20}
             />
           </Field>
-          <Field label="이메일 (선택)" hint="등록하면 아이디·비밀번호를 잊었을 때 찾을 수 있어요" error={fieldError('email')}>
+          <Field label="이메일" hint="아이디·비밀번호를 잊었을 때 찾는 데 사용돼요" error={fieldError('email')}>
             <Input
               type="email"
               value={form.email}

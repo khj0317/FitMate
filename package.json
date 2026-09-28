@@ -6,9 +6,15 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "npm run infra:up && concurrently -k -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "node scripts/gradle.mjs bootRun",
     "dev:web": "npm run dev -w @fitmate/web",
     "build:web": "npm run build -w @fitmate/web",
-    "infra:up": "docker compose up -d --wait",
+    "test:api": "node scripts/gradle.mjs test",
+    "infra:up": "node scripts/infra-up.mjs",
     "infra:down": "docker compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
   }
 }

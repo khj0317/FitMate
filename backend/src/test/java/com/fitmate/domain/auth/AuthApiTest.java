@@ -10,7 +10,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -25,7 +24,7 @@ class AuthApiTest extends IntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.loginId").value(user.loginId()))
                 .andExpect(jsonPath("$.nickname").value(user.nickname()))
-                .andExpect(jsonPath("$.email").value(nullValue()))
+                .andExpect(jsonPath("$.email").value(user.loginId() + "@fitmate.test"))
                 .andExpect(jsonPath("$.birthDate").value("1998-05-20"))
                 .andExpect(jsonPath("$.gender").value("MALE"))
                 .andExpect(jsonPath("$.location.areaName").value("테스트 지역"))
@@ -34,8 +33,8 @@ class AuthApiTest extends IntegrationTest {
     }
 
     @Test
-    @DisplayName("이메일은 선택 입력이고, 입력하면 소문자로 저장된다")
-    void optionalEmail() throws Exception {
+    @DisplayName("이메일은 필수이고, 소문자로 저장된다")
+    void requiredEmail() throws Exception {
         String suffix = uniqueSuffix();
         String loginId = "mail" + suffix;
         post("/api/auth/signup", signupJson(loginId, PASSWORD, PASSWORD, "mail_" + suffix, "Mail_" + suffix + "@FitMate.com"))
@@ -45,13 +44,17 @@ class AuthApiTest extends IntegrationTest {
                 .andReturn().getResponse().getContentAsString(), "$.accessToken");
         call(HttpMethod.GET, "/api/users/me", null, token)
                 .andExpect(jsonPath("$.email").value("mail_" + suffix + "@fitmate.com"));
+
+        post("/api/auth/signup", signupJson("nomail" + suffix, PASSWORD, PASSWORD, "nomail_" + suffix, null))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[*].field", hasItem("email")));
     }
 
     @Test
     @DisplayName("아이디는 앞뒤 공백을 지우고 소문자로 저장·비교한다")
     void loginIdIsNormalized() throws Exception {
         String suffix = uniqueSuffix();
-        post("/api/auth/signup", signupJson("  Mixed_" + suffix + " ", PASSWORD, "mixed_" + suffix))
+        post("/api/auth/signup", signupJson("  Mixed_" + suffix + " ", PASSWORD, PASSWORD, "mixed_" + suffix, "mixed_" + suffix + "@fitmate.test"))
                 .andExpect(status().isCreated());
 
         post("/api/auth/login", loginJson("MIXED_" + suffix, PASSWORD))
@@ -113,7 +116,8 @@ class AuthApiTest extends IntegrationTest {
     @Test
     @DisplayName("비밀번호 확인이 다르면 PASSWORD_MISMATCH")
     void passwordMismatch() throws Exception {
-        post("/api/auth/signup", signupJson("p" + uniqueSuffix(), PASSWORD, "different123", "p_" + uniqueSuffix(), null))
+        String suffix = uniqueSuffix();
+        post("/api/auth/signup", signupJson("p" + suffix, PASSWORD, "different123", "p_" + suffix, "p" + suffix + "@fitmate.test"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("PASSWORD_MISMATCH"));
     }

@@ -1,9 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { ArrowLeft, ArrowUp, ChevronUp } from 'lucide-react'
+import { ArrowLeft, ArrowUp, ChevronUp, Smile } from 'lucide-react'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Avatar } from '../components/Avatar'
+import { EmojiPicker, isBigEmoji } from '../components/EmojiPicker'
 import { Button, EmptyState, Spinner } from '../components/ui'
 import { api, errorMessage } from '../lib/api'
 import { clockTime, dayLabel, isSameDay, timeAgo } from '../lib/format'
@@ -184,6 +185,21 @@ function ChatRoomView({ room }: { room: ChatRoom }) {
     }
   }, [nextCursor, loadingOlder, room.roomId, toast])
 
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const closeEmoji = useCallback(() => setEmojiOpen(false), [])
+
+  /** 커서가 있던 자리에 이모티콘을 넣고, 커서를 그 뒤로 옮긴다 */
+  const insertEmoji = (emoji: string) => {
+    const input = inputRef.current
+    const start = input?.selectionStart ?? text.length
+    const end = input?.selectionEnd ?? text.length
+    setText((current) => current.slice(0, start) + emoji + current.slice(end))
+    requestAnimationFrame(() => {
+      input?.focus()
+      input?.setSelectionRange(start + emoji.length, start + emoji.length)
+    })
+  }
+
   const submit = async () => {
     const content = text.trim()
     if (!content) return
@@ -242,8 +258,21 @@ function ChatRoomView({ room }: { room: ChatRoom }) {
         )}
       </div>
 
-      <div className="border-t border-ink-100 bg-white p-3 pb-safe md:pb-3">
-        <div className="flex items-end gap-2 rounded-3xl bg-ink-50 p-1.5 pl-4 ring-1 ring-ink-200 focus-within:ring-2 focus-within:ring-brand-400">
+      <div className="relative border-t border-ink-100 bg-white p-3 pb-safe md:pb-3">
+        {emojiOpen && <EmojiPicker onSelect={insertEmoji} onClose={closeEmoji} />}
+        <div className="flex items-end gap-1 rounded-3xl bg-ink-50 p-1.5 ring-1 ring-ink-200 focus-within:ring-2 focus-within:ring-brand-400">
+          <button
+            type="button"
+            onClick={() => setEmojiOpen((open) => !open)}
+            aria-label="이모티콘"
+            aria-expanded={emojiOpen}
+            className={clsx(
+              'flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors',
+              emojiOpen ? 'bg-brand-100 text-brand-600' : 'text-ink-400 hover:bg-ink-100 hover:text-ink-700',
+            )}
+          >
+            <Smile className="size-5" />
+          </button>
           <textarea
             ref={inputRef}
             rows={1}
@@ -255,7 +284,10 @@ function ChatRoomView({ room }: { room: ChatRoom }) {
             className="max-h-32 min-h-9 flex-1 resize-none bg-transparent py-2 text-[15px] outline-none [field-sizing:content] placeholder:text-ink-400"
           />
           <button
-            onClick={() => void submit()}
+            onClick={() => {
+              setEmojiOpen(false)
+              void submit()
+            }}
             disabled={!text.trim()}
             className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-brand-500 text-white transition hover:bg-brand-600 disabled:cursor-default disabled:bg-ink-200"
             aria-label="보내기"
@@ -295,16 +327,22 @@ function MessageList({ messages, myId, counterpartId }: { messages: ChatMessage[
                 </div>
               )}
               {mine && !groupedWithNext && <Time iso={message.createdAt} />}
-              <div
-                className={clsx(
-                  'max-w-[75%] animate-pop px-4 py-2.5 text-[15px] leading-relaxed break-words whitespace-pre-wrap',
-                  mine
-                    ? 'rounded-3xl rounded-br-lg bg-brand-500 text-white'
-                    : 'rounded-3xl rounded-bl-lg bg-white text-ink-900 shadow-sm ring-1 ring-ink-100',
-                )}
-              >
-                {message.content}
-              </div>
+              {isBigEmoji(message.content) ? (
+                <div className="animate-pop px-1 text-5xl leading-tight" role="img" aria-label={message.content}>
+                  {message.content}
+                </div>
+              ) : (
+                <div
+                  className={clsx(
+                    'max-w-[75%] animate-pop px-4 py-2.5 text-[15px] leading-relaxed break-words whitespace-pre-wrap',
+                    mine
+                      ? 'rounded-3xl rounded-br-lg bg-brand-500 text-white'
+                      : 'rounded-3xl rounded-bl-lg bg-white text-ink-900 shadow-sm ring-1 ring-ink-100',
+                  )}
+                >
+                  {message.content}
+                </div>
+              )}
               {!mine && !groupedWithNext && <Time iso={message.createdAt} />}
             </div>
           </div>

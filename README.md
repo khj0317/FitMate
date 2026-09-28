@@ -26,17 +26,25 @@ fitmate/
 
 ## 로컬 실행
 
+Docker Desktop을 켠 뒤, 처음 한 번만 `npm install`을 실행하고 아래 명령 하나로 전부 켭니다.
+
 ```bash
-# 1. DB, Redis 실행
-npm run infra:up
-
-# 2. 백엔드 (http://localhost:8081, Swagger: /swagger-ui.html)
-cd backend && ./gradlew bootRun
-
-# 3. 웹 (http://localhost:5173)
-npm install
-npm run dev:web
+npm run dev
 ```
+DB·Redis·Mailpit 컨테이너 → 백엔드(http://localhost:8081) → 웹(http://localhost:5173)이 한 터미널에서 차례로 뜨고, 로그는 `[api]`, `[web]`으로 구분됩니다. `Ctrl + C` 한 번으로 모두 종료됩니다.
+Windows에서는 루트의 **`dev.cmd`를 더블클릭**해도 됩니다.
+
+| 명령 | 설명 |
+|---|---|
+| `npm run dev` | 전체 실행 (컨테이너 + 백엔드 + 웹) |
+| `npm run dev:api` / `npm run dev:web` | 백엔드만 / 웹만 실행 |
+| `npm run test:api` | 백엔드 테스트 |
+| `npm run infra:up` / `npm run infra:down` | 컨테이너 켜기 / 끄기 |
+
+> Windows PowerShell에서 `npm` 실행이 막히면 `npm.cmd run dev`를 사용하세요.
+
+- Swagger: http://localhost:8081/swagger-ui.html · 메일함(Mailpit): http://localhost:8025
+
 웹 개발 서버는 `/api`, `/ws` 요청을 백엔드(기본 `http://localhost:8081`)로 프록시합니다.
 백엔드 포트가 다르면 `BACKEND_URL=http://localhost:8082 npm run dev:web`처럼 지정하세요.
 로그인 화면의 **데모 계정 입력** 버튼(개발 모드 전용)으로 `demo01`에 바로 로그인할 수 있습니다.
@@ -48,7 +56,7 @@ npm run dev:web
 | 로그인 · 회원가입 | 브랜드 소개 패널 + 폼, 필드별 입력 오류 표시, 가입 후 프로필 설정으로 안내 |
 | 운동 메이트 | 매칭 점수 링, 점수 내역(거리·실력·시간·매너), 공통 종목 실력 비교, 종목·반경 필터, 요청 모달 |
 | 매칭 요청 | 받은/보낸 요청 탭, 상태 필터, 수락하면 바로 채팅방으로 이동 |
-| 채팅 | 실시간 수신, 안 읽은 수 배지, 날짜 구분선, 연속 메시지 묶기, 이전 대화 불러오기 |
+| 채팅 | 실시간 수신, 안 읽은 수 배지, 날짜 구분선, 연속 메시지 묶기, 이전 대화 불러오기, 이모티콘(최근 사용, 이모티콘만 보내면 크게 표시) |
 | 내 프로필 | 기본 정보, 활동 지역(현재 위치·주요 역), 운동 종목·실력, 요일×시간대 표로 운동 가능 시간 선택 |
 
 - **기술**: React 19, Vite, TypeScript, Tailwind CSS v4, TanStack Query, React Router, STOMP.js, Pretendard
