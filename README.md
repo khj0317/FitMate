@@ -38,6 +38,70 @@ npm install
 npm run dev:web
 ```
 
+## 테스트
+
+### 자동 테스트
+```bash
+cd backend && ./gradlew test
+```
+Testcontainers로 실제 PostGIS와 Redis 컨테이너를 띄워서 통합 테스트를 실행합니다. Docker가 실행 중이어야 합니다.
+결과 리포트: `backend/build/reports/tests/test/index.html`
+
+GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 실행됩니다 (저장소의 **Actions** 탭).
+
+### Swagger로 직접 테스트하기
+1. Docker Desktop 실행 후 `npm run infra:up`
+2. `cd backend && ./gradlew bootRun`
+3. 브라우저에서 http://localhost:8081/swagger-ui.html 열기
+4. **회원가입** `POST /api/auth/signup` → Try it out
+   ```json
+   {"email": "test@fitmate.com", "password": "password123", "nickname": "테스터"}
+   ```
+5. **로그인** `POST /api/auth/login` → 응답의 `accessToken` 복사
+6. 오른쪽 위 **Authorize** 버튼 → 토큰 붙여넣기 (`Bearer ` 없이 토큰만)
+7. 이제 인증이 필요한 API를 호출할 수 있습니다. 예시:
+   - `PUT /api/users/me/location`
+     ```json
+     {"latitude": 37.5445, "longitude": 127.0557, "areaName": "서울 성동구 성수동"}
+     ```
+   - `PUT /api/users/me/sports` (종목 ID는 `GET /api/sports`에서 확인)
+     ```json
+     {"sports": [{"sportId": 1, "skillLevel": "BEGINNER"}, {"sportId": 2, "skillLevel": "ADVANCED"}]}
+     ```
+   - `PUT /api/users/me/available-times`
+     ```json
+     {"availableTimes": [{"dayOfWeek": "MONDAY", "startTime": "19:00", "endTime": "21:00"}]}
+     ```
+   - `GET /api/users/me`로 결과 확인
+
+> Windows PowerShell에서는 `./gradlew` 대신 `.\gradlew.bat`을 사용하세요.
+
+## API
+
+| Method | Path | 설명 | 인증 |
+|---|---|---|---|
+| POST | `/api/auth/signup` | 회원가입 | |
+| POST | `/api/auth/login` | 로그인 (액세스 30분 / 리프레시 14일) | |
+| POST | `/api/auth/refresh` | 토큰 재발급 (리프레시 토큰 교체) | |
+| POST | `/api/auth/logout` | 로그아웃 (리프레시 토큰 폐기) | |
+| GET | `/api/sports` | 운동 종목 목록 | |
+| GET | `/api/users/me` | 내 프로필 | ✅ |
+| PATCH | `/api/users/me` | 프로필 수정 (보낸 필드만) | ✅ |
+| PUT | `/api/users/me/location` | 활동 지역 설정 | ✅ |
+| PUT | `/api/users/me/sports` | 운동 종목·실력 설정 | ✅ |
+| PUT | `/api/users/me/available-times` | 운동 가능 시간대 설정 | ✅ |
+| GET | `/api/users/{userId}` | 다른 사용자 프로필 (이메일·좌표 비공개) | ✅ |
+
+전체 명세는 서버 실행 후 `http://localhost:8081/swagger-ui.html`에서 확인할 수 있습니다.
+
+### 인증 설계
+- **액세스 토큰**: Spring Security OAuth2 Resource Server + HS256 JWT. 직접 만든 필터 대신 표준 구현 사용
+- **리프레시 토큰**: JWT가 아닌 랜덤 문자열을 Redis에 저장 (TTL 14일)
+  - 원문이 아닌 SHA-256 해시를 키로 저장해 Redis가 유출돼도 토큰을 재사용할 수 없음
+  - `GETDEL`로 원자적으로 꺼내고 삭제 → 같은 토큰으로 동시에 재발급을 요청해도 한 번만 성공 (테스트로 검증)
+- **로그인 실패**: 계정이 없을 때와 비밀번호가 틀릴 때 같은 에러를 줘서 가입 여부를 노출하지 않음
+- **중복 가입**: 사전 검사 + DB 유니크 제약 이중 방어. 같은 이메일 동시 가입 10건 중 1건만 성공 (테스트로 검증)
+
 ## ERD
 
 ```mermaid
