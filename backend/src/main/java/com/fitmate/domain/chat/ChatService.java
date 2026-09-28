@@ -62,9 +62,10 @@ public class ChatService {
     }
 
     private ChatDtos.Message publish(ChatRoomMember sender, ChatMessage saved) {
-        sender.markRead(saved.getId()); // 내가 보낸 메시지는 읽은 것으로 처리
         ChatDtos.Message message = ChatDtos.Message.of(saved, sender.getUser().getNickname());
         eventPublisher.publishEvent(new ChatMessageSavedEvent(message));
+        // 메시지를 보냈다는 건 그 전 메시지를 모두 읽었다는 뜻 (카카오톡처럼 답장하면 상대 화면의 1이 사라진다)
+        advanceRead(sender, saved.getId());
         return message;
     }
 
@@ -85,7 +86,18 @@ public class ChatService {
         List<ChatDtos.Message> messages = page.stream()
                 .map(message -> ChatDtos.Message.of(message, nicknames.get(message.getSenderId())))
                 .toList();
-        return new ChatDtos.MessagePage(messages, hasNext ? page.get(page.size() - 1).getId() : null);
+        return new ChatDtos.MessagePage(messages, hasNext ? page.get(page.size() - 1).getId() : null,
+                otherLastReadMessageId(roomId, userId));
+    }
+
+    /** 1:1 방에서 상대가 어디까지 읽었는지. 이 ID보다 큰 내 메시지에 "1"을 표시한다 */
+    private Long otherLastReadMessageId(Long roomId, Long userId) {
+        return memberRepository.findByIdRoomId(roomId).stream()
+                .filter(member -> !member.getId().getUserId().equals(userId))
+                .map(ChatRoomMember::getLastReadMessageId)
+                .filter(Objects::nonNull)
+                .min(Long::compare)
+                .orElse(null);
     }
 
     @Transactional
@@ -94,7 +106,15 @@ public class ChatService {
         if (!messageRepository.existsByIdAndRoomId(lastMessageId, roomId)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
-        member.markRead(lastMessageId);
+        advanceRead(member, lastMessageId);
+    }
+
+    /** 읽음 위치가 실제로 앞으로 이동했을 때만 알린다 (같은 위치를 여러 번 보내도 알림은 한 번) */
+    private void advanceRead(ChatRoomMember member, Long messageId) {
+        if (member.markRead(messageId)) {
+            eventPublisher.publishEvent(new ChatReadEvent(
+                    member.getId().getRoomId(), member.getId().getUserId(), messageId));
+        }
     }
 
     public List<ChatDtos.Room> getRooms(Long userId) {

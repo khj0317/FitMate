@@ -132,6 +132,20 @@ export interface ChatRoom {
 export interface MessagePage {
   messages: ChatMessage[]
   nextCursor: number | null
+  /** 상대가 읽은 마지막 메시지 ID (null이면 아직 하나도 안 읽음) */
+  otherLastReadMessageId: number | null
+}
+
+export interface ReadEvent {
+  roomId: number
+  userId: number
+  lastReadMessageId: number
+}
+
+export interface Presence {
+  userId: number
+  online: boolean
+  lastSeenAt: string | null
 }
 
 export interface ApiErrorBody {

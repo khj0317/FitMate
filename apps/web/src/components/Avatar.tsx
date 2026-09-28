@@ -32,13 +32,30 @@ export function Avatar({
   imageUrl,
   size = 'md',
   className,
+  online,
 }: {
   id: number
   name: string
   imageUrl?: string | null
   size?: keyof typeof SIZES
   className?: string
+  /** true면 오른쪽 아래에 초록 점(현재 접속중) */
+  online?: boolean
 }) {
+  if (online) {
+    return (
+      <span className="relative inline-flex shrink-0">
+        <Avatar id={id} name={name} imageUrl={imageUrl} size={size} className={className} />
+        <span
+          className={clsx(
+            'absolute right-0 bottom-0 rounded-full bg-emerald-500 ring-2 ring-white',
+            size === 'sm' ? 'size-2.5' : 'size-3.5',
+          )}
+          aria-label="현재 접속중"
+        />
+      </span>
+    )
+  }
   if (imageUrl) {
     return <img src={fileUrl(imageUrl)!} alt="" className={clsx('shrink-0 rounded-full object-cover', SIZES[size], className)} />
   }

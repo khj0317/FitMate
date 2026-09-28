@@ -1,4 +1,4 @@
-import type { DayOfWeek, Gender, SkillLevel } from './types'
+import type { DayOfWeek, Gender, Presence, SkillLevel } from './types'
 
 export const SKILL_LABEL: Record<SkillLevel, string> = {
   BEGINNER: '초급',
@@ -76,4 +76,17 @@ export function dayLabel(iso: string) {
 
 export function isSameDay(a: string, b: string) {
   return new Date(a).toDateString() === new Date(b).toDateString()
+}
+
+/** 현재 접속중 / 5분 전 접속 / 3시간 전 접속 / 2일 전 접속. 접속 기록이 없으면 null */
+export function presenceLabel(presence: Presence | undefined) {
+  if (!presence) return null
+  if (presence.online) return '현재 접속중'
+  if (!presence.lastSeenAt) return null
+  const seconds = (Date.now() - new Date(presence.lastSeenAt).getTime()) / 1000
+  if (seconds < 60) return '방금 전 접속'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}분 전 접속`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}시간 전 접속`
+  if (seconds < 86400 * 30) return `${Math.floor(seconds / 86400)}일 전 접속`
+  return '한 달 이상 전 접속'
 }

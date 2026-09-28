@@ -98,6 +98,54 @@ class ChatWebSocketTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("상대가 읽으면 /reads 토픽으로 읽음 위치가 실시간으로 온다 (1 표시 제거용)")
+    void readReceipt() throws Exception {
+        TestUser a = signupWithGym();
+        TestUser b = signupWithGym();
+        Long roomId = matchedRoomId(a, b);
+        String sent = call(HttpMethod.POST, "/api/chat-rooms/" + roomId + "/messages", """
+                {"content": "읽으면 1이 사라져요"}
+                """, a.accessToken()).andReturn().getResponse().getContentAsString();
+        long messageId = ((Number) JsonPath.read(sent, "$.id")).longValue();
+
+        BlockingQueue<String> reads = subscribe(connect(a), "/topic/chat-rooms/" + roomId + "/reads");
+        Thread.sleep(SUBSCRIBE_SETTLE_MILLIS);
+
+        call(HttpMethod.POST, "/api/chat-rooms/" + roomId + "/read", """
+                {"lastMessageId": %d}
+                """.formatted(messageId), b.accessToken());
+
+        String read = reads.poll(5, TimeUnit.SECONDS);
+        assertThat(read).isNotNull();
+        assertThat(((Number) JsonPath.read(read, "$.userId")).longValue()).isEqualTo(b.id());
+        assertThat(((Number) JsonPath.read(read, "$.lastReadMessageId")).longValue()).isEqualTo(messageId);
+    }
+
+    @Test
+    @DisplayName("실시간 연결 중이면 접속중, 연결을 끊으면 오프라인이 되고 마지막 접속 시각이 남는다")
+    void presenceFollowsConnection() throws Exception {
+        TestUser user = signupAndLogin();
+        TestUser viewer = signupAndLogin();
+        String url = "/api/users/presence?userIds=" + user.id();
+
+        StompSession session = connect(user);
+        Thread.sleep(SUBSCRIBE_SETTLE_MILLIS);
+        call(HttpMethod.GET, url, null, viewer.accessToken())
+                .andExpect(jsonPath("$[0].online").value(true));
+
+        session.disconnect();
+        for (int i = 0; i < 50; i++) {
+            String body = call(HttpMethod.GET, url, null, viewer.accessToken()).andReturn().getResponse().getContentAsString();
+            if (!(Boolean) JsonPath.read(body, "$[0].online")) {
+                assertThat((String) JsonPath.read(body, "$[0].lastSeenAt")).isNotBlank();
+                return;
+            }
+            Thread.sleep(100);
+        }
+        throw new AssertionError("연결을 끊었는데 5초 동안 계속 접속중으로 나온다");
+    }
+
+    @Test
     @DisplayName("토큰 없이 또는 잘못된 토큰으로는 연결할 수 없다")
     void connectWithoutValidToken() {
         assertThatThrownBy(() -> connectWithToken(null)).isInstanceOf(ExecutionException.class);

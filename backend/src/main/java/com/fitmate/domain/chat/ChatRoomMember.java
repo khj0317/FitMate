@@ -50,11 +50,16 @@ public class ChatRoomMember {
         this.user = user;
     }
 
-    /** 늦게 도착한 읽음 요청이 더 최신 값을 덮어쓰지 않도록 앞으로만 이동시킨다. */
-    public void markRead(Long messageId) {
+    /**
+     * 늦게 도착한 읽음 요청이 더 최신 값을 덮어쓰지 않도록 앞으로만 이동시킨다.
+     * @return 실제로 이동했으면 true
+     */
+    public boolean markRead(Long messageId) {
         if (lastReadMessageId == null || messageId > lastReadMessageId) {
             lastReadMessageId = messageId;
+            return true;
         }
+        return false;
     }
 
     @Embeddable

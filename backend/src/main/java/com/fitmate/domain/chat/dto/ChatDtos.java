@@ -43,8 +43,11 @@ public final class ChatDtos {
         }
     }
 
-    /** nextCursor가 null이면 더 오래된 메시지가 없다. */
-    public record MessagePage(List<Message> messages, Long nextCursor) {
+    /**
+     * nextCursor가 null이면 더 오래된 메시지가 없다.
+     * otherLastReadMessageId: 상대가 읽은 마지막 메시지 ID (null이면 아직 하나도 안 읽음)
+     */
+    public record MessagePage(List<Message> messages, Long nextCursor, Long otherLastReadMessageId) {
     }
 
     public record Room(

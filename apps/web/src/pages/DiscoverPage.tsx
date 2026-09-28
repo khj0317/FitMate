@@ -7,9 +7,9 @@ import { Modal } from '../components/Modal'
 import { ScoreRing } from '../components/ScoreRing'
 import { Badge, Button, Card, Chip, EmptyState, Field, PageHeader, PageLoader, Textarea } from '../components/ui'
 import { ApiError, errorMessage } from '../lib/api'
-import { formatMinutes, GENDER_LABEL, SKILL_LABEL, sportEmoji } from '../lib/format'
-import { useMe, useRecommendations, useSendMatchRequest } from '../lib/queries'
-import type { MatchCandidate } from '../lib/types'
+import { formatMinutes, GENDER_LABEL, presenceLabel, SKILL_LABEL, sportEmoji } from '../lib/format'
+import { useMe, usePresence, useRecommendations, useSendMatchRequest } from '../lib/queries'
+import type { MatchCandidate, Presence } from '../lib/types'
 import { useToast } from '../providers/ToastProvider'
 
 const RADIUS_OPTIONS = [1, 3, 5, 10, 20]
@@ -31,6 +31,7 @@ export function DiscoverPage() {
 
   const profileReady = !!me?.location && (me.sports.length > 0 || sportId !== null)
   const { data: candidates, isLoading, error } = useRecommendations(sportId, radiusKm, profileReady)
+  const { data: presence } = usePresence(candidates?.map((candidate) => candidate.userId) ?? [])
 
   if (meLoading || !me) return <PageLoader />
   const effectiveRadius = radiusKm ?? me.searchRadiusKm
@@ -117,6 +118,7 @@ export function DiscoverPage() {
                   candidate={candidate}
                   rank={index + 1}
                   requested={requested.has(candidate.userId)}
+                  presence={presence?.get(candidate.userId)}
                   onRequest={() => setTarget(candidate)}
                 />
               ))}
@@ -138,11 +140,13 @@ function CandidateCard({
   candidate,
   rank,
   requested,
+  presence,
   onRequest,
 }: {
   candidate: MatchCandidate
   rank: number
   requested: boolean
+  presence: Presence | undefined
   onRequest: () => void
 }) {
   const profileLine = [candidate.ageGroup, candidate.gender && GENDER_LABEL[candidate.gender]].filter(Boolean).join(' · ')
@@ -153,7 +157,7 @@ function CandidateCard({
     >
       <div className="flex items-start gap-3">
         <div className="relative">
-          <Avatar id={candidate.userId} name={candidate.nickname} imageUrl={candidate.profileImageUrl} />
+          <Avatar id={candidate.userId} name={candidate.nickname} imageUrl={candidate.profileImageUrl} online={presence?.online} />
           {rank <= 3 && (
             <span className="absolute -top-1 -left-1 flex size-5 items-center justify-center rounded-full bg-ink-900 text-[10px] font-bold text-white ring-2 ring-white">
               {rank}
@@ -162,7 +166,14 @@ function CandidateCard({
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[17px] font-bold">{candidate.nickname}</p>
-          <p className="mt-0.5 truncate text-sm text-ink-500">{profileLine || '정보 비공개'}</p>
+          <p className="mt-0.5 truncate text-sm text-ink-500">
+            {profileLine || '정보 비공개'}
+            {presenceLabel(presence) && (
+              <span className={clsx('ml-1.5 text-xs', presence?.online ? 'font-semibold text-emerald-600' : 'text-ink-400')}>
+                · {presenceLabel(presence)}
+              </span>
+            )}
+          </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <Badge>
               <MapPin className="size-3" />

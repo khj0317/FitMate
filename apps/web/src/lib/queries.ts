@@ -8,6 +8,7 @@ import type {
   MatchRequestStatus,
   MessagePage,
   MyProfile,
+  Presence,
   ProfileInput,
   Sport,
 } from './types'
@@ -19,6 +20,7 @@ export const keys = {
   requests: (box: 'received' | 'sent', status: MatchRequestStatus) => ['matchRequests', box, status] as const,
   chatRooms: ['chatRooms'] as const,
   messages: (roomId: number) => ['messages', roomId] as const,
+  presence: (userIds: number[]) => ['presence', ...userIds] as const,
 }
 
 export function useMe(enabled = true) {
@@ -46,6 +48,21 @@ export function useMatchRequests(box: 'received' | 'sent', status: MatchRequestS
   return useQuery({
     queryKey: keys.requests(box, status),
     queryFn: () => api.get<MatchRequest[]>(`/api/match-requests/${box}?status=${status}`),
+  })
+}
+
+/** 접속 상태는 자주 바뀌므로 20초마다 다시 확인한다 */
+export function usePresence(userIds: number[]) {
+  const ids = [...new Set(userIds)].sort((a, b) => a - b)
+  return useQuery({
+    queryKey: keys.presence(ids),
+    queryFn: async () => {
+      const list = await api.get<Presence[]>(`/api/users/presence?userIds=${ids.join(',')}`)
+      return new Map(list.map((presence) => [presence.userId, presence]))
+    },
+    enabled: ids.length > 0,
+    refetchInterval: 20_000,
+    staleTime: 10_000,
   })
 }
 

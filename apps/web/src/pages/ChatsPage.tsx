@@ -8,9 +8,9 @@ import { EmojiPicker, isBigEmoji } from '../components/EmojiPicker'
 import { Button, EmptyState, Spinner } from '../components/ui'
 import { api, errorMessage, fileUrl } from '../lib/api'
 import { compressImage, ImageError } from '../lib/image'
-import { clockTime, dayLabel, isSameDay, timeAgo } from '../lib/format'
-import { fetchMessages, keys, useChatRooms, useMe } from '../lib/queries'
-import type { ChatMessage, ChatRoom } from '../lib/types'
+import { clockTime, dayLabel, isSameDay, presenceLabel, timeAgo } from '../lib/format'
+import { fetchMessages, keys, useChatRooms, useMe, usePresence } from '../lib/queries'
+import type { ChatMessage, ChatRoom, Presence, ReadEvent } from '../lib/types'
 import { useChatSocket } from '../providers/ChatSocketProvider'
 import { useToast } from '../providers/ToastProvider'
 
@@ -18,6 +18,9 @@ export function ChatsPage() {
   const { roomId } = useParams()
   const selectedId = roomId ? Number(roomId) : null
   const { data: rooms, isLoading } = useChatRooms()
+  const { data: presence } = usePresence(
+    (rooms ?? []).flatMap((r) => (r.counterpart ? [r.counterpart.userId] : [])),
+  )
   const room = rooms?.find((r) => r.roomId === selectedId) ?? null
 
   return (
@@ -38,7 +41,14 @@ export function ChatsPage() {
           ) : !rooms?.length ? (
             <EmptyState emoji="💬" title="아직 대화가 없어요" description="매칭 요청이 수락되면 여기에서 대화할 수 있어요." />
           ) : (
-            rooms.map((r) => <RoomItem key={r.roomId} room={r} active={r.roomId === selectedId} />)
+            rooms.map((r) => (
+              <RoomItem
+                key={r.roomId}
+                room={r}
+                active={r.roomId === selectedId}
+                online={!!r.counterpart && !!presence?.get(r.counterpart.userId)?.online}
+              />
+            ))
           )}
         </div>
       </section>
@@ -51,7 +61,11 @@ export function ChatsPage() {
         )}
       >
         {selectedId && room ? (
-          <ChatRoomView key={selectedId} room={room} />
+          <ChatRoomView
+            key={selectedId}
+            room={room}
+            presence={room.counterpart ? presence?.get(room.counterpart.userId) : undefined}
+          />
         ) : selectedId && !isLoading ? (
           <EmptyState emoji="🤔" title="채팅방을 찾을 수 없어요" action={<Link to="/chats" className="font-bold text-brand-600">목록으로</Link>} />
         ) : (
@@ -64,7 +78,7 @@ export function ChatsPage() {
   )
 }
 
-function RoomItem({ room, active }: { room: ChatRoom; active: boolean }) {
+function RoomItem({ room, active, online }: { room: ChatRoom; active: boolean; online: boolean }) {
   const name = room.counterpart?.nickname ?? `채팅방 ${room.roomId}`
   return (
     <Link
@@ -74,7 +88,7 @@ function RoomItem({ room, active }: { room: ChatRoom; active: boolean }) {
         active ? 'bg-brand-50' : 'hover:bg-ink-50',
       )}
     >
-      <Avatar id={room.counterpart?.userId ?? room.roomId} name={name} imageUrl={room.counterpart?.profileImageUrl} />
+      <Avatar id={room.counterpart?.userId ?? room.roomId} name={name} imageUrl={room.counterpart?.profileImageUrl} online={online} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="flex-1 truncate font-bold">{name}</p>
@@ -95,18 +109,24 @@ function RoomItem({ room, active }: { room: ChatRoom; active: boolean }) {
   )
 }
 
-function ChatRoomView({ room }: { room: ChatRoom }) {
+function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence | undefined }) {
   const navigate = useNavigate()
   const toast = useToast()
   const queryClient = useQueryClient()
   const { data: me } = useMe()
-  const { connected, onMessage, send } = useChatSocket()
+  const { connected, onMessage, send, subscribe } = useChatSocket()
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [nextCursor, setNextCursor] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [text, setText] = useState('')
+  /** 상대가 읽은 마지막 메시지 ID. 이보다 큰 내 메시지에 "1"을 표시한다 */
+  const [otherLastRead, setOtherLastRead] = useState<number | null>(null)
+  const advanceOtherRead = useCallback(
+    (id: number | null) => id !== null && setOtherLastRead((current) => Math.max(current ?? 0, id)),
+    [],
+  )
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -124,13 +144,26 @@ function ChatRoomView({ room }: { room: ChatRoom }) {
         if (cancelled) return
         setMessages(page.messages.slice().reverse())
         setNextCursor(page.nextCursor)
+        advanceOtherRead(page.otherLastReadMessageId)
       })
       .catch((e) => toast(errorMessage(e), 'error'))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
-  }, [room.roomId, toast])
+  }, [room.roomId, toast, advanceOtherRead])
+
+  // 상대가 읽으면 실시간으로 "1"을 지운다. 재연결되면(connected 변화) 다시 구독하고, 끊긴 사이 놓친 읽음도 다시 받아온다
+  useEffect(() => {
+    if (!connected) return
+    fetchMessages(room.roomId)
+      .then((page) => advanceOtherRead(page.otherLastReadMessageId))
+      .catch(() => undefined)
+    return subscribe(`/topic/chat-rooms/${room.roomId}/reads`, (body) => {
+      const event = JSON.parse(body) as ReadEvent
+      if (event.userId !== me?.id) advanceOtherRead(event.lastReadMessageId)
+    })
+  }, [connected, subscribe, room.roomId, me?.id, advanceOtherRead])
 
   // 실시간 메시지 수신
   useEffect(
@@ -253,12 +286,21 @@ function ChatRoomView({ room }: { room: ChatRoom }) {
         <button onClick={() => navigate('/chats')} className="-ml-1 cursor-pointer rounded-full p-1.5 hover:bg-ink-100 md:hidden" aria-label="뒤로">
           <ArrowLeft className="size-5" />
         </button>
-        <Avatar id={room.counterpart?.userId ?? room.roomId} name={name} imageUrl={room.counterpart?.profileImageUrl} size="sm" />
+        <Avatar
+          id={room.counterpart?.userId ?? room.roomId}
+          name={name}
+          imageUrl={room.counterpart?.profileImageUrl}
+          size="sm"
+          online={presence?.online}
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate font-bold">{name}</p>
           <p className="flex items-center gap-1.5 text-xs text-ink-500">
-            <span className={clsx('size-1.5 rounded-full', connected ? 'bg-emerald-500' : 'bg-amber-400')} />
-            {connected ? '실시간 대화 중' : '연결 중... (메시지는 계속 보낼 수 있어요)'}
+            <span className={clsx('size-1.5 rounded-full', presence?.online ? 'bg-emerald-500' : 'bg-ink-300')} />
+            <span className={clsx(presence?.online && 'font-medium text-emerald-600')}>
+              {presenceLabel(presence) ?? '접속 기록 없음'}
+            </span>
+            {!connected && <span className="text-amber-600">· 내 연결 재시도 중</span>}
           </p>
         </div>
       </header>
@@ -283,6 +325,7 @@ function ChatRoomView({ room }: { room: ChatRoom }) {
               myId={me?.id ?? -1}
               counterpartId={room.counterpart?.userId ?? 0}
               onOpenImage={setViewer}
+              otherLastReadId={otherLastRead}
             />
             {uploading > 0 && (
               <div className="mt-3 flex justify-end">
@@ -374,11 +417,13 @@ function MessageList({
   myId,
   counterpartId,
   onOpenImage,
+  otherLastReadId,
 }: {
   messages: ChatMessage[]
   myId: number
   counterpartId: number
   onOpenImage: (url: string) => void
+  otherLastReadId: number | null
 }) {
   return (
     <div className="flex flex-col">
@@ -386,6 +431,8 @@ function MessageList({
         const prev = messages[index - 1]
         const next = messages[index + 1]
         const mine = message.senderId === myId
+        // 카카오톡처럼 상대가 아직 안 읽은 내 메시지에 1을 표시한다
+        const unread = mine && (otherLastReadId === null || message.id > otherLastReadId)
         const newDay = !prev || !isSameDay(prev.createdAt, message.createdAt)
         const groupedWithPrev = !newDay && prev?.senderId === message.senderId && withinMinutes(prev.createdAt, message.createdAt, 3)
         const groupedWithNext =
@@ -404,7 +451,16 @@ function MessageList({
                   {!groupedWithNext && <Avatar id={counterpartId} name={message.senderNickname ?? '?'} size="sm" className="size-8! text-xs!" />}
                 </div>
               )}
-              {mine && !groupedWithNext && <Time iso={message.createdAt} />}
+              {mine && (unread || !groupedWithNext) && (
+                <div className="flex shrink-0 flex-col items-end">
+                  {unread && (
+                    <span className="mb-0.5 text-[11px] leading-none font-bold text-brand-500" aria-label="안 읽음">
+                      1
+                    </span>
+                  )}
+                  {!groupedWithNext && <Time iso={message.createdAt} />}
+                </div>
+              )}
               {message.type === 'IMAGE' && message.imageUrl ? (
                 <PhotoBubble message={message} onOpen={onOpenImage} />
               ) : isBigEmoji(message.content ?? '') ? (

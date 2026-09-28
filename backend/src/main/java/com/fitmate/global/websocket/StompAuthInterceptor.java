@@ -81,9 +81,14 @@ public class StompAuthInterceptor implements ChannelInterceptor {
         return user;
     }
 
+    /** /topic/chat-rooms/{roomId} 또는 /topic/chat-rooms/{roomId}/reads 에서 방 ID를 꺼낸다 */
     private static Long parseRoomId(String destination) {
+        String rest = destination.substring(ChatMessageSubscriber.ROOM_TOPIC_PREFIX.length());
+        if (rest.endsWith(ChatMessageSubscriber.READS_SUFFIX)) {
+            rest = rest.substring(0, rest.length() - ChatMessageSubscriber.READS_SUFFIX.length());
+        }
         try {
-            return Long.valueOf(destination.substring(ChatMessageSubscriber.ROOM_TOPIC_PREFIX.length()));
+            return Long.valueOf(rest);
         } catch (NumberFormatException e) {
             return null;
         }

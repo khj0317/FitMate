@@ -56,7 +56,7 @@ Windows에서는 루트의 **`dev.cmd`를 더블클릭**해도 됩니다.
 | 로그인 · 회원가입 | 브랜드 소개 패널 + 폼, 필드별 입력 오류 표시, 가입 후 프로필 설정으로 안내 |
 | 운동 메이트 | 매칭 점수 링, 점수 내역(거리·실력·시간·매너), 공통 종목 실력 비교, 종목·반경 필터, 요청 모달 |
 | 매칭 요청 | 받은/보낸 요청 탭, 상태 필터, 수락하면 바로 채팅방으로 이동 |
-| 채팅 | 실시간 수신, 안 읽은 수 배지, 날짜 구분선, 연속 메시지 묶기, 이전 대화 불러오기, 이모티콘(최근 사용, 이모티콘만 보내면 크게 표시), 사진(버튼·붙여넣기, 크게 보기) |
+| 채팅 | 실시간 수신, 안 읽은 수 배지, 날짜 구분선, 연속 메시지 묶기, 이전 대화 불러오기, 이모티콘(최근 사용, 이모티콘만 보내면 크게 표시), 사진(버튼·붙여넣기, 크게 보기), 읽음 표시 "1", 상대 접속 상태 |
 | 내 프로필 | 프로필 사진(즉시 저장), 기본 정보, 활동 지역(전국 자동완성 검색), 운동 종목·실력, 요일×시간대 표로 운동 가능 시간 선택 |
 
 - **기술**: React 19, Vite, TypeScript, Tailwind CSS v4, TanStack Query, React Router, STOMP.js, Pretendard
@@ -133,11 +133,12 @@ GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 
 | POST | `/api/chat-rooms/{id}/messages` | 메시지 보내기 (REST) | ✅ |
 | POST | `/api/chat-rooms/{id}/images` | 사진 보내기 (multipart) | ✅ |
 | POST | `/api/chat-rooms/{id}/read` | 읽음 처리 | ✅ |
+| GET | `/api/users/presence?userIds=1,2` | 접속 상태 (현재 접속중 / 마지막 접속 시각) | ✅ |
 | POST · DELETE | `/api/users/me/profile-image` | 프로필 사진 올리기 · 삭제 (multipart) | ✅ |
 
 **WebSocket (STOMP)**: `ws://localhost:8081/ws`
 - 연결: CONNECT 헤더에 `Authorization: Bearer <accessToken>`
-- 구독: `/topic/chat-rooms/{roomId}` (채팅방 멤버만 가능), 에러는 `/user/queue/errors`
+- 구독: `/topic/chat-rooms/{roomId}` (메시지), `/topic/chat-rooms/{roomId}/reads` (읽음 위치) — 채팅방 멤버만 가능, 에러는 `/user/queue/errors`
 - 전송: `/app/chat-rooms/{roomId}/messages` ← `{"content": "..."}`
 
 전체 명세는 서버 실행 후 `http://localhost:8081/swagger-ui.html`에서 확인할 수 있습니다.
@@ -156,6 +157,11 @@ GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 
 - **재요청 제한**: 같은 대상은 1분에 한 번 (`SET NX EX`)
 - **비밀번호 변경 시 모든 기기 로그아웃**: 사용자별 리프레시 토큰 목록(Redis Set)을 관리해 한 번에 폐기
 - **로컬 메일 확인**: docker-compose의 Mailpit이 메일을 받아서 http://localhost:8025 에서 볼 수 있음 (실제 발송 안 됨)
+
+### 읽음 표시 · 접속 상태
+- **읽음 "1"**: 메시지 목록에 상대의 마지막 읽음 위치를 함께 주고, 상대가 읽거나 답장하면 읽음 위치를 커밋 후 Redis로 발행 → `/reads` 토픽으로 실시간 전달. 읽음 위치가 실제로 앞으로 움직였을 때만 발행
+- **접속 상태**: WebSocket 연결 = 접속. Redis 해시에 연결마다 만료 시각을 기록해 **여러 탭**(하나 닫아도 접속중)과 **서버 장애**(heartbeat 30초, 90초 지나면 만료로 보고 정리)를 모두 처리
+- **경쟁 상황 수정**: 끊김 처리 순서(연결 삭제 → 마지막 접속 기록)를 반대로 바꿈. 그 사이 조회에서 "오프라인인데 마지막 접속 없음"이 보이던 문제를 WebSocket E2E 테스트가 잡아냄
 
 ### 사진 업로드
 - **브라우저에서 먼저 축소**: 업로드 전에 긴 변 1600px JPEG로 줄여서 전송량을 줄이고, 휴대폰 사진의 회전(EXIF Orientation)을 이때 적용

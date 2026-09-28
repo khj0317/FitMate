@@ -8,6 +8,8 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 
+import java.util.List;
+
 @Configuration
 public class RedisConfig {
 
@@ -16,7 +18,9 @@ public class RedisConfig {
                                                                        ChatMessageSubscriber chatMessageSubscriber) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        container.addMessageListener(chatMessageSubscriber, new ChannelTopic(ChatMessagePublisher.CHANNEL));
+        container.addMessageListener(chatMessageSubscriber, List.of(
+                new ChannelTopic(ChatMessagePublisher.CHANNEL),
+                new ChannelTopic(ChatMessagePublisher.READ_CHANNEL)));
         return container;
     }
 }

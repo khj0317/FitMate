@@ -49,6 +49,30 @@ class ChatApiTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("메시지 목록에 상대가 읽은 위치가 들어 있다: 안 읽었으면 null, 읽으면 그 메시지 ID, 답장해도 읽음 처리")
+    void otherLastReadMessageId() throws Exception {
+        TestUser a = signupWithGym();
+        TestUser b = signupWithGym();
+        Long roomId = matchedRoomId(a, b);
+
+        Long first = send(a, roomId, "첫 메시지");
+        Long second = send(a, roomId, "두 번째");
+        assertThat((Object) JsonPath.read(getMessages(a, roomId, null), "$.otherLastReadMessageId")).isNull();
+
+        call(HttpMethod.POST, "/api/chat-rooms/" + roomId + "/read", """
+                {"lastMessageId": %d}
+                """.formatted(first), b.accessToken());
+        assertThat(((Number) JsonPath.read(getMessages(a, roomId, null), "$.otherLastReadMessageId")).longValue())
+                .isEqualTo(first);
+
+        // 답장하면 그 전 메시지는 모두 읽은 것 (카카오톡처럼 1이 사라진다)
+        Long reply = send(b, roomId, "답장");
+        assertThat(((Number) JsonPath.read(getMessages(a, roomId, null), "$.otherLastReadMessageId")).longValue())
+                .isEqualTo(reply)
+                .isGreaterThan(second);
+    }
+
+    @Test
     @DisplayName("답장하면 상대방 쪽 안 읽은 수만 늘어난다")
     void replyUpdatesUnreadForOtherSide() throws Exception {
         TestUser a = signupWithGym();

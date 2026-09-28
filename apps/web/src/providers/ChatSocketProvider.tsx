@@ -12,6 +12,8 @@ interface ChatSocketValue {
   /** 모든 내 채팅방의 새 메시지를 구독한다. 반환값은 구독 해제 함수 */
   onMessage: (listener: (message: ChatMessage) => void) => () => void
   send: (roomId: number, content: string) => Promise<void>
+  /** 연결된 상태에서 토픽을 구독한다. 연결이 바뀌면(재연결) 다시 불러야 하므로 connected를 의존성에 넣어 쓴다 */
+  subscribe: (destination: string, handler: (body: string) => void) => () => void
 }
 
 const ChatSocketContext = createContext<ChatSocketValue | null>(null)
@@ -100,7 +102,14 @@ export function ChatSocketProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  return <ChatSocketContext value={{ connected, onMessage, send }}>{children}</ChatSocketContext>
+  const subscribe = useCallback((destination: string, handler: (body: string) => void) => {
+    const client = clientRef.current
+    if (!client?.connected) return () => {}
+    const subscription = client.subscribe(destination, (frame) => handler(frame.body))
+    return () => subscription.unsubscribe()
+  }, [])
+
+  return <ChatSocketContext value={{ connected, onMessage, send, subscribe }}>{children}</ChatSocketContext>
 }
 
 export function useChatSocket() {
