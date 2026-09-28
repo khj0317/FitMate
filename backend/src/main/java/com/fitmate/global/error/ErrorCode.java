@@ -29,7 +29,11 @@ public enum ErrorCode {
     DUPLICATE_SPORT(HttpStatus.BAD_REQUEST, "같은 운동 종목을 중복으로 등록할 수 없습니다."),
 
     // 운동 종목
-    SPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 운동 종목입니다.");
+    SPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 운동 종목입니다."),
+
+    // 매칭
+    LOCATION_REQUIRED(HttpStatus.BAD_REQUEST, "활동 지역을 먼저 설정해 주세요."),
+    SPORT_REQUIRED(HttpStatus.BAD_REQUEST, "운동 종목을 먼저 등록하거나 검색할 종목을 선택해 주세요.");
 
     private final HttpStatus status;
     private final String message;

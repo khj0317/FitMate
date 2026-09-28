@@ -52,4 +52,11 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// 서비스 기준 시간대(KST)로 고정해서, UTC인 CI 서버에서도 시간대 관련 버그가 똑같이 재현되게 한다
+	jvmArgs '-Duser.timezone=Asia/Seoul'
+}
+
+// 로컬 실행(bootRun)은 local 프로필로 띄워 데모 데이터를 만든다. 배포(jar 실행)에는 적용되지 않음
+tasks.named('bootRun') {
+	systemProperty 'spring.profiles.active', 'local'
 }

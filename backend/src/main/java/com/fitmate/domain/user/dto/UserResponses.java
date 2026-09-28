@@ -81,7 +81,7 @@ public final class UserResponses {
             );
         }
 
-        private static String ageGroup(Short birthYear) {
+        public static String ageGroup(Short birthYear) {
             if (birthYear == null) {
                 return null;
             }

@@ -4,13 +4,19 @@ import com.fitmate.support.IntegrationTest;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UserProfileApiTest extends IntegrationTest {
+
+    @Autowired
+    private JdbcClient jdbcClient;
 
     @Test
     @DisplayName("운동 종목 목록은 로그인 없이 조회할 수 있다")
@@ -133,6 +139,25 @@ class UserProfileApiTest extends IntegrationTest {
                 .andExpect(jsonPath("$.availableTimes[0].dayOfWeek").value("MONDAY"))
                 .andExpect(jsonPath("$.availableTimes[0].startTime").value("07:00"))
                 .andExpect(jsonPath("$.availableTimes[2].dayOfWeek").value("SATURDAY"));
+    }
+
+    @Test
+    @DisplayName("운동 가능 시각은 서버 시간대와 상관없이 입력한 그대로 DB에 저장된다")
+    void availableTimesAreStoredAsWallClock() throws Exception {
+        TestUser user = signupAndLogin();
+        String me = call(HttpMethod.PUT, "/api/users/me/available-times", """
+                {"availableTimes": [{"dayOfWeek": "SATURDAY", "startTime": "08:00", "endTime": "10:00"}]}
+                """, user.accessToken())
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        Integer userId = JsonPath.read(me, "$.id");
+
+        // 과거 버그: hibernate.jdbc.time_zone=UTC 설정 때문에 KST 08:00이 23:00으로 저장됐다
+        String stored = jdbcClient.sql("SELECT start_time::text FROM user_available_times WHERE user_id = ?")
+                .param(userId)
+                .query(String.class)
+                .single();
+        assertThat(stored).isEqualTo("08:00:00");
     }
 
     @Test
