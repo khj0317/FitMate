@@ -99,13 +99,14 @@ export function refreshTokens(): Promise<boolean> {
 
 async function request<T>(method: string, path: string, body?: unknown, retry = true): Promise<T> {
   const accessToken = getAccessToken()
+  const isForm = body instanceof FormData // 파일 업로드는 브라우저가 boundary를 포함한 Content-Type을 직접 붙인다
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers: {
-      ...(body !== undefined && { 'Content-Type': 'application/json' }),
+      ...(body !== undefined && !isForm && { 'Content-Type': 'application/json' }),
       ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
     },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: isForm ? body : body !== undefined ? JSON.stringify(body) : undefined,
   })
 
   if (res.status === 401 && retry && !path.startsWith('/api/auth/')) {
@@ -127,6 +128,18 @@ export const api = {
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body ?? {}),
   put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),
   patch: <T>(path: string, body: unknown) => request<T>('PATCH', path, body),
+  delete: <T>(path: string) => request<T>('DELETE', path),
+  upload: <T>(path: string, file: Blob, filename = 'photo.jpg') => {
+    const form = new FormData()
+    form.append('file', file, filename)
+    return request<T>('POST', path, form)
+  },
+}
+
+/** 서버가 준 파일 경로(/files/...)를 실제 주소로 바꾼다. 외부 저장소(S3) URL은 그대로 둔다 */
+export function fileUrl(url: string | null | undefined) {
+  if (!url) return null
+  return url.startsWith('/') ? `${API_BASE}${url}` : url
 }
 
 export function errorMessage(error: unknown) {

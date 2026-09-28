@@ -1,4 +1,5 @@
 import clsx from 'clsx'
+import { fileUrl } from '../lib/api'
 
 const GRADIENTS = [
   'from-orange-400 to-rose-500',
@@ -39,7 +40,7 @@ export function Avatar({
   className?: string
 }) {
   if (imageUrl) {
-    return <img src={imageUrl} alt="" className={clsx('shrink-0 rounded-full object-cover', SIZES[size], className)} />
+    return <img src={fileUrl(imageUrl)!} alt="" className={clsx('shrink-0 rounded-full object-cover', SIZES[size], className)} />
   }
   return (
     <div

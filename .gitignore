@@ -15,6 +15,7 @@ backend/.gradle/
 backend/build/
 backend/bin/
 backend/out/
+backend/uploads/
 
 # Frontend (Node)
 node_modules/

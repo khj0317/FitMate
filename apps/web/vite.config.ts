@@ -19,6 +19,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': { target: backend, configure: stripOrigin },
+      '/files': { target: backend, configure: stripOrigin }, // 로컬 저장소 사진
       '/ws': { target: backend.replace(/^http/, 'ws'), ws: true, configure: stripOrigin },
     },
   },

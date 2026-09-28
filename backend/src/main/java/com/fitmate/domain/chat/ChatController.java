@@ -8,14 +8,17 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -50,6 +53,16 @@ public class ChatController {
                                  @PathVariable Long roomId,
                                  @Valid @RequestBody ChatDtos.SendMessage request) {
         return chatService.send(roomId, userId, request.content());
+    }
+
+    @Operation(summary = "사진 보내기",
+            description = "JPG·PNG 10MB 이하. 긴 변 1600px로 줄이고 촬영 위치 등 메타데이터를 지운 뒤 사진 메시지로 보냅니다.")
+    @PostMapping(value = "/{roomId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ChatDtos.Message sendImage(@Parameter(hidden = true) @LoginUserId Long userId,
+                                      @PathVariable Long roomId,
+                                      @RequestPart("file") MultipartFile file) {
+        return chatService.sendImage(roomId, userId, file);
     }
 
     @Operation(summary = "읽음 처리", description = "이 메시지까지 읽었다고 기록합니다. 이전 값보다 작으면 무시합니다.")

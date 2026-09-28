@@ -14,7 +14,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import org.hibernate.validator.constraints.URL;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -34,9 +33,6 @@ public final class UserRequests {
 
             @Size(max = 500, message = "자기소개는 500자 이하여야 합니다.")
             String bio,
-
-            @Size(max = 500) @URL(message = "올바른 URL 형식이 아닙니다.")
-            String profileImageUrl,
 
             @Email(message = "올바른 이메일 형식이 아닙니다.") @Size(max = 255)
             String email,

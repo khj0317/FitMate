@@ -23,11 +23,23 @@ public final class ChatDtos {
     public record MarkRead(@NotNull @Positive Long lastMessageId) {
     }
 
-    /** REST 응답과 WebSocket 브로드캐스트에 같은 형식을 쓴다. */
-    public record Message(Long id, Long roomId, Long senderId, String senderNickname, String content, Instant createdAt) {
+    /** REST 응답과 WebSocket 브로드캐스트에 같은 형식을 쓴다. 사진 메시지는 content 대신 image* 필드를 쓴다. */
+    public record Message(
+            Long id,
+            Long roomId,
+            Long senderId,
+            String senderNickname,
+            ChatMessage.MessageType type,
+            String content,
+            String imageUrl,
+            Short imageWidth,
+            Short imageHeight,
+            Instant createdAt
+    ) {
         public static Message of(ChatMessage message, String senderNickname) {
             return new Message(message.getId(), message.getRoomId(), message.getSenderId(), senderNickname,
-                    message.getContent(), message.getCreatedAt());
+                    message.getType(), message.getContent(), message.getImageUrl(),
+                    message.getImageWidth(), message.getImageHeight(), message.getCreatedAt());
         }
     }
 

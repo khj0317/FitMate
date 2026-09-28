@@ -6,10 +6,13 @@ import com.fitmate.domain.user.dto.UserRequests;
 import com.fitmate.domain.user.dto.UserResponses;
 import com.fitmate.global.error.BusinessException;
 import com.fitmate.global.error.ErrorCode;
+import com.fitmate.global.image.ImagePurpose;
+import com.fitmate.global.image.ImageUploader;
 import com.fitmate.global.util.GeoPoints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -27,6 +30,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final SportRepository sportRepository;
+    private final ImageUploader imageUploader;
 
     public UserResponses.MyProfile getMyProfile(Long userId) {
         return UserResponses.MyProfile.from(getUser(userId));
@@ -49,9 +53,6 @@ public class UserService {
         if (request.bio() != null) {
             user.changeBio(request.bio());
         }
-        if (request.profileImageUrl() != null) {
-            user.changeProfileImageUrl(request.profileImageUrl());
-        }
         if (request.gender() != null) {
             user.changeGender(request.gender());
         }
@@ -60,6 +61,28 @@ public class UserService {
         }
         if (request.searchRadiusKm() != null) {
             user.changeSearchRadiusKm(request.searchRadiusKm());
+        }
+        return UserResponses.MyProfile.from(user);
+    }
+
+    /** 가운데를 정사각형으로 잘라 512px로 저장하고, 예전 사진은 커밋 후 지운다. */
+    @Transactional
+    public UserResponses.MyProfile updateProfileImage(Long userId, MultipartFile file) {
+        User user = getUser(userId);
+        String previous = user.getProfileImageUrl();
+        user.changeProfileImageUrl(imageUploader.upload(file, ImagePurpose.PROFILE).url());
+        if (previous != null) {
+            imageUploader.deleteAfterCommit(previous);
+        }
+        return UserResponses.MyProfile.from(user);
+    }
+
+    @Transactional
+    public UserResponses.MyProfile deleteProfileImage(Long userId) {
+        User user = getUser(userId);
+        if (user.getProfileImageUrl() != null) {
+            imageUploader.deleteAfterCommit(user.getProfileImageUrl());
+            user.changeProfileImageUrl(null);
         }
         return UserResponses.MyProfile.from(user);
     }

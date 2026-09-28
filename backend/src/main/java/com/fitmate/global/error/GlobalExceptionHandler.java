@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,11 @@ public class GlobalExceptionHandler {
             HandlerMethodValidationException.class})
     public ResponseEntity<ErrorResponse> handleUnreadable(Exception e) {
         return toResponse(ErrorCode.INVALID_INPUT);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleTooLarge(MaxUploadSizeExceededException e) {
+        return toResponse(ErrorCode.IMAGE_TOO_LARGE);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

@@ -8,13 +8,18 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "회원 프로필")
 @RestController
@@ -43,6 +48,20 @@ public class UserController {
     public UserResponses.MyProfile updateAll(@Parameter(hidden = true) @LoginUserId Long userId,
                                              @Valid @RequestBody UserRequests.UpdateAll request) {
         return userService.updateAll(userId, request);
+    }
+
+    @Operation(summary = "프로필 사진 올리기",
+            description = "JPG·PNG 10MB 이하. 가운데를 정사각형으로 잘라 512px로 저장하고, 촬영 위치 등 메타데이터를 지웁니다.")
+    @PostMapping(value = "/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public UserResponses.MyProfile updateProfileImage(@Parameter(hidden = true) @LoginUserId Long userId,
+                                                      @RequestPart("file") MultipartFile file) {
+        return userService.updateProfileImage(userId, file);
+    }
+
+    @Operation(summary = "프로필 사진 삭제")
+    @DeleteMapping("/me/profile-image")
+    public UserResponses.MyProfile deleteProfileImage(@Parameter(hidden = true) @LoginUserId Long userId) {
+        return userService.deleteProfileImage(userId);
     }
 
     @Operation(summary = "활동 지역 설정")

@@ -1,12 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { ArrowLeft, ArrowUp, ChevronUp, Smile } from 'lucide-react'
+import { ArrowLeft, ArrowUp, ChevronUp, ImagePlus, Smile, X } from 'lucide-react'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Avatar } from '../components/Avatar'
 import { EmojiPicker, isBigEmoji } from '../components/EmojiPicker'
 import { Button, EmptyState, Spinner } from '../components/ui'
-import { api, errorMessage } from '../lib/api'
+import { api, errorMessage, fileUrl } from '../lib/api'
+import { compressImage, ImageError } from '../lib/image'
 import { clockTime, dayLabel, isSameDay, timeAgo } from '../lib/format'
 import { fetchMessages, keys, useChatRooms, useMe } from '../lib/queries'
 import type { ChatMessage, ChatRoom } from '../lib/types'
@@ -188,6 +189,30 @@ function ChatRoomView({ room }: { room: ChatRoom }) {
   const [emojiOpen, setEmojiOpen] = useState(false)
   const closeEmoji = useCallback(() => setEmojiOpen(false), [])
 
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(0)
+  const [viewer, setViewer] = useState<string | null>(null)
+
+  /** 사진은 브라우저에서 줄인 뒤 올린다. 한 번에 최대 5장, 한 장씩 순서대로 보낸다 */
+  const sendPhotos = async (files: File[]) => {
+    const images = files.filter((file) => file.type.startsWith('image/')).slice(0, 5)
+    if (images.length === 0) return
+    stickToBottom.current = true
+    for (const file of images) {
+      setUploading((count) => count + 1)
+      try {
+        const photo = await compressImage(file, 1600)
+        const message = await api.upload<ChatMessage>(`/api/chat-rooms/${room.roomId}/images`, photo)
+        // WebSocket으로도 같은 메시지가 오므로 ID로 중복을 막는다
+        setMessages((current) => (current.some((m) => m.id === message.id) ? current : [...current, message]))
+      } catch (e) {
+        toast(e instanceof ImageError ? e.message : errorMessage(e), 'error')
+      } finally {
+        setUploading((count) => count - 1)
+      }
+    }
+  }
+
   /** 커서가 있던 자리에 이모티콘을 넣고, 커서를 그 뒤로 옮긴다 */
   const insertEmoji = (emoji: string) => {
     const input = inputRef.current
@@ -253,10 +278,25 @@ function ChatRoomView({ room }: { room: ChatRoom }) {
             {messages.length === 0 && (
               <EmptyState emoji="🤝" title={`${name}님과 매칭됐어요!`} description="운동 종목, 시간, 장소를 이야기해 보세요." />
             )}
-            <MessageList messages={messages} myId={me?.id ?? -1} counterpartId={room.counterpart?.userId ?? 0} />
+            <MessageList
+              messages={messages}
+              myId={me?.id ?? -1}
+              counterpartId={room.counterpart?.userId ?? 0}
+              onOpenImage={setViewer}
+            />
+            {uploading > 0 && (
+              <div className="mt-3 flex justify-end">
+                <div className="flex h-40 w-60 animate-pulse flex-col items-center justify-center gap-2 rounded-2xl bg-ink-100 text-sm text-ink-400">
+                  <Spinner />
+                  사진 {uploading > 1 ? `${uploading}장 ` : ''}보내는 중
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
+
+      {viewer && <PhotoViewer url={viewer} onClose={() => setViewer(null)} />}
 
       <div className="relative border-t border-ink-100 bg-white p-3 pb-safe md:pb-3">
         {emojiOpen && <EmojiPicker onSelect={insertEmoji} onClose={closeEmoji} />}
@@ -273,6 +313,26 @@ function ChatRoomView({ room }: { room: ChatRoom }) {
           >
             <Smile className="size-5" />
           </button>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            aria-label="사진 보내기"
+            title="사진 보내기 (붙여넣기도 가능)"
+            className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700"
+          >
+            <ImagePlus className="size-5" />
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => {
+              void sendPhotos([...(e.target.files ?? [])])
+              e.target.value = '' // 같은 사진을 다시 고를 수 있게
+            }}
+          />
           <textarea
             ref={inputRef}
             rows={1}
@@ -280,6 +340,14 @@ function ChatRoomView({ room }: { room: ChatRoom }) {
             maxLength={1000}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={onKeyDown}
+            onPaste={(e) => {
+              // 캡처·복사한 사진을 붙여넣으면 바로 보낸다
+              const files = [...e.clipboardData.files].filter((file) => file.type.startsWith('image/'))
+              if (files.length > 0) {
+                e.preventDefault()
+                void sendPhotos(files)
+              }
+            }}
             placeholder="메시지를 입력하세요"
             className="max-h-32 min-h-9 flex-1 resize-none bg-transparent py-2 text-[15px] outline-none [field-sizing:content] placeholder:text-ink-400"
           />
@@ -301,7 +369,17 @@ function ChatRoomView({ room }: { room: ChatRoom }) {
 }
 
 /** 같은 사람이 3분 안에 연달아 보낸 메시지는 하나의 묶음으로 보여준다. */
-function MessageList({ messages, myId, counterpartId }: { messages: ChatMessage[]; myId: number; counterpartId: number }) {
+function MessageList({
+  messages,
+  myId,
+  counterpartId,
+  onOpenImage,
+}: {
+  messages: ChatMessage[]
+  myId: number
+  counterpartId: number
+  onOpenImage: (url: string) => void
+}) {
   return (
     <div className="flex flex-col">
       {messages.map((message, index) => {
@@ -327,8 +405,10 @@ function MessageList({ messages, myId, counterpartId }: { messages: ChatMessage[
                 </div>
               )}
               {mine && !groupedWithNext && <Time iso={message.createdAt} />}
-              {isBigEmoji(message.content) ? (
-                <div className="animate-pop px-1 text-5xl leading-tight" role="img" aria-label={message.content}>
+              {message.type === 'IMAGE' && message.imageUrl ? (
+                <PhotoBubble message={message} onOpen={onOpenImage} />
+              ) : isBigEmoji(message.content ?? '') ? (
+                <div className="animate-pop px-1 text-5xl leading-tight" role="img" aria-label={message.content ?? ''}>
                   {message.content}
                 </div>
               ) : (
@@ -358,4 +438,47 @@ function Time({ iso }: { iso: string }) {
 
 function withinMinutes(a: string, b: string, minutes: number) {
   return Math.abs(new Date(b).getTime() - new Date(a).getTime()) < minutes * 60_000
+}
+
+/** 사진 크기를 미리 알고 있으므로 비율대로 자리를 잡아 두어, 사진이 늦게 떠도 스크롤이 튀지 않는다 */
+function PhotoBubble({ message, onOpen }: { message: ChatMessage; onOpen: (url: string) => void }) {
+  const url = fileUrl(message.imageUrl)!
+  const ratio = message.imageWidth && message.imageHeight ? message.imageWidth / message.imageHeight : 4 / 3
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(url)}
+      className="block w-60 max-w-[70%] animate-pop cursor-zoom-in overflow-hidden rounded-2xl bg-ink-100 ring-1 ring-ink-100"
+      aria-label="사진 크게 보기"
+    >
+      <img
+        src={url}
+        alt="보낸 사진"
+        loading="lazy"
+        style={{ aspectRatio: Math.max(ratio, 0.6) }}
+        className="block w-full object-cover"
+      />
+    </button>
+  )
+}
+
+function PhotoViewer({ url, onClose }: { url: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (event: globalThis.KeyboardEvent) => event.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 flex animate-pop items-center justify-center bg-ink-900/90 p-4" onClick={onClose}>
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 cursor-pointer rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+        aria-label="닫기"
+      >
+        <X className="size-6" />
+      </button>
+      <img src={url} alt="사진 원본" className="max-h-full max-w-full rounded-lg object-contain" onClick={(e) => e.stopPropagation()} />
+    </div>
+  )
 }

@@ -2,9 +2,9 @@ import clsx from 'clsx'
 import { AtSign, LogOut, PartyPopper, RotateCcw, Save, Thermometer } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
-import { Avatar } from '../components/Avatar'
 import { BirthDateInput } from '../components/BirthDateInput'
 import { LocationSearch } from '../components/LocationSearch'
+import { ProfilePhoto } from '../components/ProfilePhoto'
 import { Button, Card, Field, Input, PageHeader, PageLoader, Segmented, Textarea } from '../components/ui'
 import { ApiError, errorMessage } from '../lib/api'
 import { DAYS, SKILL_LABEL, SKILL_LEVELS, sportEmoji } from '../lib/format'
@@ -110,8 +110,9 @@ const SERVER_ERROR_FIELD: Record<string, keyof Draft> = {
 export function ProfilePage() {
   const { data: me } = useMe()
   if (!me) return <PageLoader />
-  // 저장하면 me가 바뀌므로 key로 폼을 서버 값 기준으로 다시 만든다
-  return <ProfileForm key={JSON.stringify(me)} me={me} />
+  // 저장하면 me가 바뀌므로 key로 폼을 서버 값 기준으로 다시 만든다.
+  // 프로필 사진은 폼과 따로 즉시 저장되므로, 사진이 바뀌었다고 입력 중인 폼을 초기화하지 않도록 key에서 뺀다
+  return <ProfileForm key={JSON.stringify({ ...me, profileImageUrl: null })} me={me} />
 }
 
 function ProfileForm({ me }: { me: MyProfile }) {
@@ -197,7 +198,7 @@ function ProfileForm({ me }: { me: MyProfile }) {
       )}
 
       <Card className="mb-6 flex items-center gap-4 p-6">
-        <Avatar id={me.id} name={draft.nickname || me.nickname} imageUrl={me.profileImageUrl} size="lg" />
+        <ProfilePhoto me={me} nickname={draft.nickname || me.nickname} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-xl font-extrabold">{draft.nickname || me.nickname}</p>
           <p className="flex items-center gap-1 truncate text-sm text-ink-500">

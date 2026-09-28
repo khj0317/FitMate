@@ -119,7 +119,7 @@ public class User {
     }
 
     public void changeProfileImageUrl(String profileImageUrl) {
-        this.profileImageUrl = profileImageUrl.isBlank() ? null : profileImageUrl;
+        this.profileImageUrl = profileImageUrl == null || profileImageUrl.isBlank() ? null : profileImageUrl;
     }
 
     public void changeGender(Gender gender) {

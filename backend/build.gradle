@@ -31,6 +31,9 @@ dependencies {
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	implementation 'org.hibernate.orm:hibernate-spatial'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
+	// 배포 시 사진 저장소 (Supabase Storage, AWS S3, Cloudflare R2 등 S3 호환 저장소)
+	implementation platform('software.amazon.awssdk:bom:2.55.6')
+	implementation 'software.amazon.awssdk:s3'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'

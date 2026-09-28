@@ -25,7 +25,7 @@ public class ChatRoomQuery {
                    other.nickname AS other_nickname,
                    other.profile_image_url AS other_image,
                    lm.id AS last_message_id,
-                   lm.content AS last_message_content,
+                   CASE WHEN lm.message_type = 'IMAGE' THEN '📷 사진' ELSE lm.content END AS last_message_content,
                    lm.created_at AS last_message_at,
                    (SELECT COUNT(*)
                     FROM chat_messages cm
@@ -38,7 +38,7 @@ public class ChatRoomQuery {
                    ON r.type = 'DIRECT' AND om.room_id = r.id AND om.user_id <> me.user_id
             LEFT JOIN users other ON other.id = om.user_id
             LEFT JOIN LATERAL (
-                SELECT id, content, created_at
+                SELECT id, content, message_type, created_at
                 FROM chat_messages
                 WHERE room_id = r.id
                 ORDER BY id DESC

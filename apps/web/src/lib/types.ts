@@ -113,7 +113,11 @@ export interface ChatMessage {
   roomId: number
   senderId: number | null
   senderNickname: string | null
-  content: string
+  type: 'TEXT' | 'IMAGE'
+  content: string | null
+  imageUrl: string | null
+  imageWidth: number | null
+  imageHeight: number | null
   createdAt: string
 }
 

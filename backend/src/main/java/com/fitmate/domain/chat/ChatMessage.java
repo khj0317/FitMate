@@ -2,6 +2,8 @@ package com.fitmate.domain.chat;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -15,6 +17,7 @@ import java.time.Instant;
 
 /**
  * 메시지는 양이 가장 많은 테이블이라 연관관계 대신 ID만 들고, 조회는 인덱스(room_id, id DESC)로 한다.
+ * 텍스트 메시지는 content, 사진 메시지는 imageUrl을 가진다 (DB CHECK 제약으로도 보장).
  */
 @Entity
 @Table(name = "chat_messages")
@@ -33,8 +36,19 @@ public class ChatMessage {
 
     private Long senderId;
 
-    @Column(nullable = false, length = MAX_LENGTH)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "message_type", nullable = false, length = 10)
+    private MessageType type;
+
+    @Column(length = MAX_LENGTH)
     private String content;
+
+    @Column(length = 500)
+    private String imageUrl;
+
+    private Short imageWidth;
+
+    private Short imageHeight;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -43,6 +57,23 @@ public class ChatMessage {
     public ChatMessage(Long roomId, Long senderId, String content) {
         this.roomId = roomId;
         this.senderId = senderId;
+        this.type = MessageType.TEXT;
         this.content = content;
+    }
+
+    public static ChatMessage image(Long roomId, Long senderId, String imageUrl, int width, int height) {
+        ChatMessage message = new ChatMessage();
+        message.roomId = roomId;
+        message.senderId = senderId;
+        message.type = MessageType.IMAGE;
+        message.imageUrl = imageUrl;
+        message.imageWidth = (short) width;
+        message.imageHeight = (short) height;
+        return message;
+    }
+
+    public enum MessageType {
+        TEXT,
+        IMAGE
     }
 }

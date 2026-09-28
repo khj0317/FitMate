@@ -5,11 +5,15 @@ import com.fitmate.domain.user.User;
 import com.fitmate.domain.user.UserRepository;
 import com.fitmate.global.error.BusinessException;
 import com.fitmate.global.error.ErrorCode;
+import com.fitmate.global.image.ImagePurpose;
+import com.fitmate.global.image.ImageUploader;
+import com.fitmate.global.image.StoredImage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collection;
 import java.util.List;
@@ -31,6 +35,7 @@ public class ChatService {
     private final ChatRoomQuery chatRoomQuery;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final ImageUploader imageUploader;
 
     /**
      * 메시지를 저장하고, 커밋이 끝난 뒤 Redis로 발행한다(ChatMessagePublisher).
@@ -44,9 +49,20 @@ public class ChatService {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
 
-        ChatMessage saved = messageRepository.save(new ChatMessage(roomId, senderId, trimmed));
-        sender.markRead(saved.getId()); // 내가 보낸 메시지는 읽은 것으로 처리
+        return publish(sender, messageRepository.save(new ChatMessage(roomId, senderId, trimmed)));
+    }
 
+    /** 사진은 검증·가공(메타데이터 제거, 크기 축소) 후 저장소에 올리고 사진 메시지로 보낸다. */
+    @Transactional
+    public ChatDtos.Message sendImage(Long roomId, Long senderId, MultipartFile file) {
+        ChatRoomMember sender = getMember(roomId, senderId);
+        StoredImage image = imageUploader.upload(file, ImagePurpose.CHAT);
+        return publish(sender, messageRepository.save(
+                ChatMessage.image(roomId, senderId, image.url(), image.width(), image.height())));
+    }
+
+    private ChatDtos.Message publish(ChatRoomMember sender, ChatMessage saved) {
+        sender.markRead(saved.getId()); // 내가 보낸 메시지는 읽은 것으로 처리
         ChatDtos.Message message = ChatDtos.Message.of(saved, sender.getUser().getNickname());
         eventPublisher.publishEvent(new ChatMessageSavedEvent(message));
         return message;
