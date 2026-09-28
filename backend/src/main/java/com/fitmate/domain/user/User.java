@@ -106,6 +106,10 @@ public class User {
         this.mannerScore = INITIAL_MANNER_SCORE;
     }
 
+    public void changePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     public void changeNickname(String nickname) {
         this.nickname = nickname;
     }

@@ -27,5 +27,13 @@ services:
       timeout: 3s
       retries: 10
 
+  # 개발용 메일 서버: 앱이 보낸 메일을 http://localhost:8025 에서 확인 (실제로 발송되지 않음)
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: fitmate-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   postgres-data:

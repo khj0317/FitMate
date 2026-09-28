@@ -16,6 +16,7 @@ import java.util.Locale;
 public final class AuthRequests {
 
     public static final String LOGIN_ID_PATTERN = "^[a-z0-9_]{4,20}$";
+    public static final String PASSWORD_PATTERN = "^(?=.*[A-Za-z])(?=.*\\d).+$";
     public static final String LOGIN_ID_MESSAGE = "아이디는 영문 소문자, 숫자, _로 4~20자여야 합니다.";
 
     private AuthRequests() {
@@ -28,7 +29,7 @@ public final class AuthRequests {
 
             @NotBlank(message = "비밀번호를 입력해 주세요.")
             @Size(min = 8, max = 64, message = "비밀번호는 8~64자여야 합니다.")
-            @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "비밀번호는 영문과 숫자를 모두 포함해야 합니다.")
+            @Pattern(regexp = PASSWORD_PATTERN, message = "비밀번호는 영문과 숫자를 모두 포함해야 합니다.")
             String password,
 
             @NotBlank(message = "비밀번호 확인을 입력해 주세요.")

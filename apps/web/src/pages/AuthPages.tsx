@@ -125,6 +125,11 @@ export function LoginPage() {
         <Button type="submit" size="lg" loading={loading} className="w-full">
           로그인 <ArrowRight className="size-4" />
         </Button>
+        <div className="flex justify-center gap-3 text-sm text-ink-500">
+          <Link to="/find-account?tab=id" className="hover:text-ink-900 hover:underline">아이디 찾기</Link>
+          <span className="text-ink-300">|</span>
+          <Link to="/find-account?tab=password" className="hover:text-ink-900 hover:underline">비밀번호 찾기</Link>
+        </div>
         {import.meta.env.DEV && (
           <Button
             type="button"
@@ -306,7 +311,7 @@ export function SignupPage() {
               maxLength={20}
             />
           </Field>
-          <Field label="이메일 (선택)" hint="입력하지 않아도 가입할 수 있어요" error={fieldError('email')}>
+          <Field label="이메일 (선택)" hint="등록하면 아이디·비밀번호를 잊었을 때 찾을 수 있어요" error={fieldError('email')}>
             <Input
               type="email"
               value={form.email}

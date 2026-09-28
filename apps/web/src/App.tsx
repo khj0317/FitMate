@@ -4,6 +4,7 @@ import { AppLayout } from './components/AppLayout'
 import { LoginPage, SignupPage } from './pages/AuthPages'
 import { ChatsPage } from './pages/ChatsPage'
 import { DiscoverPage } from './pages/DiscoverPage'
+import { FindAccountPage } from './pages/FindAccountPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RequestsPage } from './pages/RequestsPage'
 import { useAuth } from './providers/AuthProvider'
@@ -25,6 +26,7 @@ export function App() {
       <Routes>
         <Route path="/login" element={<GuestOnly><LoginPage /></GuestOnly>} />
         <Route path="/signup" element={<GuestOnly><SignupPage /></GuestOnly>} />
+        <Route path="/find-account" element={<GuestOnly><FindAccountPage /></GuestOnly>} />
         <Route
           element={
             <RequireAuth>

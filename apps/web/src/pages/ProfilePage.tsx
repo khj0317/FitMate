@@ -218,7 +218,11 @@ function ProfileForm({ me }: { me: MyProfile }) {
             <Field label="아이디" hint="아이디는 바꿀 수 없어요">
               <Input value={me.loginId} disabled className="cursor-not-allowed text-ink-500" />
             </Field>
-            <Field label="이메일 (선택)" error={errors.email}>
+            <Field
+              label="이메일 (선택)"
+              hint={draft.email ? '아이디·비밀번호 찾기에 사용돼요' : '⚠️ 이메일이 없으면 아이디·비밀번호를 찾을 수 없어요'}
+              error={errors.email}
+            >
               <Input type="email" value={draft.email} onChange={(e) => set('email', e.target.value)} placeholder="you@example.com" />
             </Field>
             <Field label="닉네임" error={errors.nickname}>

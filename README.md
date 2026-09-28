@@ -103,8 +103,13 @@ GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 
 | POST | `/api/auth/login` | 로그인 (액세스 30분 / 리프레시 14일) | |
 | POST | `/api/auth/refresh` | 토큰 재발급 (리프레시 토큰 교체) | |
 | POST | `/api/auth/logout` | 로그아웃 (리프레시 토큰 폐기) | |
+| POST | `/api/auth/find-login-id` | 아이디 찾기 (등록한 이메일로 발송) | |
+| POST | `/api/auth/password-reset/request` | 비밀번호 재설정 코드 요청 | |
+| POST | `/api/auth/password-reset/confirm` | 코드 확인 후 비밀번호 재설정 | |
+| GET | `/api/locations/search` | 지역 검색 (자동완성) | |
 | GET | `/api/sports` | 운동 종목 목록 | |
 | GET | `/api/users/me` | 내 프로필 | ✅ |
+| PUT | `/api/users/me` | 프로필 전체 저장 (한 트랜잭션) | ✅ |
 | PATCH | `/api/users/me` | 프로필 수정 (보낸 필드만) | ✅ |
 | PUT | `/api/users/me/location` | 활동 지역 설정 | ✅ |
 | PUT | `/api/users/me/sports` | 운동 종목·실력 설정 | ✅ |
@@ -134,6 +139,18 @@ GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 
   - `GETDEL`로 원자적으로 꺼내고 삭제 → 같은 토큰으로 동시에 재발급을 요청해도 한 번만 성공 (테스트로 검증)
 - **로그인 실패**: 계정이 없을 때와 비밀번호가 틀릴 때 같은 에러를 줘서 가입 여부를 노출하지 않음
 - **중복 가입**: 사전 검사 + DB 유니크 제약 이중 방어. 같은 이메일 동시 가입 10건 중 1건만 성공 (테스트로 검증)
+
+### 계정 찾기 설계
+- **가입 여부 비노출**: 아이디·이메일이 가입돼 있든 아니든 항상 같은 응답(202)을 주고 메일만 조건부 발송. 메일은 `@Async`로 보내서 응답 시간 차이로도 알 수 없게 함
+- **인증 코드**: 6자리 코드를 해시로 Redis에 저장(10분 TTL). `HINCRBY`로 시도 횟수를 원자적으로 세서 5번 틀리면 폐기 (무차별 대입 방지), 성공하면 즉시 삭제 (재사용 방지)
+- **재요청 제한**: 같은 대상은 1분에 한 번 (`SET NX EX`)
+- **비밀번호 변경 시 모든 기기 로그아웃**: 사용자별 리프레시 토큰 목록(Redis Set)을 관리해 한 번에 폐기
+- **로컬 메일 확인**: docker-compose의 Mailpit이 메일을 받아서 http://localhost:8025 에서 볼 수 있음 (실제 발송 안 됨)
+
+### 지역 검색
+- `KAKAO_REST_API_KEY`가 있으면 카카오 로컬 API(주소 + 키워드 검색), 결과는 Redis에 하루 캐시
+- 키가 없거나 외부 API가 실패하면 내장 지역 목록(서울 주요 지역 + 광역시 약 60곳)으로 대체
+- 저장하는 지역명은 동 단위까지만 잘라서(번지 제외) 개인 위치를 남기지 않음
 
 ### 매칭 설계
 **점수(100점) = 거리 35 + 실력 30 + 운동 시간 25 + 매너 10**
@@ -170,7 +187,7 @@ GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 
 ## 로컬 데모 데이터
 `./gradlew bootRun`으로 실행하면 `local` 프로필이 켜지고, 처음 한 번 성수역 주변 8km 안에 데모 사용자 30명이 생성됩니다.
 
-- 계정: `demo01@fitmate.com` ~ `demo30@fitmate.com`, 비밀번호 `password123`
+- 계정: 아이디 `demo01` ~ `demo30`, 비밀번호 `password123` (이메일 `demo01@fitmate.com` 등록됨)
 - `demo01`은 성수역에 있고 헬스·러닝을 합니다. 이 계정으로 로그인해서 `GET /api/matching/recommendations`를 호출해 보세요.
 - `demo01` ↔ `demo02`는 이미 매칭되어 대화가 있고, `demo03` → `demo01`로 대기 중인 매칭 요청이 있습니다.
 - 배포 환경(jar 실행)에서는 생성되지 않습니다.

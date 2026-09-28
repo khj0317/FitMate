@@ -117,8 +117,9 @@ async function request<T>(method: string, path: string, body?: unknown, retry = 
     const error = (await res.json().catch(() => null)) as ApiErrorBody | null
     throw new ApiError(error ?? { status: res.status, code: 'NETWORK_ERROR', message: '요청을 처리하지 못했어요.' })
   }
-  if (res.status === 204) return undefined as T
-  return (await res.json()) as T
+  // 204뿐 아니라 202처럼 본문 없이 성공하는 응답도 있으므로 상태 코드가 아니라 본문으로 판단한다
+  const text = await res.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }
 
 export const api = {
