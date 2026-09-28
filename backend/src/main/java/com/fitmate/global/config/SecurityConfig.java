@@ -32,7 +32,9 @@ public class SecurityConfig {
             "/api/auth/signup",
             "/api/auth/login",
             "/api/auth/refresh",
-            "/api/auth/logout"
+            "/api/auth/logout",
+            "/ws", // 핸드셰이크는 열어 두고, 인증은 STOMP CONNECT 프레임에서 한다 (StompAuthInterceptor)
+            "/dev/**" // 로컬 전용 테스트 페이지 (DevPageConfig, local 프로필에서만 제공)
     };
 
     private final SecurityErrorHandler securityErrorHandler;

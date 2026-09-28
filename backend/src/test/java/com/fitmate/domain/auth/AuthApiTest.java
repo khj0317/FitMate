@@ -6,13 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
@@ -155,38 +149,5 @@ class AuthApiTest extends IntegrationTest {
         post("/api/auth/refresh", refreshJson(user.refreshToken()))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
-    }
-
-    private interface IndexedTask<T> {
-        T run(int index) throws Exception;
-    }
-
-    /** 모든 스레드가 준비된 뒤 한꺼번에 출발시켜 실제 경쟁 상황을 만든다. */
-    private static <T> List<T> runConcurrently(int threads, IndexedTask<T> task) throws Exception {
-        CountDownLatch ready = new CountDownLatch(threads);
-        CountDownLatch start = new CountDownLatch(1);
-        ExecutorService executor = Executors.newFixedThreadPool(threads);
-        try {
-            List<Future<T>> futures = new ArrayList<>();
-            for (int i = 0; i < threads; i++) {
-                int index = i;
-                Callable<T> callable = () -> {
-                    ready.countDown();
-                    start.await();
-                    return task.run(index);
-                };
-                futures.add(executor.submit(callable));
-            }
-            ready.await();
-            start.countDown();
-
-            List<T> results = new ArrayList<>();
-            for (Future<T> future : futures) {
-                results.add(future.get());
-            }
-            return results;
-        } finally {
-            executor.shutdownNow();
-        }
     }
 }

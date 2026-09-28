@@ -1,5 +1,12 @@
 package com.fitmate.global.demo;
 
+import com.fitmate.domain.chat.ChatMessage;
+import com.fitmate.domain.chat.ChatMessageRepository;
+import com.fitmate.domain.chat.ChatRoom;
+import com.fitmate.domain.chat.ChatRoomRepository;
+import com.fitmate.domain.matchrequest.MatchRequest;
+import com.fitmate.domain.matchrequest.MatchRequestRepository;
+import com.fitmate.domain.matchrequest.MatchRequestStatus;
 import com.fitmate.domain.sport.Sport;
 import com.fitmate.domain.sport.SportRepository;
 import com.fitmate.domain.user.Gender;
@@ -31,6 +38,7 @@ import java.util.Random;
  * 로컬(local 프로필)에서만 성수역 주변에 데모 사용자를 만든다. 매칭 기능을 직접 눌러보기 위한 용도.
  * 계정: demo01@fitmate.com ~ demo30@fitmate.com / 비밀번호 password123
  * demo01은 성수역 한가운데에 있고 헬스·러닝을 하므로 이 계정으로 로그인해서 추천을 확인하면 된다.
+ * 채팅 확인용으로 demo01-demo02는 매칭 완료(대화 있음), demo03 → demo01은 대기 중 요청을 만든다.
  */
 @Slf4j
 @Component
@@ -48,14 +56,21 @@ public class DemoDataInitializer implements ApplicationRunner {
     private final UserRepository userRepository;
     private final SportRepository sportRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MatchRequestRepository matchRequestRepository;
+    private final ChatRoomRepository chatRoomRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
+    /** 각 단계는 이미 데이터가 있으면 건너뛰므로 여러 번 실행해도 안전하다. */
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        if (userRepository.existsByEmail(email(1))) {
-            return;
+        if (!userRepository.existsByEmail(email(1))) {
+            seedUsers();
         }
+        seedMatches();
+    }
 
+    private void seedUsers() {
         Random random = new Random(42); // 매번 같은 데이터가 생성되도록 시드 고정
         List<Sport> sports = sportRepository.findAll(Sort.by("id"));
         String passwordHash = passwordEncoder.encode(DEMO_PASSWORD); // 해시는 느리므로 한 번만 계산
@@ -77,6 +92,30 @@ public class DemoDataInitializer implements ApplicationRunner {
         }
         log.info("로컬 데모 사용자 {}명을 생성했습니다. (demo01@fitmate.com ~ demo{}@fitmate.com)",
                 DEMO_USER_COUNT, DEMO_USER_COUNT);
+    }
+
+    private void seedMatches() {
+        User demo1 = userRepository.findByEmail(email(1)).orElseThrow();
+        User demo2 = userRepository.findByEmail(email(2)).orElseThrow();
+        User demo3 = userRepository.findByEmail(email(3)).orElseThrow();
+        Sport gym = sportRepository.findAll(Sort.by("id")).get(0);
+
+        if (!chatRoomRepository.existsByDirectKey(ChatRoom.directKey(demo1.getId(), demo2.getId()))) {
+            MatchRequest accepted = new MatchRequest(demo2, demo1, gym, "성수역 근처에서 같이 운동해요!");
+            ChatRoom room = chatRoomRepository.save(ChatRoom.direct(demo1, demo2));
+            accepted.accept(room);
+            matchRequestRepository.save(accepted);
+            chatMessageRepository.save(new ChatMessage(room.getId(), demo2.getId(), "안녕하세요! 요청 수락해 주셔서 감사해요"));
+            chatMessageRepository.save(new ChatMessage(room.getId(), demo2.getId(), "이번 주 수요일 저녁 7시 어떠세요?"));
+            log.info("데모 채팅방을 만들었습니다. (demo01 ↔ demo02)");
+        }
+
+        boolean demo3Handled = matchRequestRepository.existsByRequesterIdAndReceiverIdAndStatus(
+                demo3.getId(), demo1.getId(), MatchRequestStatus.PENDING)
+                || chatRoomRepository.existsByDirectKey(ChatRoom.directKey(demo1.getId(), demo3.getId()));
+        if (!demo3Handled) {
+            matchRequestRepository.save(new MatchRequest(demo3, demo1, gym, "주말 아침 헬스 같이 하실래요?"));
+        }
     }
 
     private void randomize(User user, Random random, List<Sport> sports) {

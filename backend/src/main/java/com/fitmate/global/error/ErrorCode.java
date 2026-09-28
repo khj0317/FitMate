@@ -33,7 +33,19 @@ public enum ErrorCode {
 
     // 매칭
     LOCATION_REQUIRED(HttpStatus.BAD_REQUEST, "활동 지역을 먼저 설정해 주세요."),
-    SPORT_REQUIRED(HttpStatus.BAD_REQUEST, "운동 종목을 먼저 등록하거나 검색할 종목을 선택해 주세요.");
+    SPORT_REQUIRED(HttpStatus.BAD_REQUEST, "운동 종목을 먼저 등록하거나 검색할 종목을 선택해 주세요."),
+
+    // 매칭 요청
+    MATCH_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "매칭 요청을 찾을 수 없습니다."),
+    CANNOT_REQUEST_SELF(HttpStatus.BAD_REQUEST, "자기 자신에게는 매칭 요청을 보낼 수 없습니다."),
+    RECEIVER_DOES_NOT_PLAY_SPORT(HttpStatus.BAD_REQUEST, "상대방이 등록하지 않은 운동 종목입니다."),
+    DUPLICATE_MATCH_REQUEST(HttpStatus.CONFLICT, "이미 대기 중인 매칭 요청이 있습니다."),
+    REVERSE_MATCH_REQUEST_EXISTS(HttpStatus.CONFLICT, "상대방이 먼저 요청을 보냈습니다. 받은 요청에서 수락해 주세요."),
+    ALREADY_MATCHED(HttpStatus.CONFLICT, "이미 매칭되어 채팅방이 있는 상대입니다."),
+    INVALID_MATCH_REQUEST_STATUS(HttpStatus.CONFLICT, "이미 처리된 매칭 요청입니다."),
+
+    // 채팅
+    CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String message;

@@ -1,0 +1,52 @@
+package com.fitmate.domain.chat.dto;
+
+import com.fitmate.domain.chat.ChatMessage;
+import com.fitmate.domain.chat.ChatRoomType;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+
+import java.time.Instant;
+import java.util.List;
+
+public final class ChatDtos {
+
+    private ChatDtos() {
+    }
+
+    public record SendMessage(
+            @NotBlank @Size(max = ChatMessage.MAX_LENGTH, message = "메시지는 1000자 이하여야 합니다.") String content
+    ) {
+    }
+
+    public record MarkRead(@NotNull @Positive Long lastMessageId) {
+    }
+
+    /** REST 응답과 WebSocket 브로드캐스트에 같은 형식을 쓴다. */
+    public record Message(Long id, Long roomId, Long senderId, String senderNickname, String content, Instant createdAt) {
+        public static Message of(ChatMessage message, String senderNickname) {
+            return new Message(message.getId(), message.getRoomId(), message.getSenderId(), senderNickname,
+                    message.getContent(), message.getCreatedAt());
+        }
+    }
+
+    /** nextCursor가 null이면 더 오래된 메시지가 없다. */
+    public record MessagePage(List<Message> messages, Long nextCursor) {
+    }
+
+    public record Room(
+            Long roomId,
+            ChatRoomType type,
+            Counterpart counterpart,
+            LastMessage lastMessage,
+            long unreadCount
+    ) {
+    }
+
+    public record Counterpart(Long userId, String nickname, String profileImageUrl) {
+    }
+
+    public record LastMessage(Long id, String content, Instant createdAt) {
+    }
+}

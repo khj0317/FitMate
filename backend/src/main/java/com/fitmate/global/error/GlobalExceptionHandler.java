@@ -24,7 +24,9 @@ public class GlobalExceptionHandler {
      */
     private static final Map<String, ErrorCode> CONSTRAINT_ERRORS = Map.of(
             "users_email_key", ErrorCode.DUPLICATE_EMAIL,
-            "users_nickname_key", ErrorCode.DUPLICATE_NICKNAME
+            "users_nickname_key", ErrorCode.DUPLICATE_NICKNAME,
+            "uq_match_requests_pending", ErrorCode.DUPLICATE_MATCH_REQUEST,
+            "uq_chat_rooms_direct_key", ErrorCode.ALREADY_MATCHED
     );
 
     @ExceptionHandler(BusinessException.class)
