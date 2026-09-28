@@ -33,12 +33,13 @@ class UserProfileApiTest extends IntegrationTest {
         TestUser user = signupAndLogin();
 
         call(HttpMethod.PATCH, "/api/users/me", """
-                {"bio": "주 3회 헬스합니다", "gender": "FEMALE", "birthYear": 1998, "searchRadiusKm": 10}
+                {"bio": "주 3회 헬스합니다", "gender": "FEMALE", "birthDate": "2000-01-15", "searchRadiusKm": 10}
                 """, user.accessToken())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nickname").value(user.nickname()))
                 .andExpect(jsonPath("$.bio").value("주 3회 헬스합니다"))
                 .andExpect(jsonPath("$.gender").value("FEMALE"))
+                .andExpect(jsonPath("$.birthDate").value("2000-01-15"))
                 .andExpect(jsonPath("$.searchRadiusKm").value(10));
 
         call(HttpMethod.PATCH, "/api/users/me", """
@@ -176,7 +177,7 @@ class UserProfileApiTest extends IntegrationTest {
     }
 
     @Test
-    @DisplayName("다른 사람 프로필에는 이메일, 좌표, 출생 연도가 노출되지 않는다")
+    @DisplayName("다른 사람 프로필에는 아이디, 이메일, 좌표, 생년월일이 노출되지 않는다")
     void publicProfileHidesPrivateFields() throws Exception {
         TestUser target = signupAndLogin();
         TestUser viewer = signupAndLogin();
@@ -185,8 +186,8 @@ class UserProfileApiTest extends IntegrationTest {
                 {"latitude": 37.5445, "longitude": 127.0557, "areaName": "서울 성동구 성수동"}
                 """, target.accessToken());
         String me = call(HttpMethod.PATCH, "/api/users/me", """
-                {"birthYear": 1998}
-                """, target.accessToken()).andReturn().getResponse().getContentAsString();
+                {"email": "target_%s@fitmate.com"}
+                """.formatted(uniqueSuffix()), target.accessToken()).andReturn().getResponse().getContentAsString();
         Integer targetId = JsonPath.read(me, "$.id");
 
         call(HttpMethod.GET, "/api/users/" + targetId, null, viewer.accessToken())
@@ -194,9 +195,10 @@ class UserProfileApiTest extends IntegrationTest {
                 .andExpect(jsonPath("$.nickname").value(target.nickname()))
                 .andExpect(jsonPath("$.activityAreaName").value("서울 성동구 성수동"))
                 .andExpect(jsonPath("$.ageGroup").exists())
+                .andExpect(jsonPath("$.loginId").doesNotExist())
                 .andExpect(jsonPath("$.email").doesNotExist())
                 .andExpect(jsonPath("$.location").doesNotExist())
-                .andExpect(jsonPath("$.birthYear").doesNotExist());
+                .andExpect(jsonPath("$.birthDate").doesNotExist());
     }
 
     @Test
@@ -207,5 +209,67 @@ class UserProfileApiTest extends IntegrationTest {
         call(HttpMethod.GET, "/api/users/999999999", null, viewer.accessToken())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("프로필 전체 저장(PUT)은 기본 정보·지역·종목·시간을 한 번에 저장한다")
+    void updateAllAtOnce() throws Exception {
+        TestUser user = signupAndLogin();
+        String nickname = "all_" + uniqueSuffix();
+
+        call(HttpMethod.PUT, "/api/users/me", updateAllJson(nickname, 2), user.accessToken())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nickname").value(nickname))
+                .andExpect(jsonPath("$.email").value(nickname + "@fitmate.com"))
+                .andExpect(jsonPath("$.bio").value("같이 뛰어요"))
+                .andExpect(jsonPath("$.gender").value("FEMALE"))
+                .andExpect(jsonPath("$.birthDate").value("1995-08-30"))
+                .andExpect(jsonPath("$.searchRadiusKm").value(7))
+                .andExpect(jsonPath("$.location.areaName").value("서울 마포구 망원동"))
+                .andExpect(jsonPath("$.sports[0].code").value("RUNNING"))
+                .andExpect(jsonPath("$.availableTimes[0].dayOfWeek").value("TUESDAY"));
+    }
+
+    @Test
+    @DisplayName("프로필 전체 저장 중 하나라도 실패하면 아무것도 저장되지 않는다 (트랜잭션)")
+    void updateAllIsAtomic() throws Exception {
+        TestUser user = signupAndLogin();
+
+        // 닉네임은 정상이지만 종목 ID가 없는 값이라 마지막 단계에서 실패
+        call(HttpMethod.PUT, "/api/users/me", updateAllJson("atomic_" + uniqueSuffix(), 999), user.accessToken())
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("SPORT_NOT_FOUND"));
+
+        call(HttpMethod.GET, "/api/users/me", null, user.accessToken())
+                .andExpect(jsonPath("$.nickname").value(user.nickname()))
+                .andExpect(jsonPath("$.location.areaName").value("테스트 지역"))
+                .andExpect(jsonPath("$.gender").value("MALE"));
+    }
+
+    @Test
+    @DisplayName("다른 사람이 쓰는 이메일로는 바꿀 수 없고, 빈 값으로 보내면 이메일이 지워진다")
+    void changeEmail() throws Exception {
+        TestUser me = signupAndLogin();
+        TestUser other = signupAndLogin();
+        String email = "taken_" + uniqueSuffix() + "@fitmate.com";
+        call(HttpMethod.PATCH, "/api/users/me", "{\"email\": \"%s\"}".formatted(email), other.accessToken())
+                .andExpect(status().isOk());
+
+        call(HttpMethod.PATCH, "/api/users/me", "{\"email\": \"%s\"}".formatted(email), me.accessToken())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DUPLICATE_EMAIL"));
+
+        call(HttpMethod.PATCH, "/api/users/me", "{\"email\": \"\"}", other.accessToken())
+                .andExpect(jsonPath("$.email").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    private static String updateAllJson(String nickname, int sportId) {
+        return """
+                {"nickname": "%s", "email": "%s@fitmate.com", "bio": "같이 뛰어요", "gender": "FEMALE",
+                 "birthDate": "1995-08-30", "searchRadiusKm": 7,
+                 "location": {"latitude": 37.5561, "longitude": 126.9101, "areaName": "서울 마포구 망원동"},
+                 "sports": [{"sportId": %d, "skillLevel": "INTERMEDIATE"}],
+                 "availableTimes": [{"dayOfWeek": "TUESDAY", "startTime": "07:00", "endTime": "08:30"}]}
+                """.formatted(nickname, nickname, sportId);
     }
 }

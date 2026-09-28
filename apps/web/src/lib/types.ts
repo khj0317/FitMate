@@ -33,16 +33,51 @@ export interface AvailableTime {
 
 export interface MyProfile {
   id: number
-  email: string
+  loginId: string
+  email: string | null
   nickname: string
   bio: string | null
   profileImageUrl: string | null
   gender: Gender | null
-  birthYear: number | null
+  birthDate: string | null // YYYY-MM-DD
   location: { latitude: number; longitude: number; areaName: string } | null
   searchRadiusKm: number
   mannerScore: number
   sports: UserSport[]
+  availableTimes: AvailableTime[]
+}
+
+export interface LocationInput {
+  latitude: number
+  longitude: number
+  areaName: string
+}
+
+export interface LocationSuggestion extends LocationInput {
+  name: string
+  address: string
+}
+
+export interface SignupInput {
+  loginId: string
+  password: string
+  passwordConfirm: string
+  nickname: string
+  email?: string
+  birthDate: string
+  gender: Gender
+  location: LocationInput
+}
+
+export interface ProfileInput {
+  nickname: string
+  email: string
+  bio: string
+  gender: Gender
+  birthDate: string
+  searchRadiusKm: number
+  location: LocationInput
+  sports: { sportId: number; skillLevel: SkillLevel }[]
   availableTimes: AvailableTime[]
 }
 

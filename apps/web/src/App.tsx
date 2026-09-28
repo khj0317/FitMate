@@ -15,8 +15,8 @@ function RequireAuth({ children }: { children: ReactNode }) {
 }
 
 function GuestOnly({ children }: { children: ReactNode }) {
-  const { loggedIn } = useAuth()
-  return loggedIn ? <Navigate to="/" replace /> : children
+  const { loggedIn, afterLoginPath } = useAuth()
+  return loggedIn ? <Navigate to={afterLoginPath} replace /> : children
 }
 
 export function App() {

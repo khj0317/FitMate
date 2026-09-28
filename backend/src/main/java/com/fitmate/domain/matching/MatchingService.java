@@ -101,7 +101,7 @@ public class MatchingService {
                 candidate.getNickname(),
                 candidate.getProfileImageUrl(),
                 candidate.getGender(),
-                UserResponses.PublicProfile.ageGroup(candidate.getBirthYear()),
+                UserResponses.PublicProfile.ageGroup(candidate.getBirthDate()),
                 candidate.getActivityAreaName(),
                 candidate.getMannerScore(),
                 roundUpDistance(row.distanceMeters()),

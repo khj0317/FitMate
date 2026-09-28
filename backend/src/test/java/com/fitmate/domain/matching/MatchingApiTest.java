@@ -5,7 +5,9 @@ import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 import java.util.List;
 import java.util.Locale;
@@ -19,6 +21,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 다른 테스트가 만든 사용자와 섞이지 않도록 테스트마다 지구 위 임의의 지점을 기준으로 사용자를 배치한다.
  */
 class MatchingApiTest extends IntegrationTest {
+
+    @Autowired
+    private JdbcClient jdbcClient;
 
     private static final int GYM = 1;
     private static final int RUNNING = 2;
@@ -119,8 +124,10 @@ class MatchingApiTest extends IntegrationTest {
     @Test
     @DisplayName("활동 지역이 없으면 LOCATION_REQUIRED")
     void locationRequired() throws Exception {
+        // 지금은 가입할 때 활동 지역이 필수라, 지역 없이 가입했던 과거 사용자 상태를 DB로 재현한다
         TestUser noLocation = signupAndLogin();
         setSports(noLocation, sport(GYM, "BEGINNER"));
+        jdbcClient.sql("UPDATE users SET activity_location = NULL WHERE id = ?").param(noLocation.id()).update();
 
         call(HttpMethod.GET, "/api/matching/recommendations", null, noLocation.accessToken())
                 .andExpect(status().isBadRequest())

@@ -1,15 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
-  AvailableTime,
   ChatRoom,
-  Gender,
+  LocationSuggestion,
   MatchCandidate,
   MatchRequest,
   MatchRequestStatus,
   MessagePage,
   MyProfile,
-  SkillLevel,
+  ProfileInput,
   Sport,
 } from './types'
 
@@ -86,37 +85,18 @@ export function useHandleMatchRequest() {
   })
 }
 
-export function useUpdateProfile() {
+/** 프로필 화면의 "전체 저장": 모든 항목을 한 번의 요청(한 트랜잭션)으로 저장한다 */
+export function useSaveProfile() {
   const queryClient = useQueryClient()
-  const onSuccess = (profile: MyProfile) => {
-    queryClient.setQueryData(keys.me, profile)
-    return queryClient.invalidateQueries({ queryKey: ['recommendations'] })
-  }
-  return {
-    basic: useMutation({
-      mutationFn: (body: {
-        nickname?: string
-        bio?: string
-        gender?: Gender
-        birthYear?: number
-        searchRadiusKm?: number
-      }) => api.patch<MyProfile>('/api/users/me', body),
-      onSuccess,
-    }),
-    location: useMutation({
-      mutationFn: (body: { latitude: number; longitude: number; areaName: string }) =>
-        api.put<MyProfile>('/api/users/me/location', body),
-      onSuccess,
-    }),
-    sports: useMutation({
-      mutationFn: (sports: { sportId: number; skillLevel: SkillLevel }[]) =>
-        api.put<MyProfile>('/api/users/me/sports', { sports }),
-      onSuccess,
-    }),
-    times: useMutation({
-      mutationFn: (availableTimes: AvailableTime[]) =>
-        api.put<MyProfile>('/api/users/me/available-times', { availableTimes }),
-      onSuccess,
-    }),
-  }
+  return useMutation({
+    mutationFn: (body: ProfileInput) => api.put<MyProfile>('/api/users/me', body),
+    onSuccess: (profile) => {
+      queryClient.setQueryData(keys.me, profile)
+      return queryClient.invalidateQueries({ queryKey: ['recommendations'] })
+    },
+  })
+}
+
+export function searchLocations(query: string) {
+  return api.get<LocationSuggestion[]>(`/api/locations/search?query=${encodeURIComponent(query)}`)
 }

@@ -26,6 +26,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,7 +37,7 @@ import java.util.Random;
 
 /**
  * 로컬(local 프로필)에서만 성수역 주변에 데모 사용자를 만든다. 매칭 기능을 직접 눌러보기 위한 용도.
- * 계정: demo01@fitmate.com ~ demo30@fitmate.com / 비밀번호 password123
+ * 계정: 아이디 demo01 ~ demo30 / 비밀번호 password123
  * demo01은 성수역 한가운데에 있고 헬스·러닝을 하므로 이 계정으로 로그인해서 추천을 확인하면 된다.
  * 채팅 확인용으로 demo01-demo02는 매칭 완료(대화 있음), demo03 → demo01은 대기 중 요청을 만든다.
  */
@@ -64,7 +65,7 @@ public class DemoDataInitializer implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        if (!userRepository.existsByEmail(email(1))) {
+        if (!userRepository.existsByLoginId(loginId(1))) {
             seedUsers();
         }
         seedMatches();
@@ -76,8 +77,11 @@ public class DemoDataInitializer implements ApplicationRunner {
         String passwordHash = passwordEncoder.encode(DEMO_PASSWORD); // 해시는 느리므로 한 번만 계산
 
         for (int i = 1; i <= DEMO_USER_COUNT; i++) {
-            User user = new User(email(i), passwordHash, "데모_%02d".formatted(i));
+            User user = new User(loginId(i), passwordHash, "데모_%02d".formatted(i));
+            user.changeEmail(loginId(i) + "@fitmate.com");
             if (i == 1) {
+                user.changeGender(Gender.MALE);
+                user.changeBirthDate(LocalDate.of(1997, 3, 17));
                 user.changeActivityLocation(GeoPoints.of(CENTER_LAT, CENTER_LNG), "서울 성동구 성수동");
                 user.replaceSports(Map.of(sports.get(0), SkillLevel.INTERMEDIATE, sports.get(1), SkillLevel.BEGINNER));
                 user.replaceAvailableTimes(List.of(
@@ -90,14 +94,14 @@ public class DemoDataInitializer implements ApplicationRunner {
             }
             userRepository.save(user);
         }
-        log.info("로컬 데모 사용자 {}명을 생성했습니다. (demo01@fitmate.com ~ demo{}@fitmate.com)",
+        log.info("로컬 데모 사용자 {}명을 생성했습니다. (아이디 demo01 ~ demo{})",
                 DEMO_USER_COUNT, DEMO_USER_COUNT);
     }
 
     private void seedMatches() {
-        User demo1 = userRepository.findByEmail(email(1)).orElseThrow();
-        User demo2 = userRepository.findByEmail(email(2)).orElseThrow();
-        User demo3 = userRepository.findByEmail(email(3)).orElseThrow();
+        User demo1 = userRepository.findByLoginId(loginId(1)).orElseThrow();
+        User demo2 = userRepository.findByLoginId(loginId(2)).orElseThrow();
+        User demo3 = userRepository.findByLoginId(loginId(3)).orElseThrow();
         Sport gym = sportRepository.findAll(Sort.by("id")).get(0);
 
         if (!chatRoomRepository.existsByDirectKey(ChatRoom.directKey(demo1.getId(), demo2.getId()))) {
@@ -149,10 +153,10 @@ public class DemoDataInitializer implements ApplicationRunner {
         user.replaceAvailableTimes(slots);
 
         user.changeGender(random.nextBoolean() ? Gender.MALE : Gender.FEMALE);
-        user.changeBirthYear((short) (1985 + random.nextInt(20)));
+        user.changeBirthDate(LocalDate.of(1985 + random.nextInt(20), 1 + random.nextInt(12), 1 + random.nextInt(28)));
     }
 
-    private static String email(int index) {
-        return "demo%02d@fitmate.com".formatted(index);
+    private static String loginId(int index) {
+        return "demo%02d".formatted(index);
     }
 }

@@ -11,7 +11,8 @@ import org.locationtech.jts.geom.Point;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
-import java.time.Year;
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.Comparator;
 import java.util.List;
 
@@ -20,15 +21,16 @@ public final class UserResponses {
     private UserResponses() {
     }
 
-    /** 본인 프로필: 이메일, 정확한 좌표까지 포함 */
+    /** 본인 프로필: 아이디, 이메일, 생년월일, 정확한 좌표까지 포함 */
     public record MyProfile(
             Long id,
+            String loginId,
             String email,
             String nickname,
             String bio,
             String profileImageUrl,
             Gender gender,
-            Short birthYear,
+            LocalDate birthDate,
             Location location,
             short searchRadiusKm,
             BigDecimal mannerScore,
@@ -38,12 +40,13 @@ public final class UserResponses {
         public static MyProfile from(User user) {
             return new MyProfile(
                     user.getId(),
+                    user.getLoginId(),
                     user.getEmail(),
                     user.getNickname(),
                     user.getBio(),
                     user.getProfileImageUrl(),
                     user.getGender(),
-                    user.getBirthYear(),
+                    user.getBirthDate(),
                     Location.from(user),
                     user.getSearchRadiusKm(),
                     user.getMannerScore(),
@@ -53,7 +56,7 @@ public final class UserResponses {
         }
     }
 
-    /** 다른 사용자에게 보이는 프로필: 이메일, 좌표, 정확한 나이는 노출하지 않는다. */
+    /** 다른 사용자에게 보이는 프로필: 아이디, 이메일, 좌표, 생년월일은 노출하지 않는다. */
     public record PublicProfile(
             Long id,
             String nickname,
@@ -73,7 +76,7 @@ public final class UserResponses {
                     user.getBio(),
                     user.getProfileImageUrl(),
                     user.getGender(),
-                    ageGroup(user.getBirthYear()),
+                    ageGroup(user.getBirthDate()),
                     user.getActivityAreaName(),
                     user.getMannerScore(),
                     Sport.listOf(user),
@@ -81,11 +84,12 @@ public final class UserResponses {
             );
         }
 
-        public static String ageGroup(Short birthYear) {
-            if (birthYear == null) {
+        /** 만 나이 기준 나이대 (예: 27세 → "20대") */
+        public static String ageGroup(LocalDate birthDate) {
+            if (birthDate == null) {
                 return null;
             }
-            int age = Year.now().getValue() - birthYear;
+            int age = Period.between(birthDate, LocalDate.now()).getYears();
             return (age / 10 * 10) + "대";
         }
     }

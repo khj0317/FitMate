@@ -11,9 +11,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -38,11 +40,11 @@ public class UserService {
     public UserResponses.MyProfile updateProfile(Long userId, UserRequests.UpdateProfile request) {
         User user = getUser(userId);
 
-        if (request.nickname() != null && !request.nickname().equals(user.getNickname())) {
-            if (userRepository.existsByNickname(request.nickname())) {
-                throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
-            }
-            user.changeNickname(request.nickname());
+        if (request.nickname() != null) {
+            applyNickname(user, request.nickname());
+        }
+        if (request.email() != null) {
+            applyEmail(user, request.email());
         }
         if (request.bio() != null) {
             user.changeBio(request.bio());
@@ -53,8 +55,8 @@ public class UserService {
         if (request.gender() != null) {
             user.changeGender(request.gender());
         }
-        if (request.birthYear() != null) {
-            user.changeBirthYear(request.birthYear());
+        if (request.birthDate() != null) {
+            applyBirthDate(user, request.birthDate());
         }
         if (request.searchRadiusKm() != null) {
             user.changeSearchRadiusKm(request.searchRadiusKm());
@@ -62,18 +64,77 @@ public class UserService {
         return UserResponses.MyProfile.from(user);
     }
 
+    /** 프로필 화면의 "전체 저장": 모든 항목을 하나의 트랜잭션으로 저장한다. */
+    @Transactional
+    public UserResponses.MyProfile updateAll(Long userId, UserRequests.UpdateAll request) {
+        User user = getUser(userId);
+        applyNickname(user, request.nickname());
+        applyEmail(user, request.email() == null ? "" : request.email());
+        user.changeBio(request.bio() == null ? "" : request.bio());
+        user.changeGender(request.gender());
+        applyBirthDate(user, request.birthDate());
+        user.changeSearchRadiusKm(request.searchRadiusKm());
+        applyLocation(user, request.location());
+        applySports(user, request.sports());
+        applyAvailableTimes(user, request.availableTimes());
+        return UserResponses.MyProfile.from(user);
+    }
+
     @Transactional
     public UserResponses.MyProfile updateLocation(Long userId, UserRequests.UpdateLocation request) {
         User user = getUser(userId);
-        user.changeActivityLocation(GeoPoints.of(request.latitude(), request.longitude()), request.areaName());
+        applyLocation(user, request);
         return UserResponses.MyProfile.from(user);
     }
 
     @Transactional
     public UserResponses.MyProfile updateSports(Long userId, UserRequests.UpdateSports request) {
         User user = getUser(userId);
+        applySports(user, request.sports());
+        return UserResponses.MyProfile.from(user);
+    }
 
-        List<Short> sportIds = request.sports().stream().map(UserRequests.SportLevel::sportId).toList();
+    @Transactional
+    public UserResponses.MyProfile updateAvailableTimes(Long userId, UserRequests.UpdateAvailableTimes request) {
+        User user = getUser(userId);
+        applyAvailableTimes(user, request.availableTimes());
+        return UserResponses.MyProfile.from(user);
+    }
+
+    // ---------- 항목별 검증 + 적용 (개별 API와 전체 저장 API가 같이 쓴다) ----------
+
+    private void applyNickname(User user, String nickname) {
+        if (nickname.equals(user.getNickname())) {
+            return;
+        }
+        if (userRepository.existsByNickname(nickname)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
+        }
+        user.changeNickname(nickname);
+    }
+
+    /** 빈 문자열이면 이메일을 지운다 */
+    private void applyEmail(User user, String rawEmail) {
+        String email = rawEmail.strip().toLowerCase(Locale.ROOT);
+        if (!email.isEmpty() && userRepository.existsByEmailAndIdNot(email, user.getId())) {
+            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
+        }
+        user.changeEmail(email);
+    }
+
+    private void applyBirthDate(User user, LocalDate birthDate) {
+        if (birthDate.isBefore(User.MIN_BIRTH_DATE)) {
+            throw new BusinessException(ErrorCode.INVALID_BIRTH_DATE);
+        }
+        user.changeBirthDate(birthDate);
+    }
+
+    private void applyLocation(User user, UserRequests.UpdateLocation location) {
+        user.changeActivityLocation(GeoPoints.of(location.latitude(), location.longitude()), location.areaName().strip());
+    }
+
+    private void applySports(User user, List<UserRequests.SportLevel> items) {
+        List<Short> sportIds = items.stream().map(UserRequests.SportLevel::sportId).toList();
         if (sportIds.stream().distinct().count() != sportIds.size()) {
             throw new BusinessException(ErrorCode.DUPLICATE_SPORT);
         }
@@ -85,24 +146,18 @@ public class UserService {
         }
 
         Map<Sport, SkillLevel> levelsBySport = new LinkedHashMap<>();
-        request.sports().forEach(item -> levelsBySport.put(sportsById.get(item.sportId()), item.skillLevel()));
+        items.forEach(item -> levelsBySport.put(sportsById.get(item.sportId()), item.skillLevel()));
         user.replaceSports(levelsBySport);
-        return UserResponses.MyProfile.from(user);
     }
 
-    @Transactional
-    public UserResponses.MyProfile updateAvailableTimes(Long userId, UserRequests.UpdateAvailableTimes request) {
-        User user = getUser(userId);
-
-        List<UserAvailableTime.Slot> slots = request.availableTimes().stream()
+    private void applyAvailableTimes(User user, List<UserRequests.AvailableTime> times) {
+        List<UserAvailableTime.Slot> slots = times.stream()
                 .map(time -> new UserAvailableTime.Slot(time.dayOfWeek(), time.startTime(), time.endTime()))
                 .sorted(Comparator.comparing(UserAvailableTime.Slot::dayOfWeek)
                         .thenComparing(UserAvailableTime.Slot::startTime))
                 .toList();
         validateSlots(slots);
-
         user.replaceAvailableTimes(slots);
-        return UserResponses.MyProfile.from(user);
     }
 
     /** 정렬된 목록이므로 바로 이전 시간대와만 비교하면 겹침을 모두 찾을 수 있다. */

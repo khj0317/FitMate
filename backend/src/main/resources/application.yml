@@ -49,3 +49,7 @@ jwt:
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+# 지역 검색: 카카오 REST API 키가 있으면 카카오 로컬 API, 없으면 내장 지역 목록을 사용
+kakao:
+  rest-api-key: ${KAKAO_REST_API_KEY:}

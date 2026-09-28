@@ -23,6 +23,7 @@ public class GlobalExceptionHandler {
      * 제약 조건 이름으로 어떤 비즈니스 에러인지 매핑한다.
      */
     private static final Map<String, ErrorCode> CONSTRAINT_ERRORS = Map.of(
+            "users_login_id_key", ErrorCode.DUPLICATE_LOGIN_ID,
             "users_email_key", ErrorCode.DUPLICATE_EMAIL,
             "users_nickname_key", ErrorCode.DUPLICATE_NICKNAME,
             "uq_match_requests_pending", ErrorCode.DUPLICATE_MATCH_REQUEST,

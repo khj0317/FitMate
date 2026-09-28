@@ -1,9 +1,12 @@
-import { ArrowRight, MapPin, MessageCircle, Sparkles } from 'lucide-react'
-import { useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router'
+import clsx from 'clsx'
+import { ArrowRight, Check, MapPin, MessageCircle, Sparkles } from 'lucide-react'
+import { useState, type FormEvent, type ReactNode } from 'react'
+import { Link } from 'react-router'
+import { LocationSearch } from '../components/LocationSearch'
 import { Logo } from '../components/Logo'
-import { Button, Field, Input } from '../components/ui'
+import { Button, Field, Input, Segmented } from '../components/ui'
 import { ApiError, errorMessage } from '../lib/api'
+import type { Gender, LocationInput } from '../lib/types'
 import { useAuth } from '../providers/AuthProvider'
 
 const FEATURES = [
@@ -12,11 +15,21 @@ const FEATURES = [
   { icon: MessageCircle, title: '실시간 채팅', text: '매칭되면 바로 대화하고 운동 약속을 잡아요' },
 ]
 
-function AuthLayout({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+function AuthLayout({
+  title,
+  subtitle,
+  wide = false,
+  children,
+}: {
+  title: string
+  subtitle: string
+  wide?: boolean
+  children: ReactNode
+}) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
-      {/* 브랜드 패널 */}
-      <section className="relative hidden overflow-hidden bg-linear-to-br from-brand-500 via-brand-600 to-rose-600 p-12 text-white lg:flex lg:flex-col">
+      {/* 브랜드 패널: 폼이 길어져도 화면에 고정 */}
+      <section className="relative hidden overflow-hidden bg-linear-to-br from-brand-500 via-brand-600 to-rose-600 p-12 text-white lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col">
         <div className="absolute -top-24 -right-24 size-96 rounded-full bg-white/10 blur-2xl" />
         <div className="absolute -bottom-32 -left-16 size-[28rem] rounded-full bg-amber-300/20 blur-3xl" />
         <Logo light className="relative" />
@@ -54,7 +67,7 @@ function AuthLayout({ title, subtitle, children }: { title: string; subtitle: st
 
       {/* 폼 */}
       <section className="flex items-center justify-center px-5 py-12">
-        <div className="w-full max-w-sm animate-fade-up">
+        <div className={clsx('w-full animate-fade-up', wide ? 'max-w-md' : 'max-w-sm')}>
           <Logo className="mb-10 lg:hidden" />
           <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
           <p className="mt-2 text-ink-500">{subtitle}</p>
@@ -67,8 +80,7 @@ function AuthLayout({ title, subtitle, children }: { title: string; subtitle: st
 
 export function LoginPage() {
   const { login } = useAuth()
-  const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -78,8 +90,7 @@ export function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      await login(email, password)
-      navigate('/', { replace: true })
+      await login(loginId, password) // 이동은 GuestOnly가 처리
     } catch (e) {
       setError(errorMessage(e))
     } finally {
@@ -90,11 +101,25 @@ export function LoginPage() {
   return (
     <AuthLayout title="다시 만나서 반가워요 👋" subtitle="로그인하고 오늘의 운동 메이트를 찾아보세요">
       <form onSubmit={submit} className="space-y-4">
-        <Field label="이메일">
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" required />
+        <Field label="아이디">
+          <Input
+            value={loginId}
+            onChange={(e) => setLoginId(e.target.value)}
+            placeholder="아이디"
+            autoComplete="username"
+            autoCapitalize="none"
+            required
+          />
         </Field>
         <Field label="비밀번호">
-          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호" autoComplete="current-password" required />
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="비밀번호"
+            autoComplete="current-password"
+            required
+          />
         </Field>
         {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">{error}</p>}
         <Button type="submit" size="lg" loading={loading} className="w-full">
@@ -106,7 +131,7 @@ export function LoginPage() {
             variant="secondary"
             className="w-full"
             onClick={() => {
-              setEmail('demo01@fitmate.com')
+              setLoginId('demo01')
               setPassword('password123')
             }}
           >
@@ -124,28 +149,100 @@ export function LoginPage() {
   )
 }
 
+// ---------- 회원가입 ----------
+
+const LOGIN_ID_PATTERN = /^[a-z0-9_]{4,20}$/
+const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,64}$/
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const TODAY = new Date().toISOString().slice(0, 10)
+
+/** 서버 에러 코드를 해당 입력 칸에 표시한다 */
+const ERROR_FIELD: Record<string, keyof SignupForm> = {
+  DUPLICATE_LOGIN_ID: 'loginId',
+  DUPLICATE_EMAIL: 'email',
+  DUPLICATE_NICKNAME: 'nickname',
+  PASSWORD_MISMATCH: 'passwordConfirm',
+  INVALID_BIRTH_DATE: 'birthDate',
+}
+
+interface SignupForm {
+  loginId: string
+  password: string
+  passwordConfirm: string
+  nickname: string
+  email: string
+  birthDate: string
+  gender: Gender | null
+  location: LocationInput | null
+}
+
+type FieldErrors = Partial<Record<keyof SignupForm, string>>
+
+function validate(form: SignupForm): FieldErrors {
+  const errors: FieldErrors = {}
+  if (!LOGIN_ID_PATTERN.test(form.loginId)) errors.loginId = '영문 소문자, 숫자, _로 4~20자여야 해요'
+  if (!PASSWORD_PATTERN.test(form.password)) errors.password = '영문과 숫자를 포함해 8자 이상이어야 해요'
+  if (!form.passwordConfirm || form.passwordConfirm !== form.password) errors.passwordConfirm = '비밀번호가 일치하지 않아요'
+  if (form.nickname.trim().length < 2) errors.nickname = '닉네임은 2자 이상이어야 해요'
+  if (form.email && !EMAIL_PATTERN.test(form.email)) errors.email = '올바른 이메일 형식이 아니에요'
+  if (!form.birthDate) errors.birthDate = '생년월일을 입력해 주세요'
+  if (!form.gender) errors.gender = '성별을 선택해 주세요'
+  if (!form.location) errors.location = '목록에서 활동 지역을 선택해 주세요'
+  return errors
+}
+
+const EMPTY_FORM: SignupForm = {
+  loginId: '',
+  password: '',
+  passwordConfirm: '',
+  nickname: '',
+  email: '',
+  birthDate: '',
+  gender: null,
+  location: null,
+}
+
 export function SignupPage() {
   const { signup } = useAuth()
-  const navigate = useNavigate()
-  const [form, setForm] = useState({ email: '', password: '', nickname: '' })
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [form, setForm] = useState<SignupForm>(EMPTY_FORM)
+  const [touched, setTouched] = useState<Partial<Record<keyof SignupForm, boolean>>>({})
+  const [serverErrors, setServerErrors] = useState<FieldErrors>({})
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const update = (key: keyof typeof form) => (event: ChangeEvent<HTMLInputElement>) =>
-    setForm((current) => ({ ...current, [key]: event.target.value }))
+  const clientErrors = validate(form)
+  // 한 번 건드린 칸만 즉시 검증 결과를 보여주고, 서버 에러(중복 등)가 있으면 우선 표시한다
+  const fieldError = (key: keyof SignupForm) => serverErrors[key] ?? (touched[key] ? clientErrors[key] : undefined)
+
+  const set = <K extends keyof SignupForm>(key: K, value: SignupForm[K]) => {
+    setForm((current) => ({ ...current, [key]: value }))
+    setServerErrors(({ [key]: _removed, ...rest }) => rest)
+  }
+  const touch = (key: keyof SignupForm) => () => setTouched((current) => ({ ...current, [key]: true }))
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setError(null)
-    setFieldErrors({})
+    setTouched(Object.fromEntries(Object.keys(EMPTY_FORM).map((key) => [key, true])))
+    if (Object.keys(clientErrors).length > 0 || !form.gender || !form.location) return
+
     setLoading(true)
     try {
-      await signup(form.email, form.password, form.nickname)
-      navigate('/profile?welcome=1', { replace: true })
+      await signup({
+        loginId: form.loginId,
+        password: form.password,
+        passwordConfirm: form.passwordConfirm,
+        nickname: form.nickname.trim(),
+        email: form.email.trim() || undefined,
+        birthDate: form.birthDate,
+        gender: form.gender,
+        location: form.location,
+      }) // 가입 후 프로필 화면 이동은 GuestOnly가 afterLoginPath로 처리
     } catch (e) {
       if (e instanceof ApiError && e.fieldErrors.length > 0) {
-        setFieldErrors(Object.fromEntries(e.fieldErrors.map(({ field, reason }) => [field, reason])))
+        setServerErrors(Object.fromEntries(e.fieldErrors.map(({ field, reason }) => [field, reason])))
+      } else if (e instanceof ApiError && ERROR_FIELD[e.code]) {
+        setServerErrors({ [ERROR_FIELD[e.code]]: e.message })
       } else {
         setError(errorMessage(e))
       }
@@ -154,18 +251,101 @@ export function SignupPage() {
     }
   }
 
+  const passwordsMatch = form.passwordConfirm.length > 0 && form.passwordConfirm === form.password
+
   return (
-    <AuthLayout title="FitMate 시작하기" subtitle="1분이면 가입하고 운동 메이트를 찾을 수 있어요">
-      <form onSubmit={submit} className="space-y-4">
-        <Field label="이메일" error={fieldErrors.email}>
-          <Input type="email" value={form.email} onChange={update('email')} placeholder="you@example.com" autoComplete="email" required />
-        </Field>
-        <Field label="닉네임" hint="한글, 영문, 숫자, _ 2~20자" error={fieldErrors.nickname}>
-          <Input value={form.nickname} onChange={update('nickname')} placeholder="운동하는_곰" autoComplete="nickname" required />
-        </Field>
-        <Field label="비밀번호" hint="영문과 숫자를 포함해 8자 이상" error={fieldErrors.password}>
-          <Input type="password" value={form.password} onChange={update('password')} placeholder="비밀번호" autoComplete="new-password" required />
-        </Field>
+    <AuthLayout title="FitMate 시작하기" subtitle="정보를 입력하면 바로 운동 메이트를 추천해 드려요" wide>
+      <form onSubmit={submit} noValidate className="space-y-8">
+        <FormGroup step={1} title="계정 정보">
+          <Field label="아이디" hint="영문 소문자, 숫자, _ 4~20자" error={fieldError('loginId')}>
+            <Input
+              value={form.loginId}
+              onChange={(e) => set('loginId', e.target.value.toLowerCase())}
+              onBlur={touch('loginId')}
+              placeholder="fitmate_runner"
+              autoComplete="username"
+              autoCapitalize="none"
+              maxLength={20}
+            />
+          </Field>
+          <Field label="비밀번호" hint="영문과 숫자를 포함해 8자 이상" error={fieldError('password')}>
+            <Input
+              type="password"
+              value={form.password}
+              onChange={(e) => set('password', e.target.value)}
+              onBlur={touch('password')}
+              placeholder="비밀번호"
+              autoComplete="new-password"
+            />
+          </Field>
+          <Field label="비밀번호 확인" error={fieldError('passwordConfirm')}>
+            <div className="relative">
+              <Input
+                type="password"
+                value={form.passwordConfirm}
+                onChange={(e) => set('passwordConfirm', e.target.value)}
+                onBlur={touch('passwordConfirm')}
+                placeholder="비밀번호를 한 번 더 입력"
+                autoComplete="new-password"
+                className="pr-11"
+              />
+              {passwordsMatch && (
+                <Check className="absolute top-1/2 right-4 size-5 -translate-y-1/2 text-emerald-500" aria-label="비밀번호 일치" />
+              )}
+            </div>
+          </Field>
+        </FormGroup>
+
+        <FormGroup step={2} title="프로필">
+          <Field label="닉네임" hint="한글, 영문, 숫자, _ 2~20자" error={fieldError('nickname')}>
+            <Input
+              value={form.nickname}
+              onChange={(e) => set('nickname', e.target.value)}
+              onBlur={touch('nickname')}
+              placeholder="운동하는_곰"
+              maxLength={20}
+            />
+          </Field>
+          <Field label="이메일 (선택)" hint="입력하지 않아도 가입할 수 있어요" error={fieldError('email')}>
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => set('email', e.target.value)}
+              onBlur={touch('email')}
+              placeholder="you@example.com"
+              autoComplete="email"
+            />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+            <Field label="생년월일" hint="다른 사람에게는 나이대만 보여요" error={fieldError('birthDate')}>
+              <Input
+                type="date"
+                value={form.birthDate}
+                onChange={(e) => set('birthDate', e.target.value)}
+                onBlur={touch('birthDate')}
+                min="1920-01-01"
+                max={TODAY}
+              />
+            </Field>
+            <Field label="성별" error={fieldError('gender')}>
+              <div className="flex h-12 items-center">
+                <Segmented<Gender>
+                  options={[
+                    { value: 'MALE', label: '남성' },
+                    { value: 'FEMALE', label: '여성' },
+                  ]}
+                  value={form.gender}
+                  onChange={(value) => set('gender', value)}
+                />
+              </div>
+            </Field>
+          </div>
+        </FormGroup>
+
+        <FormGroup step={3} title="활동 지역">
+          <LocationSearch value={form.location} onChange={(location) => set('location', location)} error={fieldError('location')} />
+        </FormGroup>
+
         {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">{error}</p>}
         <Button type="submit" size="lg" loading={loading} className="w-full">
           가입하고 시작하기 <ArrowRight className="size-4" />
@@ -178,5 +358,17 @@ export function SignupPage() {
         </Link>
       </p>
     </AuthLayout>
+  )
+}
+
+function FormGroup({ step, title, children }: { step: number; title: string; children: ReactNode }) {
+  return (
+    <fieldset className="space-y-4">
+      <legend className="mb-4 flex items-center gap-2 text-sm font-bold text-ink-900">
+        <span className="flex size-6 items-center justify-center rounded-full bg-brand-500 text-xs text-white">{step}</span>
+        {title}
+      </legend>
+      {children}
+    </fieldset>
   )
 }

@@ -13,12 +13,14 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -54,20 +56,20 @@ public abstract class IntegrationTest {
     }
 
     protected TestUser signupAndLogin() throws Exception {
-        String suffix = UUID.randomUUID().toString().substring(0, 8);
-        String email = "user_" + suffix + "@fitmate.com";
+        String suffix = uniqueSuffix();
+        String loginId = "u" + suffix;
         String nickname = "user_" + suffix;
 
-        String signup = post("/api/auth/signup", signupJson(email, PASSWORD, nickname))
+        String signup = post("/api/auth/signup", signupJson(loginId, PASSWORD, nickname))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        String body = post("/api/auth/login", loginJson(email, PASSWORD))
+        String body = post("/api/auth/login", loginJson(loginId, PASSWORD))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
         return new TestUser(
                 ((Number) JsonPath.read(signup, "$.userId")).longValue(),
-                email, nickname,
+                loginId, nickname,
                 JsonPath.read(body, "$.accessToken"),
                 JsonPath.read(body, "$.refreshToken"));
     }
@@ -107,16 +109,29 @@ public abstract class IntegrationTest {
         return UUID.randomUUID().toString().substring(0, 8);
     }
 
-    protected static String signupJson(String email, String password, String nickname) {
-        return """
-                {"email": "%s", "password": "%s", "nickname": "%s"}
-                """.formatted(email, password, nickname);
+    protected static String signupJson(String loginId, String password, String nickname) {
+        return signupJson(loginId, password, password, nickname, null);
     }
 
-    protected static String loginJson(String email, String password) {
+    /**
+     * 활동 지역은 매번 지구 위 임의의 지점으로 넣어서, 매칭 테스트가 다른 테스트의 사용자와 섞이지 않게 한다.
+     * email이 null이면 필드를 보내지 않는다 (선택 입력).
+     */
+    protected static String signupJson(String loginId, String password, String passwordConfirm, String nickname, String email) {
+        double latitude = ThreadLocalRandom.current().nextDouble(-60, 60);
+        double longitude = ThreadLocalRandom.current().nextDouble(-170, 170);
+        return String.format(Locale.ROOT, """
+                {"loginId": "%s", "password": "%s", "passwordConfirm": "%s", "nickname": "%s", %s
+                 "birthDate": "1998-05-20", "gender": "MALE",
+                 "location": {"latitude": %.6f, "longitude": %.6f, "areaName": "테스트 지역"}}
+                """, loginId, password, passwordConfirm, nickname,
+                email == null ? "" : "\"email\": \"" + email + "\",", latitude, longitude);
+    }
+
+    protected static String loginJson(String loginId, String password) {
         return """
-                {"email": "%s", "password": "%s"}
-                """.formatted(email, password);
+                {"loginId": "%s", "password": "%s"}
+                """.formatted(loginId, password);
     }
 
     protected static String refreshJson(String refreshToken) {
@@ -158,6 +173,6 @@ public abstract class IntegrationTest {
         }
     }
 
-    protected record TestUser(Long id, String email, String nickname, String accessToken, String refreshToken) {
+    protected record TestUser(Long id, String loginId, String nickname, String accessToken, String refreshToken) {
     }
 }

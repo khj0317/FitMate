@@ -37,6 +37,14 @@ public class UserController {
         return userService.updateProfile(userId, request);
     }
 
+    @Operation(summary = "내 프로필 전체 저장",
+            description = "기본 정보, 활동 지역, 운동 종목, 운동 가능 시간을 한 번에 저장합니다. 하나라도 실패하면 모두 저장되지 않습니다.")
+    @PutMapping("/me")
+    public UserResponses.MyProfile updateAll(@Parameter(hidden = true) @LoginUserId Long userId,
+                                             @Valid @RequestBody UserRequests.UpdateAll request) {
+        return userService.updateAll(userId, request);
+    }
+
     @Operation(summary = "활동 지역 설정")
     @PutMapping("/me/location")
     public UserResponses.MyProfile updateLocation(@Parameter(hidden = true) @LoginUserId Long userId,

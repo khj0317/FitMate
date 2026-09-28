@@ -6,15 +6,18 @@ import com.fitmate.domain.user.SkillLevel;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.URL;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -35,15 +38,56 @@ public final class UserRequests {
             @Size(max = 500) @URL(message = "올바른 URL 형식이 아닙니다.")
             String profileImageUrl,
 
+            @Email(message = "올바른 이메일 형식이 아닙니다.") @Size(max = 255)
+            String email,
+
             Gender gender,
 
-            @Min(value = 1920, message = "출생 연도가 올바르지 않습니다.")
-            @Max(value = 2015, message = "출생 연도가 올바르지 않습니다.")
-            Short birthYear,
+            @Past(message = "생년월일이 올바르지 않습니다.")
+            LocalDate birthDate,
 
             @Min(value = 1, message = "검색 반경은 1~50km입니다.")
             @Max(value = 50, message = "검색 반경은 1~50km입니다.")
             Short searchRadiusKm
+    ) {
+    }
+
+    /**
+     * 프로필 전체를 한 번에 저장한다 (PUT). 하나의 트랜잭션이라 중간에 실패하면 모두 취소된다.
+     * email, bio는 비우면 삭제된다.
+     */
+    public record UpdateAll(
+            @NotBlank
+            @Size(min = 2, max = 20, message = "닉네임은 2~20자여야 합니다.")
+            @Pattern(regexp = "^[가-힣a-zA-Z0-9_]+$", message = "닉네임은 한글, 영문, 숫자, _만 사용할 수 있습니다.")
+            String nickname,
+
+            @Email(message = "올바른 이메일 형식이 아닙니다.") @Size(max = 255)
+            String email,
+
+            @Size(max = 500, message = "자기소개는 500자 이하여야 합니다.")
+            String bio,
+
+            @NotNull(message = "성별을 선택해 주세요.")
+            Gender gender,
+
+            @NotNull(message = "생년월일을 입력해 주세요.")
+            @Past(message = "생년월일이 올바르지 않습니다.")
+            LocalDate birthDate,
+
+            @NotNull
+            @Min(value = 1, message = "검색 반경은 1~50km입니다.")
+            @Max(value = 50, message = "검색 반경은 1~50km입니다.")
+            Short searchRadiusKm,
+
+            @NotNull(message = "활동 지역을 선택해 주세요.") @Valid
+            UpdateLocation location,
+
+            @NotNull @Size(max = 5, message = "운동 종목은 최대 5개까지 등록할 수 있습니다.")
+            List<@Valid @NotNull SportLevel> sports,
+
+            @NotNull @Size(max = 21, message = "운동 가능 시간대는 최대 21개까지 등록할 수 있습니다.")
+            List<@Valid @NotNull AvailableTime> availableTimes
     ) {
     }
 

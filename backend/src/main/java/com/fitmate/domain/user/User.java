@@ -22,6 +22,7 @@ import org.locationtech.jts.geom.Point;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -35,6 +36,9 @@ import java.util.stream.Collectors;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
+    /** 이보다 이른 생년월일은 잘못 입력한 것으로 본다 */
+    public static final LocalDate MIN_BIRTH_DATE = LocalDate.of(1920, 1, 1);
+
     private static final BigDecimal INITIAL_MANNER_SCORE = new BigDecimal("36.5");
     private static final short DEFAULT_SEARCH_RADIUS_KM = 5;
 
@@ -42,7 +46,11 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 30)
+    private String loginId;
+
+    /** 선택 입력 */
+    @Column(unique = true)
     private String email;
 
     @Column(nullable = false)
@@ -61,7 +69,7 @@ public class User {
     @Column(length = 10)
     private Gender gender;
 
-    private Short birthYear;
+    private LocalDate birthDate;
 
     @JdbcTypeCode(SqlTypes.GEOGRAPHY)
     @Column(columnDefinition = "geography(Point,4326)")
@@ -90,8 +98,8 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserAvailableTime> availableTimes = new ArrayList<>();
 
-    public User(String email, String passwordHash, String nickname) {
-        this.email = email;
+    public User(String loginId, String passwordHash, String nickname) {
+        this.loginId = loginId;
         this.passwordHash = passwordHash;
         this.nickname = nickname;
         this.searchRadiusKm = DEFAULT_SEARCH_RADIUS_KM;
@@ -114,8 +122,13 @@ public class User {
         this.gender = gender;
     }
 
-    public void changeBirthYear(short birthYear) {
-        this.birthYear = birthYear;
+    public void changeBirthDate(LocalDate birthDate) {
+        this.birthDate = birthDate;
+    }
+
+    /** 빈 문자열이면 이메일을 지운다 (선택 입력) */
+    public void changeEmail(String email) {
+        this.email = email == null || email.isBlank() ? null : email;
     }
 
     public void changeSearchRadiusKm(short searchRadiusKm) {
