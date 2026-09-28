@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { ArrowRight, Check, MapPin, MessageCircle, Sparkles } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router'
+import { BirthDateInput } from '../components/BirthDateInput'
 import { LocationSearch } from '../components/LocationSearch'
 import { Logo } from '../components/Logo'
 import { Button, Field, Input, Segmented } from '../components/ui'
@@ -159,7 +160,6 @@ export function LoginPage() {
 const LOGIN_ID_PATTERN = /^[a-z0-9_]{4,20}$/
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,64}$/
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const TODAY = new Date().toISOString().slice(0, 10)
 
 /** 서버 에러 코드를 해당 입력 칸에 표시한다 */
 const ERROR_FIELD: Record<string, keyof SignupForm> = {
@@ -322,14 +322,12 @@ export function SignupPage() {
             />
           </Field>
           <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-            <Field label="생년월일" hint="다른 사람에게는 나이대만 보여요" error={fieldError('birthDate')}>
-              <Input
-                type="date"
+            <Field label="생년월일">
+              <BirthDateInput
                 value={form.birthDate}
-                onChange={(e) => set('birthDate', e.target.value)}
+                onChange={(iso) => set('birthDate', iso)}
                 onBlur={touch('birthDate')}
-                min="1920-01-01"
-                max={TODAY}
+                error={fieldError('birthDate')}
               />
             </Field>
             <Field label="성별" error={fieldError('gender')}>

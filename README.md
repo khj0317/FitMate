@@ -149,7 +149,10 @@ GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 
 
 ### 지역 검색
 - `KAKAO_REST_API_KEY`가 있으면 카카오 로컬 API(주소 + 키워드 검색), 결과는 Redis에 하루 캐시
-- 키가 없거나 외부 API가 실패하면 내장 지역 목록(서울 주요 지역 + 광역시 약 60곳)으로 대체
+- 키가 없거나 외부 API가 실패하면 내장 목록으로 대체: **전국 시 · 시군구 · 읍면동 3,827곳** + 주요 역·명소
+  - 통계청 행정동 경계에서 동마다 넓이 가중 무게중심을 계산해 생성 (`backend/scripts/generate_kr_areas.py`)
+  - "망원동"처럼 부르는 이름으로도 행정동(망원1동, 망원2동)을 찾도록 숫자·"N가"를 뺀 별칭으로도 검색
+  - 결과는 이름 일치 → 주소 일치 순, 같은 순위면 넓은 지역(시 → 구 → 역 → 동) 먼저
 - 저장하는 지역명은 동 단위까지만 잘라서(번지 제외) 개인 위치를 남기지 않음
 
 ### 매칭 설계
@@ -286,3 +289,7 @@ erDiagram
 - **모임 정원 동시성**: `current_count <= capacity` 체크 제약 + 버전 컬럼(낙관적 락), 이후 Redis 분산 락과 비교 예정
 - **채팅 페이지네이션**: `(room_id, id DESC)` 인덱스 기반 커서 페이지네이션
 - **읽음 처리**: 멤버별 `last_read_message_id`로 안 읽은 메시지 수 계산
+
+## 데이터 출처
+
+행정구역 검색 목록(`backend/src/main/resources/locations/kr-areas.csv`)은 통계청 통계지리정보서비스(SGIS, https://sgis.kostat.go.kr)에서 공공누리 제1유형으로 개방한 행정동 경계를 가공한 것이며(가공: vuski/admdongkor, https://github.com/vuski/admdongkor), CC BY 4.0으로 배포됩니다. 이 프로젝트에서는 경계에서 중심 좌표를 계산해 사용합니다.

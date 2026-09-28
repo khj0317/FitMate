@@ -3,6 +3,7 @@ import { AtSign, LogOut, PartyPopper, RotateCcw, Save, Thermometer } from 'lucid
 import { useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { Avatar } from '../components/Avatar'
+import { BirthDateInput } from '../components/BirthDateInput'
 import { LocationSearch } from '../components/LocationSearch'
 import { Button, Card, Field, Input, PageHeader, PageLoader, Segmented, Textarea } from '../components/ui'
 import { ApiError, errorMessage } from '../lib/api'
@@ -13,7 +14,6 @@ import { useAuth } from '../providers/AuthProvider'
 import { useToast } from '../providers/ToastProvider'
 
 const MAX_SPORTS = 5
-const TODAY = new Date().toISOString().slice(0, 10)
 
 // ---------- 운동 가능 시간: 요일 × 시간대 칸 ----------
 
@@ -228,8 +228,8 @@ function ProfileForm({ me }: { me: MyProfile }) {
             <Field label="닉네임" error={errors.nickname}>
               <Input value={draft.nickname} onChange={(e) => set('nickname', e.target.value)} maxLength={20} />
             </Field>
-            <Field label="생년월일" hint="다른 사람에게는 '20대'처럼 나이대만 보여요" error={errors.birthDate}>
-              <Input type="date" value={draft.birthDate} onChange={(e) => set('birthDate', e.target.value)} min="1920-01-01" max={TODAY} />
+            <Field label="생년월일">
+              <BirthDateInput value={draft.birthDate} onChange={(iso) => set('birthDate', iso)} error={errors.birthDate} />
             </Field>
             <div className="sm:col-span-2">
               <Field label="자기소개">
