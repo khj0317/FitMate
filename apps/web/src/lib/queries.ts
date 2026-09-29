@@ -1,7 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
   ChatRoom,
+  FeedPage,
+  NotificationCategory,
+  Post,
+  PostCategory,
+  PostComment,
+  PublicProfile,
   GatheringDetail,
   GatheringInput,
   GatheringSummary,
@@ -35,6 +41,18 @@ export const keys = {
   pendingReviews: ['manner', 'pending'] as const,
   manner: (userId: number) => ['manner', 'summary', userId] as const,
   notifications: ['notifications'] as const,
+  notificationSettings: ['notificationSettings'] as const,
+  feed: (filter: FeedFilter) => ['posts', 'feed', filter] as const,
+  post: (id: number) => ['posts', 'detail', id] as const,
+  comments: (postId: number) => ['posts', 'comments', postId] as const,
+  profile: (userId: number) => ['profile', userId] as const,
+}
+
+export interface FeedFilter {
+  scope: 'NEARBY' | 'ALL'
+  category: PostCategory | null
+  sportId: number | null
+  authorId: number | null
 }
 
 export function useMe(enabled = true) {
@@ -132,6 +150,51 @@ export function useNotifications() {
   return useQuery({ queryKey: keys.notifications, queryFn: () => api.get<NotificationPage>('/api/notifications') })
 }
 
+export function useNotificationSettings() {
+  return useQuery({
+    queryKey: keys.notificationSettings,
+    queryFn: () => api.get<{ muted: NotificationCategory[] }>('/api/notifications/settings'),
+  })
+}
+
+export function usePublicProfile(userId: number) {
+  return useQuery({
+    queryKey: keys.profile(userId),
+    queryFn: () => api.get<PublicProfile>(`/api/users/${userId}`),
+    retry: false,
+  })
+}
+
+/** 커서 기반 무한 스크롤 피드 */
+export function useFeed(filter: FeedFilter, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: keys.feed(filter),
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ scope: filter.scope })
+      if (filter.category) params.set('category', filter.category)
+      if (filter.sportId) params.set('sportId', String(filter.sportId))
+      if (filter.authorId) params.set('authorId', String(filter.authorId))
+      if (pageParam) params.set('cursor', String(pageParam))
+      return api.get<FeedPage>(`/api/posts?${params}`)
+    },
+    initialPageParam: null as number | null,
+    getNextPageParam: (last) => last.nextCursor,
+    enabled,
+  })
+}
+
+export function usePost(id: number) {
+  return useQuery({ queryKey: keys.post(id), queryFn: () => api.get<Post>(`/api/posts/${id}`), retry: false })
+}
+
+export function useComments(postId: number, enabled = true) {
+  return useQuery({
+    queryKey: keys.comments(postId),
+    queryFn: () => api.get<PostComment[]>(`/api/posts/${postId}/comments`),
+    enabled,
+  })
+}
+
 // ---------- 변경 ----------
 
 function useInvalidate() {
@@ -199,6 +262,92 @@ export function useReadNotifications() {
     mutationFn: (id: number | 'all') =>
       api.post<undefined>(id === 'all' ? '/api/notifications/read-all' : `/api/notifications/${id}/read`),
     onSuccess: () => invalidate([...keys.notifications]),
+  })
+}
+
+export function useSaveNotificationSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (muted: NotificationCategory[]) =>
+      api.put<{ muted: NotificationCategory[] }>('/api/notifications/settings', { muted }),
+    onSuccess: (settings) => queryClient.setQueryData(keys.notificationSettings, settings),
+  })
+}
+
+export function useCreatePost() {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: ({ post, images }: { post: { category: PostCategory; sportId: number | null; content: string }; images: Blob[] }) => {
+      const form = new FormData()
+      form.append('post', new Blob([JSON.stringify(post)], { type: 'application/json' }))
+      images.forEach((image, index) => form.append('images', image, `photo${index}.jpg`))
+      return api.form<Post>('/api/posts', form)
+    },
+    onSuccess: () => invalidate(['posts']),
+  })
+}
+
+export function useUpdatePost() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: number; category: PostCategory; sportId: number | null; content: string }) =>
+      api.put<Post>(`/api/posts/${id}`, body),
+    onSuccess: (post) => {
+      queryClient.setQueryData(keys.post(post.id), post)
+      return queryClient.invalidateQueries({ queryKey: ['posts', 'feed'] })
+    },
+  })
+}
+
+export function useDeletePost() {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: (id: number) => api.delete<undefined>(`/api/posts/${id}`),
+    onSuccess: () => invalidate(['posts', 'feed']),
+  })
+}
+
+/**
+ * 좋아요는 누르자마자 화면에 반영하고(낙관적 업데이트), 서버가 돌려준 최종 수로 맞춘다.
+ * 피드 여러 곳과 상세 화면에 같은 글이 있을 수 있어서 캐시 전체에서 그 글을 찾아 고친다
+ */
+export function useToggleLike() {
+  const queryClient = useQueryClient()
+  const patch = (id: number, change: (post: Post) => Post) => {
+    queryClient.setQueriesData<Post>({ queryKey: ['posts', 'detail', id] }, (post) => (post ? change(post) : post))
+    queryClient.setQueriesData<{ pages: FeedPage[]; pageParams: unknown[] }>({ queryKey: ['posts', 'feed'] }, (data) =>
+      data
+        ? { ...data, pages: data.pages.map((page) => ({ ...page, items: page.items.map((p) => (p.id === id ? change(p) : p)) })) }
+        : data,
+    )
+  }
+  return useMutation({
+    mutationFn: ({ id, like }: { id: number; like: boolean }) =>
+      like
+        ? api.put<{ liked: boolean; likeCount: number }>(`/api/posts/${id}/like`, {})
+        : api.delete<{ liked: boolean; likeCount: number }>(`/api/posts/${id}/like`),
+    onMutate: ({ id, like }) =>
+      patch(id, (post) => ({ ...post, liked: like, likeCount: Math.max(0, post.likeCount + (like ? 1 : -1)) })),
+    onSuccess: (result, { id }) => patch(id, (post) => ({ ...post, liked: result.liked, likeCount: result.likeCount })),
+    onError: (_error, { id, like }) =>
+      patch(id, (post) => ({ ...post, liked: !like, likeCount: Math.max(0, post.likeCount + (like ? -1 : 1)) })),
+  })
+}
+
+export function useAddComment(postId: number) {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: (body: { content: string; parentId: number | null }) =>
+      api.post<PostComment>(`/api/posts/${postId}/comments`, body),
+    onSuccess: () => invalidate([...keys.comments(postId)], [...keys.post(postId)], ['posts', 'feed']),
+  })
+}
+
+export function useDeleteComment(postId: number) {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: (commentId: number) => api.delete<undefined>(`/api/comments/${commentId}`),
+    onSuccess: () => invalidate([...keys.comments(postId)], [...keys.post(postId)], ['posts', 'feed']),
   })
 }
 

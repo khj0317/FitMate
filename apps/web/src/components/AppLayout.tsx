@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Compass, Inbox, LogOut, MessageCircle, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
+import { Compass, Inbox, LogOut, MessageCircle, Newspaper, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useChatRooms, useMatchRequests, useMe } from '../lib/queries'
 import { useAuth } from '../providers/AuthProvider'
@@ -13,6 +13,8 @@ interface NavItem {
   label: string
   icon: LucideIcon
   badge?: number
+  /** 모바일 하단 탭에 보일지 (아니면 상단 바 아이콘으로) */
+  mobileTab?: boolean
 }
 
 function useNavItems(): NavItem[] {
@@ -20,11 +22,12 @@ function useNavItems(): NavItem[] {
   const { data: received } = useMatchRequests('received', 'PENDING')
   const unread = rooms?.reduce((sum, room) => sum + room.unreadCount, 0) ?? 0
   return [
-    { to: '/', label: '운동 메이트', icon: Compass },
-    { to: '/gatherings', label: '모임', icon: UsersRound },
+    { to: '/', label: '운동 메이트', icon: Compass, mobileTab: true },
+    { to: '/gatherings', label: '모임', icon: UsersRound, mobileTab: true },
+    { to: '/community', label: '커뮤니티', icon: Newspaper, mobileTab: true },
     { to: '/requests', label: '매칭 요청', icon: Inbox, badge: received?.length ?? 0 },
-    { to: '/chats', label: '채팅', icon: MessageCircle, badge: unread },
-    { to: '/profile', label: '내 프로필', icon: UserRound },
+    { to: '/chats', label: '채팅', icon: MessageCircle, badge: unread, mobileTab: true },
+    { to: '/profile', label: '내 프로필', icon: UserRound, mobileTab: true },
   ]
 }
 
@@ -107,7 +110,27 @@ export function AppLayout() {
       {!inChatRoom && (
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-ink-100 bg-white/85 px-4 backdrop-blur md:hidden">
           <Logo />
-          <NotificationBell className="-mr-2" />
+          <div className="-mr-2 flex items-center">
+            {items
+              .filter((item) => !item.mobileTab)
+              .map(({ to, label, icon: Icon, badge }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  aria-label={badge ? `${label} ${badge}개` : label}
+                  className={({ isActive }) =>
+                    clsx(
+                      'relative flex size-10 items-center justify-center rounded-full transition-colors',
+                      isActive ? 'bg-brand-50 text-brand-600' : 'text-ink-500 hover:bg-ink-100',
+                    )
+                  }
+                >
+                  <Icon className="size-5" />
+                  <CountBadge count={badge} className="absolute top-0.5 right-0.5 h-4.5! min-w-4.5! px-1! text-[10px]! ring-2 ring-white" />
+                </NavLink>
+              ))}
+            <NotificationBell />
+          </div>
         </header>
       )}
 
@@ -118,7 +141,7 @@ export function AppLayout() {
       {/* 모바일 하단 탭바 */}
       {!inChatRoom && (
         <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-ink-100 bg-white/95 pt-2 backdrop-blur pb-safe md:hidden">
-          {items.map(({ to, label, icon: Icon, badge }) => (
+          {items.filter((item) => item.mobileTab).map(({ to, label, icon: Icon, badge }) => (
             <NavLink
               key={to}
               to={to}

@@ -55,14 +55,17 @@ Windows에서는 루트의 **`dev.cmd`를 더블클릭**해도 됩니다.
 |---|---|
 | 로그인 · 회원가입 | 브랜드 소개 패널 + 폼, 필드별 입력 오류 표시, 가입 후 프로필 설정으로 안내 |
 | 운동 메이트 | 매칭 점수 링, 점수 내역(거리·실력·시간·매너), 공통 종목 실력 비교, 종목·반경 필터, 요청 모달 |
-| 모임 | 근처 모임(종목·반경 필터) / 내 모임 탭, 정원 진행 바, 모임 만들기(날짜 칩·시간·정원·장소 검색), 상세(참여자·참여/나가기/취소·단체 채팅방), 함께 운동한 메이트 평가 |
+| 커뮤니티 | 우리 동네 / 전체 피드, 분류(운동 인증·질문·후기·자유) 필터, 무한 스크롤, 사진 4장까지 글쓰기, 좋아요(즉시 반영), 댓글·답글, 글 고치기·지우기 |
+| 다른 사람 프로필 | 매너 온도, 받은 칭찬, 운동 종목·실력, 쓴 글, 차단·신고 (글·댓글·모임 참여자·채팅에서 이름을 누르면 이동) |
+| 모임 | 근처 모임 목록 / **지도 보기**(OpenStreetMap, 누르면 상세로), 내 모임 탭, 정원 진행 바, 모임 만들기(날짜 칩·시간·정원·장소 검색), 상세(참여자·참여/나가기/취소·단체 채팅방), 함께 운동한 메이트 평가 |
 | 매칭 요청 | 받은/보낸 요청 탭, 상태 필터, 수락하면 바로 채팅방으로 이동 |
-| 알림 | 종 아이콘 + 안 읽은 수, 최근 알림 목록, 누르면 해당 화면으로 이동, 모두 읽음. 새 알림은 실시간 토스트 |
+| 알림 | 종 아이콘 + 안 읽은 수, 종류별 켜기·끄기(프로필), 최근 알림 목록, 누르면 해당 화면으로 이동, 모두 읽음. 새 알림은 실시간 토스트 |
 | 채팅 | 1:1 · 모임 단체방, 실시간 수신, 안 읽은 수 배지, 날짜 구분선, 연속 메시지 묶기, 이전 대화 불러오기, 이모티콘(최근 사용, 이모티콘만 보내면 크게 표시), 사진(버튼·붙여넣기, 크게 보기), 읽음 표시(단체방은 안 읽은 사람 수), 상대 접속 상태 |
 | 내 프로필 | 받은 매너 칭찬, 차단 목록·해제, 회원 탈퇴, 프로필 사진(즉시 저장), 기본 정보, 활동 지역(전국 자동완성 검색), 운동 종목·실력, 요일×시간대 표로 운동 가능 시간 선택 |
 
 - **기술**: React 19, Vite, TypeScript, Tailwind CSS v4, TanStack Query, React Router, STOMP.js, Pretendard
-- **반응형**: 데스크톱은 사이드바, 모바일은 하단 탭바와 하단 시트 모달
+- **반응형**: 데스크톱은 사이드바, 모바일은 하단 탭 5개(매칭 요청·알림은 상단 아이콘)와 하단 시트 모달
+- **지도는 필요할 때만 로드**: Leaflet(약 150KB)은 지도 보기를 누를 때 따로 불러와서 첫 화면 용량에 포함하지 않음
 - **토큰 자동 재발급**: 여러 요청이 동시에 401을 받아도 재발급은 한 번만 수행 (서버 리프레시 토큰이 1회용이라 중복 재발급 시 로그아웃되는 문제 방지)
 - **실시간 연결**: 로그인하면 내 모든 채팅방을 구독해서 다른 화면에서도 안 읽은 수 배지가 실시간 갱신. 연결이 끊기면 REST로 전송
 - **한글 입력**: IME 조합 중 Enter는 전송하지 않아 마지막 글자가 중복 전송되는 문제 방지
@@ -150,6 +153,13 @@ GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 
 | POST | `/api/manner/reviews` | 매너 평가 | ✅ |
 | GET | `/api/users/{id}/manner` | 매너 온도 · 받은 칭찬 태그 | ✅ |
 | GET | `/api/notifications` | 알림 목록 (커서) + 안 읽은 수 | ✅ |
+| GET · PUT | `/api/notifications/settings` | 끈 알림 종류 (MATCH · GATHERING · MANNER · COMMUNITY) | ✅ |
+| POST | `/api/posts` | 글쓰기 (multipart: `post` JSON + `images` 최대 4장) | ✅ |
+| GET | `/api/posts` | 피드 (`scope`=NEARBY·ALL, `category`, `sportId`, `authorId`, `cursor`) | ✅ |
+| GET · PUT · DELETE | `/api/posts/{id}` | 글 상세 · 고치기 · 지우기 (작성자만) | ✅ |
+| PUT · DELETE | `/api/posts/{id}/like` | 좋아요 · 취소 | ✅ |
+| GET · POST | `/api/posts/{id}/comments` | 댓글 목록(답글 묶음) · 댓글·답글 쓰기 | ✅ |
+| DELETE | `/api/comments/{id}` | 댓글 지우기 | ✅ |
 | POST | `/api/notifications/{id}/read` · `/read-all` | 읽음 · 모두 읽음 | ✅ |
 
 **WebSocket (STOMP)**: `ws://localhost:8081/ws`
@@ -251,9 +261,23 @@ GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 
 - **점수**: 좋았어요 +0.5 / 보통 0 / 별로였어요 −0.5, 노쇼 태그는 추가 −1.0. `LEAST(99.9, GREATEST(0, manner_score + ?))` 한 문장으로 더해서 동시에 평가가 몰려도 점수가 빠지지 않음 (8명 동시 평가 테스트)
 - **공개 범위**: 칭찬 태그 수만 공개, 아쉬운 태그는 본인에게도 보여 주지 않고 점수에만 반영
 
+### 커뮤니티 설계
+- **우리 동네 글**: 글을 쓸 때의 활동 지역 좌표를 함께 저장하고 `ST_DWithin` + GIST 인덱스로 내 반경 안의 글만 조회. 화면에는 동 이름만 보여주고 거리·좌표는 내려주지 않음
+- **좋아요 동시성**: `INSERT … ON CONFLICT DO NOTHING`으로 실제로 들어간 경우(1행)에만 `like_count + 1`을 DB에서 직접 실행. 10명이 동시에 눌러도 10, 한 사람이 5번 연타해도 1 (테스트로 검증). 화면은 누르자마자 바뀌고(낙관적 업데이트) 서버 값으로 맞춤
+- **피드 N+1 방지**: 글·작성자·종목·내 좋아요 여부는 한 번의 SQL, 사진은 글 ID 목록으로 한 번 더 조회해서 붙임. `id < cursor` 커서 페이지네이션
+- **댓글**: 한 단계 답글까지. 답글이 달린 댓글을 지우면 "삭제된 댓글"로 자리만 남기고, 마지막 답글까지 지워지면 자리도 정리
+- **알림**: 내 글에 댓글 → 글쓴이, 내 댓글에 답글 → 댓글 작성자 (글쓴이가 곧 댓글 작성자면 한 번만)
+- **사진**: 채팅과 같은 검증·재인코딩(EXIF 제거) 파이프라인 재사용. 글을 지우거나 회원 탈퇴하면 사진 파일도 커밋 후 삭제
+- **차단**: 차단 관계인 사람의 글은 피드·상세에서, 댓글은 댓글 목록에서 숨김
+
+### 모임 리마인더 · 평가 요청
+- 1분마다 스케줄러가 **시작 1시간 전** 모임에 리마인더, **끝나고 2시간 뒤** 두 명 이상 모였던 모임에 매너 평가 요청 알림을 보냄
+- **서버가 여러 대여도 한 번만**: `UPDATE … SET reminder_sent_at = now() WHERE reminder_sent_at IS NULL … RETURNING id`로 먼저 "차지한" 모임에만 발송. 두 서버가 같은 행을 동시에 UPDATE하면 한쪽은 잠금을 기다린 뒤 조건을 다시 확인해 0행이 됨 (4개 스레드 동시 실행 테스트로 검증)
+
 ### 알림 설계
 - 매칭 요청 받음 · 수락됨, 모임 참여자 생김 · 모임 취소, 매너 칭찬을 DB에 저장하고 **커밋 후** Redis `notifications` 채널로 발행 → 각 서버가 해당 사용자의 `/user/queue/notifications`로 전달 (서버가 여러 대여도 동작)
 - 사용자 전용 큐는 `/user/...`로만 구독 가능. 변환된 실제 큐 주소(`/queue/...-user{세션}`)를 직접 구독해 남의 알림을 엿보는 것을 막음 (테스트로 검증)
+- **알림 끄기**: 종류(매칭·모임·매너·커뮤니티)별로 끌 수 있고, 끈 알림은 저장·전송 모두 하지 않음
 - 웹은 알림을 받으면 토스트를 띄우고 알림 목록과 관련 화면(모임 인원, 채팅방 목록 등)을 새로 고침
 
 ## 로컬 데모 데이터
@@ -262,6 +286,7 @@ GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 
 - 계정: 아이디 `demo01` ~ `demo30`, 비밀번호 `password123` (이메일 `demo01@fitmate.com` 등록됨)
 - `demo01`은 성수역에 있고 헬스·러닝을 합니다. 이 계정으로 로그인해서 `GET /api/matching/recommendations`를 호출해 보세요.
 - `demo01` ↔ `demo02`는 이미 매칭되어 대화가 있고, `demo03` → `demo01`로 대기 중인 매칭 요청이 있습니다.
+- 성수역 주변에 앞으로 열릴 모임 5개(`demo01`은 "서울숲 저녁 5km 러닝"에 참여 중)와 댓글이 달린 커뮤니티 글 6개가 있습니다.
 - 배포 환경(jar 실행)에서는 생성되지 않습니다.
 
 ### 채팅 테스트 페이지 (로컬 전용)
@@ -291,6 +316,11 @@ erDiagram
     gatherings |o--o{ manner_reviews : ""
     match_requests |o--o{ manner_reviews : ""
     users ||--o{ notifications : "알림"
+    users ||--o{ posts : "글"
+    posts ||--o{ post_images : "사진"
+    posts ||--o{ post_likes : "좋아요"
+    posts ||--o{ comments : "댓글"
+    comments |o--o{ comments : "답글"
 
     users {
         bigint id PK
@@ -363,6 +393,22 @@ erDiagram
         varchar rating "GOOD/NORMAL/BAD"
         text_array tags
         numeric score_delta
+    }
+    posts {
+        bigint id PK
+        bigint author_id FK
+        varchar category
+        text content
+        geography location "글 쓸 때 활동 지역"
+        int like_count
+        int comment_count
+    }
+    comments {
+        bigint id PK
+        bigint post_id FK
+        bigint author_id FK
+        bigint parent_id FK "답글"
+        boolean deleted
     }
     notifications {
         bigint id PK

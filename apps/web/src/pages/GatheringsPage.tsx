@@ -1,6 +1,6 @@
 import clsx from 'clsx'
-import { CalendarDays, MapPin, Minus, Plus, SlidersHorizontal, Star, UsersRound } from 'lucide-react'
-import { useState } from 'react'
+import { CalendarDays, List, Map as MapIcon, MapPin, Minus, Plus, SlidersHorizontal, Star, UsersRound } from 'lucide-react'
+import { lazy, Suspense, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Avatar } from '../components/Avatar'
 import { LocationSearch } from '../components/LocationSearch'
@@ -14,12 +14,16 @@ import { useCreateGathering, useMe, useMyGatherings, useNearbyGatherings, usePen
 import type { GatheringSummary, LocationInput, PendingReview } from '../lib/types'
 import { useToast } from '../providers/ToastProvider'
 
+// 지도(Leaflet)는 무거워서 지도 보기를 누를 때 불러온다
+const GatheringMap = lazy(() => import('../components/GatheringMap').then((module) => ({ default: module.GatheringMap })))
+
 const RADIUS_OPTIONS = [1, 3, 5, 10, 20]
 
 export function GatheringsPage() {
   const navigate = useNavigate()
   const { data: me, isLoading: meLoading } = useMe()
   const [tab, setTab] = useState<'nearby' | 'mine'>('nearby')
+  const [view, setView] = useState<'list' | 'map'>('list')
   const [sportId, setSportId] = useState<number | null>(null)
   const [radiusKm, setRadiusKm] = useState<number | null>(null)
   const [creating, setCreating] = useState(false)
@@ -48,7 +52,7 @@ export function GatheringsPage() {
 
       {!!pending?.length && <PendingReviews items={pending} onReview={setReviewTarget} />}
 
-      <div className="mb-5">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <Segmented
           options={[
             { value: 'nearby', label: '근처 모임' },
@@ -57,6 +61,24 @@ export function GatheringsPage() {
           value={tab}
           onChange={setTab}
         />
+        {tab === 'nearby' && me.location && (
+          <div className="inline-flex rounded-xl bg-ink-100 p-1" role="group" aria-label="보기 방식">
+            {([['list', List, '목록'], ['map', MapIcon, '지도']] as const).map(([value, Icon, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setView(value)}
+                aria-pressed={view === value}
+                className={clsx(
+                  'flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold transition-all',
+                  view === value ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-800',
+                )}
+              >
+                <Icon className="size-4" /> {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {tab === 'nearby' && !me.location ? (
@@ -109,6 +131,10 @@ export function GatheringsPage() {
             <Card>
               <EmptyState emoji="😵" title="모임을 불러오지 못했어요" description={errorMessage(list.error)} />
             </Card>
+          ) : tab === 'nearby' && view === 'map' && me.location ? (
+            <Suspense fallback={<PageLoader />}>
+              <GatheringMap gatherings={list.data ?? []} center={me.location} />
+            </Suspense>
           ) : !list.data?.length ? (
             <Card>
               {tab === 'nearby' ? (

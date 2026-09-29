@@ -183,6 +183,8 @@ export interface GatheringSummary {
   host: { userId: number; nickname: string; profileImageUrl: string | null; mannerScore: number }
   distanceKm: number | null
   joined: boolean
+  latitude: number
+  longitude: number
 }
 
 export interface GatheringParticipant {
@@ -242,7 +244,13 @@ export type NotificationType =
   | 'MATCH_REQUEST_ACCEPTED'
   | 'GATHERING_JOINED'
   | 'GATHERING_CANCELED'
+  | 'GATHERING_REMINDER'
   | 'MANNER_REVIEW_RECEIVED'
+  | 'REVIEW_REQUESTED'
+  | 'POST_COMMENTED'
+  | 'COMMENT_REPLIED'
+
+export type NotificationCategory = 'MATCH' | 'GATHERING' | 'MANNER' | 'COMMUNITY'
 
 export interface AppNotification {
   id: number
@@ -258,6 +266,65 @@ export interface NotificationPage {
   items: AppNotification[]
   nextCursor: number | null
   unreadCount: number
+}
+
+// ---------- 커뮤니티 ----------
+
+export type PostCategory = 'CERTIFY' | 'QUESTION' | 'REVIEW' | 'FREE'
+
+export interface Author {
+  userId: number
+  nickname: string
+  profileImageUrl: string | null
+  mannerScore: number
+}
+
+export interface Post {
+  id: number
+  category: PostCategory
+  sportId: number | null
+  sportCode: string | null
+  sportName: string | null
+  content: string
+  images: { url: string; width: number; height: number }[]
+  author: Author
+  areaName: string | null
+  likeCount: number
+  commentCount: number
+  liked: boolean
+  mine: boolean
+  createdAt: string
+  edited: boolean
+}
+
+export interface FeedPage {
+  items: Post[]
+  nextCursor: number | null
+}
+
+export interface PostComment {
+  id: number
+  parentId: number | null
+  /** null이면 탈퇴한 회원 */
+  author: Author | null
+  content: string | null
+  deleted: boolean
+  mine: boolean
+  createdAt: string
+  replies: PostComment[]
+}
+
+export interface PublicProfile {
+  id: number
+  nickname: string
+  bio: string | null
+  profileImageUrl: string | null
+  gender: Gender | null
+  ageGroup: string | null
+  activityAreaName: string | null
+  mannerScore: number
+  sports: UserSport[]
+  availableTimes: AvailableTime[]
 }
 
 export interface ApiErrorBody {

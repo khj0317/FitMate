@@ -62,11 +62,30 @@ public class Notification {
         }
     }
 
+    /** 사용자가 알림 설정에서 켜고 끄는 단위 */
+    public enum Category {
+        MATCH, GATHERING, MANNER, COMMUNITY
+    }
+
     public enum Type {
-        MATCH_REQUEST_RECEIVED,
-        MATCH_REQUEST_ACCEPTED,
-        GATHERING_JOINED,
-        GATHERING_CANCELED,
-        MANNER_REVIEW_RECEIVED
+        MATCH_REQUEST_RECEIVED(Category.MATCH),
+        MATCH_REQUEST_ACCEPTED(Category.MATCH),
+        GATHERING_JOINED(Category.GATHERING),
+        GATHERING_CANCELED(Category.GATHERING),
+        GATHERING_REMINDER(Category.GATHERING),
+        MANNER_REVIEW_RECEIVED(Category.MANNER),
+        REVIEW_REQUESTED(Category.MANNER),
+        POST_COMMENTED(Category.COMMUNITY),
+        COMMENT_REPLIED(Category.COMMUNITY);
+
+        private final Category category;
+
+        Type(Category category) {
+            this.category = category;
+        }
+
+        public Category category() {
+            return category;
+        }
     }
 }

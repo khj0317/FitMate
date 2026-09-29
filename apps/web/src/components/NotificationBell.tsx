@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Bell, CheckCheck, HeartHandshake, Inbox, MessageCircle, UserPlus, XCircle, type LucideIcon } from 'lucide-react'
+import { AlarmClock, Bell, CheckCheck, CornerDownRight, HeartHandshake, Inbox, MessageCircle, MessageSquareText, Star, UserPlus, XCircle, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { timeAgo } from '../lib/format'
@@ -12,7 +12,11 @@ const TYPE_ICON: Record<NotificationType, { icon: LucideIcon; tone: string }> = 
   MATCH_REQUEST_ACCEPTED: { icon: MessageCircle, tone: 'bg-emerald-50 text-emerald-600' },
   GATHERING_JOINED: { icon: UserPlus, tone: 'bg-sky-50 text-sky-600' },
   GATHERING_CANCELED: { icon: XCircle, tone: 'bg-red-50 text-red-500' },
+  GATHERING_REMINDER: { icon: AlarmClock, tone: 'bg-violet-50 text-violet-600' },
   MANNER_REVIEW_RECEIVED: { icon: HeartHandshake, tone: 'bg-amber-50 text-amber-600' },
+  REVIEW_REQUESTED: { icon: Star, tone: 'bg-amber-50 text-amber-600' },
+  POST_COMMENTED: { icon: MessageSquareText, tone: 'bg-teal-50 text-teal-600' },
+  COMMENT_REPLIED: { icon: CornerDownRight, tone: 'bg-teal-50 text-teal-600' },
 }
 
 /**
@@ -92,7 +96,7 @@ export function NotificationBell({ align = 'left', className }: { align?: 'left'
               <div className="px-6 py-12 text-center">
                 <p className="text-3xl">🔔</p>
                 <p className="mt-2 text-sm font-semibold text-ink-700">아직 알림이 없어요</p>
-                <p className="mt-1 text-xs text-ink-400">매칭 요청, 모임 소식, 매너 칭찬이 여기에 모여요</p>
+                <p className="mt-1 text-xs text-ink-400">매칭 요청, 모임 소식, 댓글, 매너 칭찬이 여기에 모여요</p>
               </div>
             ) : (
               <ul className="p-2">

@@ -66,3 +66,52 @@
 @utility pb-safe {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
+
+/* 모임 지도 마커와 말풍선 (Leaflet이 직접 그리는 요소라 일반 CSS로 꾸민다) */
+.gathering-pin {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 4px;
+  background: var(--color-brand-500);
+  box-shadow: 0 6px 16px -4px rgb(26 24 22 / 0.45);
+  font-size: 18px;
+  transform: rotate(-45deg);
+}
+.gathering-pin > span {
+  line-height: 1;
+  transform: rotate(45deg);
+}
+.gathering-pin--full {
+  background: var(--color-ink-400);
+}
+.gathering-popup {
+  display: flex;
+  min-width: 180px;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  color: var(--color-ink-600);
+  font-size: 12px;
+}
+.gathering-popup strong {
+  color: var(--color-ink-900);
+  font-size: 14px;
+}
+.gathering-popup__meta {
+  color: var(--color-brand-600);
+  font-weight: 700;
+}
+.gathering-popup__link {
+  margin-top: 4px;
+  color: var(--color-brand-600);
+  font-weight: 700;
+}
+.leaflet-popup-content-wrapper {
+  border-radius: 16px;
+}

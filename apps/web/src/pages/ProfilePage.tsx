@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { AccountSafetySection } from '../components/AccountSafetySection'
 import { MannerPraise } from '../components/MannerPraise'
+import { NotificationSettingsSection } from '../components/NotificationSettingsSection'
 import { BirthDateInput } from '../components/BirthDateInput'
 import { LocationSearch } from '../components/LocationSearch'
 import { ProfilePhoto } from '../components/ProfilePhoto'
@@ -379,6 +380,7 @@ function ProfileForm({ me }: { me: MyProfile }) {
       </div>
 
       <div className="mt-6">
+        <NotificationSettingsSection />
         <AccountSafetySection />
       </div>
 

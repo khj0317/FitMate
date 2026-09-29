@@ -53,7 +53,10 @@ public final class GatheringDtos {
             Gathering.Status status,
             Host host,
             Double distanceKm,
-            boolean joined
+            boolean joined,
+            /* 만나는 장소 좌표 (지도 표시용, 공개 장소) */
+            double latitude,
+            double longitude
     ) {
     }
 

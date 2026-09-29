@@ -3,6 +3,7 @@ package com.fitmate.global.image;
 /** 용도별 저장 폴더와 최대 크기 */
 public enum ImagePurpose {
     CHAT("chat", 1600, false),
+    POST("post", 1600, false),
     PROFILE("profile", 512, true);
 
     private final String folder;

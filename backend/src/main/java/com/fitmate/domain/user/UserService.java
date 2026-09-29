@@ -3,6 +3,7 @@ package com.fitmate.domain.user;
 import com.fitmate.domain.auth.RefreshTokenStore;
 import com.fitmate.domain.safety.SafetyService;
 import com.fitmate.domain.sport.Sport;
+import com.fitmate.domain.community.PostRepository;
 import com.fitmate.domain.sport.SportRepository;
 import com.fitmate.domain.user.dto.UserRequests;
 import com.fitmate.domain.user.dto.UserResponses;
@@ -37,6 +38,7 @@ public class UserService {
     private final SafetyService safetyService;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenStore refreshTokenStore;
+    private final PostRepository postRepository;
 
     public UserResponses.MyProfile getMyProfile(Long userId) {
         return UserResponses.MyProfile.from(getUser(userId));
@@ -65,6 +67,8 @@ public class UserService {
         if (user.getProfileImageUrl() != null) {
             imageUploader.deleteAfterCommit(user.getProfileImageUrl());
         }
+        // 글은 DB에서 CASCADE로 지워지므로, 글에 올린 사진 파일도 커밋 후 지운다
+        postRepository.findImageUrlsByAuthorId(userId).forEach(imageUploader::deleteAfterCommit);
         userRepository.delete(user);
         userRepository.flush(); // 삭제 실패(제약 조건 등)를 여기서 확인한 뒤에 토큰을 폐기한다
         refreshTokenStore.revokeAll(userId);

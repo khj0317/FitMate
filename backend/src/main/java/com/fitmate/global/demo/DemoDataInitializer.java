@@ -4,6 +4,13 @@ import com.fitmate.domain.chat.ChatMessage;
 import com.fitmate.domain.chat.ChatMessageRepository;
 import com.fitmate.domain.chat.ChatRoom;
 import com.fitmate.domain.chat.ChatRoomRepository;
+import com.fitmate.domain.community.CommunityDtos;
+import com.fitmate.domain.community.CommunityService;
+import com.fitmate.domain.community.Post;
+import com.fitmate.domain.community.PostRepository;
+import com.fitmate.domain.gathering.GatheringRepository;
+import com.fitmate.domain.gathering.GatheringService;
+import com.fitmate.domain.gathering.dto.GatheringDtos;
 import com.fitmate.domain.matchrequest.MatchRequest;
 import com.fitmate.domain.matchrequest.MatchRequestRepository;
 import com.fitmate.domain.matchrequest.MatchRequestStatus;
@@ -26,6 +33,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -60,6 +70,10 @@ public class DemoDataInitializer implements ApplicationRunner {
     private final MatchRequestRepository matchRequestRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final GatheringRepository gatheringRepository;
+    private final GatheringService gatheringService;
+    private final PostRepository postRepository;
+    private final CommunityService communityService;
 
     /** 각 단계는 이미 데이터가 있으면 건너뛰므로 여러 번 실행해도 안전하다. */
     @Override
@@ -69,6 +83,8 @@ public class DemoDataInitializer implements ApplicationRunner {
             seedUsers();
         }
         seedMatches();
+        seedGatherings();
+        seedPosts();
     }
 
     private void seedUsers() {
@@ -120,6 +136,85 @@ public class DemoDataInitializer implements ApplicationRunner {
         if (!demo3Handled) {
             matchRequestRepository.save(new MatchRequest(demo3, demo1, gym, "주말 아침 헬스 같이 하실래요?"));
         }
+    }
+
+    /** 성수역 주변에 앞으로 열릴 모임 5개. demo01은 그중 하나에 참여해 있다 */
+    private void seedGatherings() {
+        User host = user(4);
+        if (gatheringRepository.existsByHostId(host.getId())) {
+            return;
+        }
+        record Plan(int host, String sport, String title, String description, String place,
+                    double dLat, double dLng, int daysLater, int hour, int capacity, int[] guests) {
+        }
+        List<Plan> plans = List.of(
+                new Plan(4, "RUNNING", "서울숲 저녁 5km 러닝", "천천히 대화하면서 뛰는 페이스예요. 초보 환영!",
+                        "서울숲 정문", 0.0, -0.011, 1, 19, 6, new int[]{1, 7, 9}),
+                new Plan(5, "GYM", "주말 아침 하체 루틴 같이 해요", "스쿼트·런지 위주로 1시간 반. 자세 서로 봐줘요",
+                        "성수역 3번 출구 앞", 0.001, 0.0, 3, 9, 3, new int[]{11}),
+                new Plan(6, "BADMINTON", "뚝섬 배드민턴 복식", "라켓 여분 있어요. 끝나고 가볍게 커피",
+                        "뚝섬유원지역 2번 출구", -0.012, 0.011, 4, 18, 4, new int[]{12, 13}),
+                new Plan(8, "CLIMBING", "클라이밍 입문 번개", "처음이신 분도 괜찮아요. 암장 일일권 각자",
+                        "건대입구역 2번 출구", 0.0, 0.014, 2, 20, 5, new int[]{}),
+                new Plan(10, "HIKING", "아차산 해돋이 산행", "왕복 2시간 코스. 따뜻한 물 챙겨 오세요",
+                        "아차산역 2번 출구", 0.006, 0.037, 6, 6, 8, new int[]{14, 15, 16, 17}));
+
+        ZonedDateTime today = ZonedDateTime.now(ZoneId.of("Asia/Seoul")).withMinute(0).withSecond(0).withNano(0);
+        for (Plan plan : plans) {
+            Short sportId = sportId(plan.sport());
+            Instant startsAt = today.plusDays(plan.daysLater()).withHour(plan.hour()).toInstant();
+            GatheringDtos.Detail created = gatheringService.create(user(plan.host()).getId(), new GatheringDtos.Create(
+                    sportId, plan.title(), plan.description(), plan.place(),
+                    new GatheringDtos.Point(CENTER_LAT + plan.dLat(), CENTER_LNG + plan.dLng()),
+                    startsAt, (short) plan.capacity()));
+            for (int guest : plan.guests()) {
+                gatheringService.join(user(guest).getId(), created.summary().id());
+            }
+        }
+        log.info("데모 모임 {}개를 만들었습니다.", plans.size());
+    }
+
+    /** 동네 게시판 글과 댓글. demo01의 글에도 댓글이 달려 있다 */
+    private void seedPosts() {
+        if (postRepository.existsByAuthorId(user(5).getId())) {
+            return;
+        }
+        record Seed(int author, Post.Category category, String sport, String content, int[] commenters, String[] comments) {
+        }
+        List<Seed> seeds = List.of(
+                new Seed(5, Post.Category.CERTIFY, "GYM", "오늘 데드리프트 100kg 드디어 성공했어요 🎉\n3개월 걸렸네요. 다들 화이팅!",
+                        new int[]{1, 9}, new String[]{"와 축하해요! 자세 영상 있으면 보고 싶어요", "대단해요 👏"}),
+                new Seed(7, Post.Category.QUESTION, "RUNNING", "러닝 입문했는데 무릎이 조금 아파요.\n러닝화 추천이나 스트레칭 팁 있을까요?",
+                        new int[]{4, 12}, new String[]{"처음엔 거리보다 케이던스 올리는 게 좋아요. 서울숲 러닝 모임 와보세요!", "뛰기 전 종아리·햄스트링 스트레칭 꼭 하세요"}),
+                new Seed(9, Post.Category.REVIEW, "CLIMBING", "성수동 새로 생긴 클라이밍장 다녀왔어요.\n초보 문제가 많고 샤워실 깨끗해요. 평일 저녁은 조금 붐벼요",
+                        new int[]{8}, new String[]{"정보 감사해요! 이번 주에 가봐야겠어요"}),
+                new Seed(1, Post.Category.FREE, null, "성수역 근처 새벽 6시에 여는 헬스장 아시는 분 계신가요?\n출근 전에 운동하고 싶어서요",
+                        new int[]{5, 11}, new String[]{"역 3번 출구 쪽 24시간 헬스장 있어요!", "저도 새벽파예요 같이 해요 ㅎㅎ"}),
+                new Seed(12, Post.Category.CERTIFY, "BADMINTON", "주말 복식 3연승 🏸 파트너 구해요!",
+                        new int[]{}, new String[]{}),
+                new Seed(14, Post.Category.FREE, "HIKING", "이번 주 토요일 아차산 날씨 좋대요. 해돋이 산행 모임 자리 남았어요 🌅",
+                        new int[]{16}, new String[]{"저 갈게요!"}));
+
+        for (Seed seed : seeds) {
+            CommunityDtos.PostItem post = communityService.create(user(seed.author()).getId(),
+                    new CommunityDtos.PostInput(seed.category(), seed.sport() == null ? null : sportId(seed.sport()),
+                            seed.content()), List.of());
+            for (int i = 0; i < seed.commenters().length; i++) {
+                communityService.addComment(user(seed.commenters()[i]).getId(), post.id(),
+                        new CommunityDtos.CommentInput(seed.comments()[i], null));
+            }
+        }
+        log.info("데모 게시글 {}개를 만들었습니다.", seeds.size());
+    }
+
+    private User user(int index) {
+        return userRepository.findByLoginId(loginId(index)).orElseThrow();
+    }
+
+    private Short sportId(String code) {
+        return sportRepository.findAll().stream()
+                .filter(sport -> sport.getCode().equals(code))
+                .findFirst().orElseThrow().getId();
     }
 
     private void randomize(User user, Random random, List<Sport> sports) {

@@ -129,6 +129,8 @@ export const api = {
   put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),
   patch: <T>(path: string, body: unknown) => request<T>('PATCH', path, body),
   delete: <T>(path: string) => request<T>('DELETE', path),
+  /** 여러 파트(JSON + 파일)를 한 번에 보내는 multipart 요청 */
+  form: <T>(path: string, form: FormData) => request<T>('POST', path, form),
   upload: <T>(path: string, file: Blob, filename = 'photo.jpg') => {
     const form = new FormData()
     form.append('file', file, filename)

@@ -64,6 +64,12 @@ public enum ErrorCode {
     NOT_GATHERING_HOST(HttpStatus.FORBIDDEN, "모임장만 할 수 있어요."),
     INVALID_GATHERING_TIME(HttpStatus.BAD_REQUEST, "모임 시간은 지금부터 10분 뒤 ~ 60일 안으로 정해 주세요."),
 
+    // 커뮤니티
+    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "글을 찾을 수 없어요."),
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없어요."),
+    NOT_POST_AUTHOR(HttpStatus.FORBIDDEN, "작성자만 할 수 있어요."),
+    TOO_MANY_IMAGES(HttpStatus.BAD_REQUEST, "사진은 4장까지 올릴 수 있어요."),
+
     // 매너 평가
     REVIEW_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "함께 운동한 사람만 평가할 수 있어요."),
     DUPLICATE_REVIEW(HttpStatus.CONFLICT, "이미 평가한 상대예요."),

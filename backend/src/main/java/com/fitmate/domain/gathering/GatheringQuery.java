@@ -22,6 +22,7 @@ public class GatheringQuery {
                    s.id AS sport_id, s.code AS sport_code, s.name AS sport_name,
                    h.id AS host_id, h.nickname AS host_nickname, h.profile_image_url AS host_image,
                    h.manner_score AS host_manner,
+                   ST_Y(g.location::geometry) AS latitude, ST_X(g.location::geometry) AS longitude,
                    ST_Distance(g.location, me.activity_location) AS distance_meters,
                    EXISTS (SELECT 1 FROM gathering_participants p
                            WHERE p.gathering_id = g.id AND p.user_id = me.id AND p.status = 'JOINED') AS joined
@@ -114,6 +115,8 @@ public class GatheringQuery {
                 new GatheringDtos.Host(rs.getLong("host_id"), rs.getString("host_nickname"),
                         rs.getString("host_image"), rs.getBigDecimal("host_manner")),
                 distanceKm,
-                rs.getBoolean("joined"));
+                rs.getBoolean("joined"),
+                rs.getDouble("latitude"),
+                rs.getDouble("longitude"));
     }
 }

@@ -137,10 +137,12 @@ export function GatheringDetailPage() {
               const review = reviewable.get(participant.userId)
               return (
                 <li key={participant.userId} className="flex items-center gap-3 rounded-2xl p-2 hover:bg-ink-50">
-                  <Avatar id={participant.userId} name={participant.nickname} imageUrl={participant.profileImageUrl} size="sm" />
+                  <Link to={`/users/${participant.userId}`} className="shrink-0">
+                    <Avatar id={participant.userId} name={participant.nickname} imageUrl={participant.profileImageUrl} size="sm" />
+                  </Link>
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-1.5 truncate font-semibold">
-                      {participant.nickname}
+                      <Link to={`/users/${participant.userId}`} className="truncate hover:underline">{participant.nickname}</Link>
                       {participant.host && <Crown className="size-4 shrink-0 fill-amber-300 text-amber-500" aria-label="모임장" />}
                     </p>
                     <p className="text-xs text-ink-500">매너 온도 {participant.mannerScore}°</p>

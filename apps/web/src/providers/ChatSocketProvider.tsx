@@ -23,7 +23,11 @@ const RELATED_QUERIES: Record<AppNotification['type'], string[][]> = {
   MATCH_REQUEST_ACCEPTED: [['matchRequests'], ['chatRooms'], ['manner']],
   GATHERING_JOINED: [['gatherings'], ['chatRooms']],
   GATHERING_CANCELED: [['gatherings'], ['chatRooms']],
+  GATHERING_REMINDER: [['gatherings']],
   MANNER_REVIEW_RECEIVED: [['manner'], ['me']],
+  REVIEW_REQUESTED: [['manner']],
+  POST_COMMENTED: [['posts']],
+  COMMENT_REPLIED: [['posts']],
 }
 
 function socketUrl() {
