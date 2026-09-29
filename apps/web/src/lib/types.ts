@@ -113,7 +113,8 @@ export interface ChatMessage {
   roomId: number
   senderId: number | null
   senderNickname: string | null
-  type: 'TEXT' | 'IMAGE'
+  /** SYSTEM: 단체방 입장·퇴장 안내 (보낸 사람 없음) */
+  type: 'TEXT' | 'IMAGE' | 'SYSTEM'
   content: string | null
   imageUrl: string | null
   imageWidth: number | null

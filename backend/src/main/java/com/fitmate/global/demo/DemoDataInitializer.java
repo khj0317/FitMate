@@ -46,8 +46,7 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * 성수역 주변에 데모 사용자·모임·게시글을 만든다. 로컬(local 프로필)은 항상 켜지고,
- * 배포 환경에서는 DEMO_DATA_ENABLED=true일 때만 켜서 포트폴리오 방문자가 체험 계정으로 둘러볼 수 있게 한다.
+ * 로컬 개발용으로 성수역 주변에 데모 사용자·모임·게시글을 만든다 (local 프로필에서 켜짐, 배포에서는 꺼짐).
  * 계정: 아이디 demo01 ~ demo30 / 비밀번호 password123
  * demo01은 성수역 한가운데에 있고 헬스·러닝을 하므로 이 계정으로 로그인해서 추천을 확인하면 된다.
  * 채팅 확인용으로 demo01-demo02는 매칭 완료(대화 있음), demo03 → demo01은 대기 중 요청을 만든다.
@@ -224,11 +223,6 @@ public class DemoDataInitializer implements ApplicationRunner {
             }
         }
         return count;
-    }
-
-    /** 체험 계정 아이디인지 (demo01 ~ demo30) */
-    public static boolean isDemoLoginId(String loginId) {
-        return loginId != null && loginId.matches("demo(0[1-9]|[12][0-9]|30)");
     }
 
     private User user(int index) {

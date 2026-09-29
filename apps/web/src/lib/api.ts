@@ -97,17 +97,52 @@ export function refreshTokens(): Promise<boolean> {
 
 // ---------- 요청 ----------
 
+// ---------- 느린 응답 감지 (무료 서버가 잠들었다 깨어나는 중) ----------
+
+/** 이 시간 안에 응답이 없으면 "서버를 깨우는 중" 안내를 띄운다 */
+const SLOW_REQUEST_MS = 4000
+let slowRequests = 0
+const slowListeners = new Set<() => void>()
+
+/** useSyncExternalStore용: 지금 늦어지는 요청이 있는지 */
+export const slowRequestStore = {
+  subscribe(listener: () => void) {
+    slowListeners.add(listener)
+    return () => {
+      slowListeners.delete(listener)
+    }
+  },
+  isSlow: () => slowRequests > 0,
+}
+
+function changeSlowRequests(delta: number) {
+  slowRequests = Math.max(0, slowRequests + delta)
+  slowListeners.forEach((listener) => listener())
+}
+
 async function request<T>(method: string, path: string, body?: unknown, retry = true): Promise<T> {
   const accessToken = getAccessToken()
   const isForm = body instanceof FormData // 파일 업로드는 브라우저가 boundary를 포함한 Content-Type을 직접 붙인다
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers: {
-      ...(body !== undefined && !isForm && { 'Content-Type': 'application/json' }),
-      ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
-    },
-    body: isForm ? body : body !== undefined ? JSON.stringify(body) : undefined,
-  })
+  // 사진 업로드는 원래 몇 초 걸릴 수 있으므로 서버가 깨어나는 중인지 판단하는 데서 뺀다
+  let slow = false
+  const slowTimer = isForm ? undefined : setTimeout(() => {
+    slow = true
+    changeSlowRequests(1)
+  }, SLOW_REQUEST_MS)
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers: {
+        ...(body !== undefined && !isForm && { 'Content-Type': 'application/json' }),
+        ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+      },
+      body: isForm ? body : body !== undefined ? JSON.stringify(body) : undefined,
+    })
+  } finally {
+    clearTimeout(slowTimer)
+    if (slow) changeSlowRequests(-1)
+  }
 
   if (res.status === 401 && retry && !path.startsWith('/api/auth/')) {
     if (await refreshTokens()) return request<T>(method, path, body, false)

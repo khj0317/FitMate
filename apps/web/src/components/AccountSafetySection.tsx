@@ -33,7 +33,7 @@ export function AccountSafetySection() {
     <Card className="p-6">
       <h2 className="text-lg font-bold">차단한 사용자</h2>
       <p className="mt-0.5 text-sm text-ink-500">차단한 사람은 추천·요청·채팅에서 보이지 않아요</p>
-      <div className="mt-4 space-y-2">
+      <div className="mt-5 space-y-2">
         {!blocks?.length ? (
           <p className="rounded-2xl bg-ink-50 px-4 py-5 text-center text-sm text-ink-400">차단한 사용자가 없어요</p>
         ) : (

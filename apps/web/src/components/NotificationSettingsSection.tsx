@@ -1,5 +1,4 @@
 import clsx from 'clsx'
-import { BellRing } from 'lucide-react'
 import { errorMessage } from '../lib/api'
 import { useNotificationSettings, useSaveNotificationSettings } from '../lib/queries'
 import type { NotificationCategory } from '../lib/types'
@@ -29,12 +28,9 @@ export function NotificationSettingsSection() {
 
   return (
     <Card className="p-6">
-      <div className="mb-1 flex items-center gap-2">
-        <BellRing className="size-5 text-brand-500" />
-        <h2 className="text-lg font-bold">알림 설정</h2>
-      </div>
-      <p className="mb-4 text-sm text-ink-500">끈 알림은 알림 목록에도 쌓이지 않아요</p>
-      <ul className="divide-y divide-ink-100">
+      <h2 className="text-lg font-bold">알림 설정</h2>
+      <p className="mt-0.5 text-sm text-ink-500">끈 알림은 알림 목록에도 쌓이지 않아요</p>
+      <ul className="mt-3 divide-y divide-ink-100">
         {CATEGORIES.map((category) => {
           const on = !muted.has(category.value)
           return (

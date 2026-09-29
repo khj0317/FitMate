@@ -73,7 +73,7 @@
      | `CORS_ALLOWED_ORIGINS` | 지금은 `http://localhost:5173` (⑤에서 Vercel 주소로 바꿈) |
      | `S3_ENDPOINT`, `S3_PUBLIC_URL`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | `.env.railway` 그대로 |
 
-   - 나머지(메모리 설정, 저장소 종류, 체험 계정 등)는 `render.yaml`에 이미 들어 있어서 입력하지 않아도 됩니다
+   - 나머지(메모리 설정, 저장소 종류 등)는 `render.yaml`에 이미 들어 있어서 입력하지 않아도 됩니다
 4. **Apply** (또는 Deploy Blueprint) → 첫 빌드 5~10분
 5. 왼쪽 **fitmate-api** → **Logs**에서 아래가 보이면 성공
    - `Successfully applied 7 migrations`
@@ -105,7 +105,6 @@
    - **Root Directory**: `apps/web` (Framework: Vite 자동 인식, 빌드 설정은 `apps/web/vercel.json`에 있음)
    - **Environment Variables**
      - `VITE_API_URL` = ③에서 만든 API 주소 (예: `https://fitmate-api-xxxx.onrender.com`, 끝에 `/` 없이)
-     - `VITE_DEMO_LOGIN` = `true` (로그인 화면에 "체험 계정으로 둘러보기" 버튼)
 3. **Deploy** → `https://fitmate-xxxx.vercel.app` 같은 주소가 생깁니다
 
 ## ⑤ 마무리: CORS
@@ -122,7 +121,7 @@ CORS_ALLOWED_ORIGINS=https://fitmate-xxxx.vercel.app
 
 ## 배포 후 확인할 것
 
-- [ ] 웹 주소 접속 → **체험 계정으로 둘러보기**로 로그인
+- [ ] 웹 주소 접속 → 회원가입 후 로그인
 - [ ] 운동 메이트 추천, 모임 목록·지도, 커뮤니티 글이 보임
 - [ ] 채팅방에서 메시지를 보내면 바로 표시 (사이드바에 "실시간 연결됨")
 - [ ] 커뮤니티 글쓰기에 사진 첨부 → 사진 주소가 `supabase.co/storage/...`로 시작
@@ -142,7 +141,8 @@ CORS_ALLOWED_ORIGINS=https://fitmate-xxxx.vercel.app
 ## 운영 설정 요약
 
 - **도배 방지**: 글·댓글·채팅·매칭 요청·신고·회원가입 등에 요청 횟수 제한 (Redis, 서버가 여러 대여도 합산). 넘으면 429 + `Retry-After`
-- **체험 계정 보호**: `DEMO_DATA_ENABLED=true`이면 `demo01~demo30`은 탈퇴할 수 없고, 누가 지워도 재시작 시 복구. 다가오는 데모 모임이 없으면(시간이 지나 모두 끝나면) 재시작할 때 새로 만듦
+- **데모 데이터**: 배포에서는 만들지 않음 (`DEMO_DATA_ENABLED=false`). 로컬 개발(`local` 프로필)에서만 생성
+- **서버 깨우는 중 안내**: API 응답이 4초 넘게 없으면 웹 화면 위에 안내를 띄워서, 무료 서버가 깨어나는 동안 멈춘 것처럼 보이지 않게 함
 - **헬스 체크**: `/actuator/health` (DB·Redis 포함)
 - **자동 배포**: `main`에 푸시 → GitHub Actions(백엔드 테스트, 웹 빌드, Docker 이미지 빌드) → Render(백엔드가 바뀐 경우)·Vercel이 각각 자동 배포
 - **작은 서버 대응**: 사진은 결과 크기의 2배까지만 줄여 읽고(subsampling), 동시에 처리하는 장수를 제한. 512MB 컨테이너에서 6명이 사진 4장씩 동시에 올려도 최대 452MB, 헬스 체크 지연 없음

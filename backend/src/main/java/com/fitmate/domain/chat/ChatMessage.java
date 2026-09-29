@@ -61,6 +61,15 @@ public class ChatMessage {
         this.content = content;
     }
 
+    /** 단체방 입장·퇴장 같은 안내. 보낸 사람이 없고, 안 읽은 수에 세지 않는다 */
+    public static ChatMessage system(Long roomId, String content) {
+        ChatMessage message = new ChatMessage();
+        message.roomId = roomId;
+        message.type = MessageType.SYSTEM;
+        message.content = content;
+        return message;
+    }
+
     public static ChatMessage image(Long roomId, Long senderId, String imageUrl, int width, int height) {
         ChatMessage message = new ChatMessage();
         message.roomId = roomId;
@@ -74,6 +83,7 @@ public class ChatMessage {
 
     public enum MessageType {
         TEXT,
-        IMAGE
+        IMAGE,
+        SYSTEM
     }
 }

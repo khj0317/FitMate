@@ -4,8 +4,6 @@ import com.fitmate.domain.auth.RefreshTokenStore;
 import com.fitmate.domain.safety.SafetyService;
 import com.fitmate.domain.sport.Sport;
 import com.fitmate.domain.community.PostRepository;
-import com.fitmate.global.demo.DemoDataInitializer;
-import org.springframework.beans.factory.annotation.Value;
 import com.fitmate.domain.sport.SportRepository;
 import com.fitmate.domain.user.dto.UserRequests;
 import com.fitmate.domain.user.dto.UserResponses;
@@ -42,9 +40,6 @@ public class UserService {
     private final RefreshTokenStore refreshTokenStore;
     private final PostRepository postRepository;
 
-    @Value("${fitmate.demo-data.enabled:false}")
-    private boolean demoDataEnabled;
-
     public UserResponses.MyProfile getMyProfile(Long userId) {
         return UserResponses.MyProfile.from(getUser(userId));
     }
@@ -66,10 +61,6 @@ public class UserService {
     @Transactional
     public void deleteAccount(Long userId, String password) {
         User user = getUser(userId);
-        // 데모 데이터를 켠 배포 환경에서는 모두가 쓰는 체험 계정을 누군가 지워 버리지 못하게 한다
-        if (demoDataEnabled && DemoDataInitializer.isDemoLoginId(user.getLoginId())) {
-            throw new BusinessException(ErrorCode.DEMO_ACCOUNT_PROTECTED);
-        }
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new BusinessException(ErrorCode.INVALID_PASSWORD);
         }

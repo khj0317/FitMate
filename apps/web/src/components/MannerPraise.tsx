@@ -1,4 +1,3 @@
-import { HeartHandshake } from 'lucide-react'
 import { MANNER_TAG_INFO } from '../lib/gathering'
 import { useMannerSummary } from '../lib/queries'
 import { Card } from './ui'
@@ -10,11 +9,8 @@ export function MannerPraise({ userId }: { userId: number }) {
 
   return (
     <Card className="mb-6 p-6">
-      <div className="mb-4 flex items-center gap-2">
-        <HeartHandshake className="size-5 text-brand-500" />
-        <h2 className="font-bold">받은 매너 칭찬</h2>
-        <span className="text-sm text-ink-400">평가 {data.reviewCount}개</span>
-      </div>
+      <h2 className="text-lg font-bold">받은 매너 칭찬</h2>
+      <p className="mt-0.5 mb-5 text-sm text-ink-500">함께 운동한 메이트들이 남긴 칭찬이에요 · 평가 {data.reviewCount}개</p>
       {data.tags.length === 0 ? (
         <p className="rounded-2xl bg-ink-50 px-4 py-5 text-center text-sm text-ink-500">
           아직 받은 칭찬이 없어요. 모임이나 매칭으로 함께 운동하면 메이트들이 칭찬을 남길 수 있어요 🙌

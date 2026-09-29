@@ -79,11 +79,7 @@ function AuthLayout({
   )
 }
 
-/**
- * 포트폴리오 방문자가 가입 없이 둘러볼 수 있는 체험 계정 (백엔드 DEMO_DATA_ENABLED=true로 만든 공개 데모 계정).
- * 로컬 개발 중에는 항상, 배포에서는 VITE_DEMO_LOGIN=true일 때만 버튼을 보여준다
- */
-const DEMO_LOGIN_ENABLED = import.meta.env.DEV || import.meta.env.VITE_DEMO_LOGIN === 'true'
+/** 로컬 개발용 데모 계정 (backend의 local 프로필이 만든 demo01). 배포 빌드에는 버튼이 들어가지 않는다 */
 const DEMO_ACCOUNT = { loginId: 'demo01', password: 'password123' }
 
 export function LoginPage() {
@@ -142,7 +138,7 @@ export function LoginPage() {
           <span className="text-ink-300">|</span>
           <Link to="/find-account?tab=password" className="hover:text-ink-900 hover:underline">비밀번호 찾기</Link>
         </div>
-        {DEMO_LOGIN_ENABLED && (
+        {import.meta.env.DEV && (
           <Button
             type="button"
             variant="secondary"
@@ -150,7 +146,7 @@ export function LoginPage() {
             loading={loading}
             onClick={() => void loginAs(DEMO_ACCOUNT.loginId, DEMO_ACCOUNT.password)}
           >
-            🧪 체험 계정으로 둘러보기
+            🧪 데모 계정으로 로그인 (로컬 개발용)
           </Button>
         )}
       </form>

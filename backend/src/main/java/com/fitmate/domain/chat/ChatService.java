@@ -163,17 +163,33 @@ public class ChatService {
         ChatRoom room = gatheringRoom(gatheringId);
         ChatRoomMember.Id id = new ChatRoomMember.Id(room.getId(), user.getId());
         if (!memberRepository.existsById(id)) {
-            Long lastMessageId = messageRepository.findTopByRoomIdOrderByIdDesc(room.getId())
-                    .map(ChatMessage::getId).orElse(null);
-            memberRepository.save(new ChatRoomMember(room, user, lastMessageId));
+            // 들어온 안내를 먼저 남기고, 새 멤버는 그 안내까지 읽은 것으로 시작한다 (이전 대화는 안 읽은 수에 세지 않음)
+            ChatMessage joined = messageRepository.save(
+                    ChatMessage.system(room.getId(), user.getNickname() + "님이 들어왔어요"));
+            memberRepository.save(new ChatRoomMember(room, user, joined.getId()));
+            publishSystem(joined);
         }
         return room.getId();
     }
 
+    /**
+     * 나가면 멤버에서 빠지고 "OO님이 나갔어요" 안내를 보낸다.
+     * 채팅방을 보고 있는 사람들은 이 안내를 받으면 읽음 위치를 다시 불러와서, 나간 사람을 "안 읽은 사람 수"에서 뺀다
+     */
     @Transactional
     public void leaveGatheringRoom(Long gatheringId, Long userId) {
         ChatRoom room = gatheringRoom(gatheringId);
-        memberRepository.deleteById(new ChatRoomMember.Id(room.getId(), userId));
+        ChatRoomMember.Id id = new ChatRoomMember.Id(room.getId(), userId);
+        if (!memberRepository.existsById(id)) {
+            return;
+        }
+        memberRepository.deleteById(id);
+        String nickname = userRepository.findById(userId).map(User::getNickname).orElse("참여자");
+        publishSystem(messageRepository.save(ChatMessage.system(room.getId(), nickname + "님이 나갔어요")));
+    }
+
+    private void publishSystem(ChatMessage saved) {
+        eventPublisher.publishEvent(new ChatMessageSavedEvent(ChatDtos.Message.of(saved, null)));
     }
 
     public Long gatheringRoomId(Long gatheringId) {

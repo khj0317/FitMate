@@ -31,7 +31,8 @@ public class ChatRoomQuery {
                     FROM chat_messages cm
                     WHERE cm.room_id = r.id
                       AND cm.id > COALESCE(me.last_read_message_id, 0)
-                      AND cm.sender_id IS DISTINCT FROM me.user_id) AS unread_count,
+                      AND cm.sender_id IS DISTINCT FROM me.user_id
+                      AND cm.message_type <> 'SYSTEM') AS unread_count,
                    -- 1:1 방은 상대가 탈퇴했거나 차단 관계면 보낼 수 없다
                    (r.type <> 'DIRECT' OR (other.id IS NOT NULL AND NOT EXISTS (
                         SELECT 1 FROM user_blocks b

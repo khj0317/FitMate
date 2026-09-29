@@ -161,6 +161,16 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
    * 읽음 위치는 앞으로만 움직이므로 늦게 도착한 이벤트가 되돌리지 않게 max로 합친다
    */
   const [readCursors, setReadCursors] = useState<Map<number, number>>(new Map())
+  /** 서버가 준 현재 멤버 목록으로 바꾼다 (나간 사람은 빠지고, 남은 사람의 읽음 위치는 뒤로 가지 않게 유지) */
+  const resetReads = useCallback((cursors: { userId: number; lastReadMessageId: number | null }[]) => {
+    setReadCursors((current) => {
+      const next = new Map<number, number>()
+      for (const { userId, lastReadMessageId } of cursors) {
+        next.set(userId, Math.max(current.get(userId) ?? 0, lastReadMessageId ?? 0))
+      }
+      return next
+    })
+  }, [])
   const advanceRead = useCallback((cursors: { userId: number; lastReadMessageId: number | null }[]) => {
     setReadCursors((current) => {
       const next = new Map(current)
@@ -215,8 +225,15 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
       onMessage((message) => {
         if (message.roomId !== room.roomId) return
         setMessages((current) => (current.some((m) => m.id === message.id) ? current : [...current, message]))
+        // 누가 들어오거나 나갔다는 안내가 오면 멤버별 읽음 위치를 서버 기준으로 다시 맞춘다.
+        // 나간 사람은 목록에서 빠지므로 "안 읽은 사람 수"에서도 바로 빠진다
+        if (message.type === 'SYSTEM') {
+          fetchMessages(room.roomId)
+            .then((page) => resetReads(page.readCursors))
+            .catch(() => undefined)
+        }
       }),
-    [onMessage, room.roomId],
+    [onMessage, room.roomId, resetReads],
   )
 
   // 마지막 메시지까지 읽음 처리
@@ -518,20 +535,31 @@ function MessageList({
         const prev = messages[index - 1]
         const next = messages[index + 1]
         const mine = message.senderId === myId
+        const newDay = !prev || !isSameDay(prev.createdAt, message.createdAt)
+        const dayDivider = newDay && (
+          <div className="my-4 flex justify-center">
+            <span className="rounded-full bg-ink-200/60 px-3 py-1 text-xs font-medium text-ink-500">{dayLabel(message.createdAt)}</span>
+          </div>
+        )
+        // 입장·퇴장 안내는 가운데 한 줄로 보여주고, 안 읽은 수나 말풍선 묶기에 섞지 않는다
+        if (message.type === 'SYSTEM') {
+          return (
+            <div key={message.id}>
+              {dayDivider}
+              <p className="my-3 text-center text-xs text-ink-400">{message.content}</p>
+            </div>
+          )
+        }
         // 카카오톡처럼 아직 안 읽은 사람 수를 표시한다 (1:1 방에서는 내 메시지에만 1이 붙는다)
         const unread = unreadCount(message, readCursors)
-        const newDay = !prev || !isSameDay(prev.createdAt, message.createdAt)
-        const groupedWithPrev = !newDay && prev?.senderId === message.senderId && withinMinutes(prev.createdAt, message.createdAt, 3)
+        const groupedWithPrev =
+          !newDay && prev?.type !== 'SYSTEM' && prev?.senderId === message.senderId && withinMinutes(prev.createdAt, message.createdAt, 3)
         const groupedWithNext =
-          !!next && next.senderId === message.senderId && isSameDay(message.createdAt, next.createdAt) && withinMinutes(message.createdAt, next.createdAt, 3)
+          !!next && next.type !== 'SYSTEM' && next.senderId === message.senderId && isSameDay(message.createdAt, next.createdAt) && withinMinutes(message.createdAt, next.createdAt, 3)
 
         return (
           <div key={message.id}>
-            {newDay && (
-              <div className="my-4 flex justify-center">
-                <span className="rounded-full bg-ink-200/60 px-3 py-1 text-xs font-medium text-ink-500">{dayLabel(message.createdAt)}</span>
-              </div>
-            )}
+            {dayDivider}
             {group && !mine && !groupedWithPrev && (
               <p className="mt-3 mb-1 ml-10 text-xs font-semibold text-ink-500">{message.senderNickname ?? '알 수 없음'}</p>
             )}

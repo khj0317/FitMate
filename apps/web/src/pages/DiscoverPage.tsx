@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { CalendarClock, Check, MapPin, Send, SlidersHorizontal, Thermometer } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { Avatar } from '../components/Avatar'
 import { Modal } from '../components/Modal'
 import { SafetyMenu } from '../components/SafetyMenu'
@@ -157,16 +157,18 @@ function CandidateCard({
       className="flex animate-fade-up flex-col p-5 transition-all hover:-translate-y-0.5 hover:shadow-lift"
     >
       <div className="flex items-start gap-3">
-        <div className="relative">
+        <Link to={`/users/${candidate.userId}`} className="relative" aria-label={`${candidate.nickname} 프로필 보기`}>
           <Avatar id={candidate.userId} name={candidate.nickname} imageUrl={candidate.profileImageUrl} online={presence?.online} />
           {rank <= 3 && (
             <span className="absolute -top-1 -left-1 flex size-5 items-center justify-center rounded-full bg-ink-900 text-[10px] font-bold text-white ring-2 ring-white">
               {rank}
             </span>
           )}
-        </div>
+        </Link>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[17px] font-bold">{candidate.nickname}</p>
+          <Link to={`/users/${candidate.userId}`} className="block truncate text-[17px] font-bold hover:underline">
+            {candidate.nickname}
+          </Link>
           <p className="mt-0.5 truncate text-sm text-ink-500">
             {profileLine || '정보 비공개'}
             {presenceLabel(presence) && (

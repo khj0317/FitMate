@@ -44,7 +44,7 @@ services:
       - key: STORAGE_TYPE
         value: s3
       - key: DEMO_DATA_ENABLED
-        value: "true"
+        value: "false"
       - key: DB_POOL_SIZE
         value: "5"
       # ---- 무료 플랜(메모리 512MB)에 맞춘 설정. 512MB로 제한한 컨테이너에 부하를 걸어 검증한 값 ----

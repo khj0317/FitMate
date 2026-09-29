@@ -179,6 +179,30 @@ class GatheringApiTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("단체방에 들어오고 나가면 안내가 남고, 나간 사람은 읽음 위치 목록(안 읽은 사람 수)에서 빠진다")
+    void joinAndLeaveSystemMessages() throws Exception {
+        TestUser host = signupAndLogin();
+        TestUser guest = signupAndLogin();
+        Long gatheringId = createGathering(host, 4);
+        String body = join(guest, gatheringId).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        Long roomId = ((Number) JsonPath.read(body, "$.chatRoomId")).longValue();
+
+        call(HttpMethod.GET, "/api/chat-rooms/" + roomId + "/messages", null, host.accessToken())
+                .andExpect(jsonPath("$.messages[0].type").value("SYSTEM"))
+                .andExpect(jsonPath("$.messages[0].content").value(guest.nickname() + "님이 들어왔어요"))
+                .andExpect(jsonPath("$.readCursors[*].userId").value(hasItem(guest.id().intValue())));
+        // 시스템 안내는 안 읽은 수에 세지 않는다
+        call(HttpMethod.GET, "/api/chat-rooms", null, host.accessToken())
+                .andExpect(jsonPath("$[?(@.roomId == %d)].unreadCount".formatted(roomId)).value(hasItem(0)));
+
+        call(HttpMethod.DELETE, "/api/gatherings/" + gatheringId + "/participants/me", null, guest.accessToken())
+                .andExpect(status().isNoContent());
+        call(HttpMethod.GET, "/api/chat-rooms/" + roomId + "/messages", null, host.accessToken())
+                .andExpect(jsonPath("$.messages[0].content").value(guest.nickname() + "님이 나갔어요"))
+                .andExpect(jsonPath("$.readCursors[*].userId").value(not(hasItem(guest.id().intValue()))));
+    }
+
+    @Test
     @DisplayName("모임장은 나갈 수 없고, 참여하지 않은 사람도 나갈 수 없다")
     void leaveRules() throws Exception {
         TestUser host = signupAndLogin();

@@ -379,7 +379,7 @@ function ProfileForm({ me }: { me: MyProfile }) {
         </Section>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-6">
         <NotificationSettingsSection />
         <AccountSafetySection />
       </div>

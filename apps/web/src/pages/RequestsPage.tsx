@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { Check, MessageCircle, Thermometer, X } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { Avatar } from '../components/Avatar'
 import { Badge, Button, Card, Chip, EmptyState, PageHeader, PageLoader } from '../components/ui'
 import { errorMessage } from '../lib/api'
@@ -114,10 +114,12 @@ function RequestCard({ request, box }: { request: MatchRequest; box: Box }) {
   return (
     <Card className="animate-fade-up p-5">
       <div className="flex items-start gap-3">
-        <Avatar id={counterpart.userId} name={counterpart.nickname} imageUrl={counterpart.profileImageUrl} />
+        <Link to={`/users/${counterpart.userId}`} className="shrink-0" aria-label={`${counterpart.nickname} 프로필 보기`}>
+          <Avatar id={counterpart.userId} name={counterpart.nickname} imageUrl={counterpart.profileImageUrl} />
+        </Link>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="font-bold">{counterpart.nickname}</p>
+            <Link to={`/users/${counterpart.userId}`} className="font-bold hover:underline">{counterpart.nickname}</Link>
             <Badge tone="brand">
               <Thermometer className="size-3" />
               {counterpart.mannerScore}°
