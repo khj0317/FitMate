@@ -90,6 +90,9 @@ public class NotificationService {
     }
 
     private boolean isMuted(Long userId, Notification.Category category) {
+        if (category == Notification.Category.SYSTEM) {
+            return false;
+        }
         return Boolean.TRUE.equals(jdbcClient.sql(
                         "SELECT :category = ANY(muted_notification_types) FROM users WHERE id = :id")
                 .param("category", category.name())

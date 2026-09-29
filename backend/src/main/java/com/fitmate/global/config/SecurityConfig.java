@@ -35,6 +35,7 @@ public class SecurityConfig {
             "/api/auth/logout",
             "/api/auth/find-login-id",
             "/api/auth/password-reset/**",
+            "/api/auth/email-verification/**",
             "/api/locations/**", // 회원가입 화면의 지역 검색
             "/ws", // 핸드셰이크는 열어 두고, 인증은 STOMP CONNECT 프레임에서 한다 (StompAuthInterceptor)
             "/dev/**" // 로컬 전용 테스트 페이지 (DevPageConfig, local 프로필에서만 제공)

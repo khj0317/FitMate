@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, UserX } from 'lucide-react'
 import { useState } from 'react'
-import { api, errorMessage, setTokens } from '../lib/api'
+import { api, errorMessage, setAccessToken } from '../lib/api'
 import { timeAgo } from '../lib/format'
 import type { BlockedUser } from '../lib/types'
 import { useToast } from '../providers/ToastProvider'
@@ -71,7 +71,7 @@ function WithdrawButton() {
   const withdraw = useMutation({
     mutationFn: () => api.post('/api/users/me/withdrawal', { password }),
     onSuccess: () => {
-      setTokens(null) // 서버에서 모든 로그인이 이미 끊겼으므로 화면도 로그아웃
+      setAccessToken(null) // 서버에서 모든 로그인이 이미 끊겼으므로 화면도 로그아웃
       toast('탈퇴했어요. 그동안 함께해 주셔서 고마워요')
     },
     onError: (e) => setError(errorMessage(e)),

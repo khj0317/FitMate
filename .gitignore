@@ -22,3 +22,7 @@ node_modules/
 dist/
 .expo/
 *.log
+
+# Playwright
+apps/web/test-results/
+apps/web/playwright-report/

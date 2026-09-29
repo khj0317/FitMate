@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Compass, Inbox, LogOut, MessageCircle, Newspaper, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
+import { Compass, Inbox, LogOut, MessageCircle, Newspaper, ShieldCheck, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useChatRooms, useMatchRequests, useMe } from '../lib/queries'
 import { useAuth } from '../providers/AuthProvider'
@@ -21,6 +21,8 @@ function useNavItems(): NavItem[] {
   const { data: rooms } = useChatRooms()
   const { data: received } = useMatchRequests('received', 'PENDING')
   const unread = rooms?.reduce((sum, room) => sum + room.unreadCount, 0) ?? 0
+  const { data: me } = useMe()
+  const admin: NavItem[] = me?.role === 'ADMIN' ? [{ to: '/admin', label: '관리자', icon: ShieldCheck }] : []
   return [
     { to: '/', label: '운동 메이트', icon: Compass, mobileTab: true },
     { to: '/gatherings', label: '모임', icon: UsersRound, mobileTab: true },
@@ -28,6 +30,7 @@ function useNavItems(): NavItem[] {
     { to: '/requests', label: '매칭 요청', icon: Inbox, badge: received?.length ?? 0 },
     { to: '/chats', label: '채팅', icon: MessageCircle, badge: unread, mobileTab: true },
     { to: '/profile', label: '내 프로필', icon: UserRound, mobileTab: true },
+    ...admin,
   ]
 }
 

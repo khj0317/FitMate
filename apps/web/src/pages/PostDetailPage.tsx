@@ -10,7 +10,7 @@ import { SafetyMenu } from '../components/SafetyMenu'
 import { Button, Card, EmptyState, PageLoader, Spinner } from '../components/ui'
 import { errorMessage } from '../lib/api'
 import { timeAgo } from '../lib/format'
-import { useAddComment, useComments, useDeleteComment, useDeletePost, usePost } from '../lib/queries'
+import { useAddComment, useComments, useDeleteComment, useDeletePost, useHidePost, useMe, usePost } from '../lib/queries'
 import type { Post, PostComment } from '../lib/types'
 import { useToast } from '../providers/ToastProvider'
 
@@ -54,12 +54,15 @@ export function PostDetailPage() {
           {post.mine ? (
             <PostOwnerMenu post={post} />
           ) : (
+            <>
+            <AdminHideButton postId={post.id} />
             <SafetyMenu
               user={{ id: post.author.userId, nickname: post.author.nickname }}
               onBlocked={() => navigate('/community')}
               placement="down"
               className="[&>button]:size-9 [&>button]:ring-0"
             />
+            </>
           )}
         </div>
         <div className="mt-4">
@@ -77,6 +80,34 @@ export function PostDetailPage() {
 
       <Comments post={post} replyTo={replyTo} onReply={setReplyTo} />
     </div>
+  )
+}
+
+/** 관리자에게만 보이는 "숨기기". 숨긴 글은 피드·상세에서 사라지고 관리자 API로 되돌릴 수 있다 */
+function AdminHideButton({ postId }: { postId: number }) {
+  const { data: me } = useMe()
+  const navigate = useNavigate()
+  const toast = useToast()
+  const hide = useHidePost()
+  if (me?.role !== 'ADMIN') return null
+  return (
+    <Button
+      size="sm"
+      variant="danger"
+      loading={hide.isPending}
+      onClick={() => {
+        if (!window.confirm('이 글을 숨길까요? 모든 사용자에게 보이지 않게 돼요.')) return
+        hide.mutate(postId, {
+          onSuccess: () => {
+            toast('글을 숨겼어요')
+            navigate('/community', { replace: true })
+          },
+          onError: (e) => toast(errorMessage(e), 'error'),
+        })
+      }}
+    >
+      숨기기
+    </Button>
   )
 }
 

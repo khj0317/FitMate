@@ -41,6 +41,16 @@
 
 > 무료 플랜은 1주일 동안 요청이 없으면 프로젝트가 일시 정지됩니다. 대시보드에서 Restore를 누르면 다시 켜집니다.
 
+## ①-2 Brevo (메일 발송, 무료 하루 300통)
+
+Render 무료 플랜은 메일 포트(SMTP)를 막아서, 가입 이메일 인증·비밀번호 찾기 메일은 Brevo API로 보냅니다.
+1. https://www.brevo.com 무료 가입
+2. **Senders, Domains & Dedicated IPs → Senders → Add a sender**: 이름 `FitMate`, 이메일 = 내 Gmail → 그 Gmail로 온 인증 메일에서 확인
+3. **SMTP & API → API Keys → Generate a new API key** → `BREVO_API_KEY`
+4. Render 환경 변수: `BREVO_API_KEY`, `MAIL_FROM=FitMate <인증한 Gmail 주소>`
+
+> 도메인 없이 Gmail 주소로 보내면 받는 쪽에서 스팸함으로 갈 수 있어요. 자체 도메인이 생기면 Brevo에 도메인을 인증(SPF·DKIM)하고 `MAIL_FROM`을 그 도메인 주소로 바꾸면 됩니다.
+
 ## ② Upstash (Redis)
 
 1. https://upstash.com 가입 → **Create Database** (Redis)

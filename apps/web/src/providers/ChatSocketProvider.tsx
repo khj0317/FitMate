@@ -1,7 +1,7 @@
 import { Client, type StompSubscription } from '@stomp/stompjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
-import { API_BASE, api, getAccessToken, refreshTokens } from '../lib/api'
+import { SOCKET_BASE, api, getAccessToken, refreshTokens } from '../lib/api'
 import { keys, useChatRooms } from '../lib/queries'
 import type { AppNotification, ChatMessage } from '../lib/types'
 import { useAuth } from './AuthProvider'
@@ -28,10 +28,12 @@ const RELATED_QUERIES: Record<AppNotification['type'], string[][]> = {
   REVIEW_REQUESTED: [['manner']],
   POST_COMMENTED: [['posts']],
   COMMENT_REPLIED: [['posts']],
+  ADMIN_WARNING: [],
+  REPORT_RESOLVED: [],
 }
 
 function socketUrl() {
-  const base = API_BASE || window.location.origin
+  const base = SOCKET_BASE || window.location.origin
   return base.replace(/^http/, 'ws') + '/ws'
 }
 

@@ -1,6 +1,9 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
+  AdminAction,
+  AdminReportPage,
+  AdminStats,
   ChatRoom,
   FeedPage,
   NotificationCategory,
@@ -46,6 +49,8 @@ export const keys = {
   post: (id: number) => ['posts', 'detail', id] as const,
   comments: (postId: number) => ['posts', 'comments', postId] as const,
   profile: (userId: number) => ['profile', userId] as const,
+  adminStats: ['admin', 'stats'] as const,
+  adminReports: (pending: boolean) => ['admin', 'reports', pending] as const,
 }
 
 export interface FeedFilter {
@@ -191,6 +196,21 @@ export function useComments(postId: number, enabled = true) {
   return useQuery({
     queryKey: keys.comments(postId),
     queryFn: () => api.get<PostComment[]>(`/api/posts/${postId}/comments`),
+    enabled,
+  })
+}
+
+export function useAdminStats(enabled: boolean) {
+  return useQuery({ queryKey: keys.adminStats, queryFn: () => api.get<AdminStats>('/api/admin/stats'), enabled })
+}
+
+export function useAdminReports(pending: boolean, enabled: boolean) {
+  return useInfiniteQuery({
+    queryKey: keys.adminReports(pending),
+    queryFn: ({ pageParam }) =>
+      api.get<AdminReportPage>(`/api/admin/reports?pending=${pending}${pageParam ? `&cursor=${pageParam}` : ''}`),
+    initialPageParam: null as number | null,
+    getNextPageParam: (last) => last.nextCursor,
     enabled,
   })
 }
@@ -348,6 +368,31 @@ export function useDeleteComment(postId: number) {
   return useMutation({
     mutationFn: (commentId: number) => api.delete<undefined>(`/api/comments/${commentId}`),
     onSuccess: () => invalidate([...keys.comments(postId)], [...keys.post(postId)], ['posts', 'feed']),
+  })
+}
+
+export function useResolveReport() {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: ({ id, action, note }: { id: number; action: AdminAction; note: string }) =>
+      api.post<{ handledReports: number }>(`/api/admin/reports/${id}/resolve`, { action, note }),
+    onSuccess: () => invalidate(['admin']),
+  })
+}
+
+export function useUnsuspend() {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: (userId: number) => api.post<undefined>(`/api/admin/users/${userId}/unsuspend`),
+    onSuccess: () => invalidate(['admin']),
+  })
+}
+
+export function useHidePost() {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: (postId: number) => api.post<undefined>(`/api/admin/posts/${postId}/hide`),
+    onSuccess: () => invalidate(['posts'], ['admin']),
   })
 }
 

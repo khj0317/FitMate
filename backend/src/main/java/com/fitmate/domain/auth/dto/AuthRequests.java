@@ -54,7 +54,10 @@ public final class AuthRequests {
 
             @NotNull(message = "활동 지역을 선택해 주세요.")
             @Valid
-            UserRequests.UpdateLocation location
+            UserRequests.UpdateLocation location,
+
+            /* 이메일 인증(POST /api/auth/email-verification/confirm)으로 받은 토큰 */
+            String emailVerificationToken
     ) {
         /** 형식 검증 전에 정규화: 아이디는 소문자로, 이메일은 공백 제거 후 비어 있으면 null */
         public Signup {

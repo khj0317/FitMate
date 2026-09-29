@@ -92,6 +92,13 @@ public class User {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private Role role = Role.USER;
+
+    /** 이 시각까지 이용 정지 (null이면 정상) */
+    private Instant suspendedUntil;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserSport> sports = new ArrayList<>();
 
@@ -104,6 +111,18 @@ public class User {
         this.nickname = nickname;
         this.searchRadiusKm = DEFAULT_SEARCH_RADIUS_KM;
         this.mannerScore = INITIAL_MANNER_SCORE;
+    }
+
+    public enum Role {
+        USER, ADMIN
+    }
+
+    public boolean isAdmin() {
+        return role == Role.ADMIN;
+    }
+
+    public boolean isSuspended(Instant now) {
+        return suspendedUntil != null && suspendedUntil.isAfter(now);
     }
 
     public void changePassword(String passwordHash) {

@@ -44,7 +44,10 @@ public final class UserRequests {
 
             @Min(value = 1, message = "검색 반경은 1~50km입니다.")
             @Max(value = 50, message = "검색 반경은 1~50km입니다.")
-            Short searchRadiusKm
+            Short searchRadiusKm,
+
+            /* 이메일을 바꿀 때만 필요 (이메일 인증으로 받은 토큰) */
+            String emailVerificationToken
     ) {
     }
 
@@ -84,7 +87,10 @@ public final class UserRequests {
             List<@Valid @NotNull SportLevel> sports,
 
             @NotNull @Size(max = 21, message = "운동 가능 시간대는 최대 21개까지 등록할 수 있습니다.")
-            List<@Valid @NotNull AvailableTime> availableTimes
+            List<@Valid @NotNull AvailableTime> availableTimes,
+
+            /* 이메일을 바꿀 때만 필요 (이메일 인증으로 받은 토큰) */
+            String emailVerificationToken
     ) {
     }
 

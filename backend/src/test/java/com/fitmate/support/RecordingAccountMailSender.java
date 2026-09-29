@@ -11,6 +11,7 @@ public class RecordingAccountMailSender implements AccountMailSender {
 
     private final Map<String, String> loginIds = new ConcurrentHashMap<>();
     private final Map<String, String> resetCodes = new ConcurrentHashMap<>();
+    private final Map<String, String> signupCodes = new ConcurrentHashMap<>();
 
     @Override
     public void sendLoginId(String email, String loginId) {
@@ -20,6 +21,15 @@ public class RecordingAccountMailSender implements AccountMailSender {
     @Override
     public void sendPasswordResetCode(String email, String code) {
         resetCodes.put(email, code);
+    }
+
+    @Override
+    public void sendSignupVerificationCode(String email, String code) {
+        signupCodes.put(email, code);
+    }
+
+    public Optional<String> signupCodeSentTo(String email) {
+        return Optional.ofNullable(signupCodes.get(email));
     }
 
     public Optional<String> loginIdSentTo(String email) {

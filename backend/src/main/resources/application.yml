@@ -70,6 +70,20 @@ fitmate:
   # 개발용 데모 사용자·모임·게시글 생성 (로컬은 application-local.yml에서 켬, 배포에서는 끔)
   demo-data:
     enabled: ${DEMO_DATA_ENABLED:false}
+  # 웹 리프레시 토큰 쿠키. https가 아닌 로컬 개발에서는 application-local.yml에서 false
+  auth:
+    cookie-secure: ${AUTH_COOKIE_SECURE:true}
+  # 사용자 IP를 읽을 헤더 (Vercel 프록시 뒤: x-vercel-forwarded-for). 비우면 요청 주소 그대로
+  client-ip-header: ${CLIENT_IP_HEADER:}
+  # 관리자로 지정할 아이디 (쉼표로 여러 명). 서버가 뜰 때 이 사용자들의 권한을 ADMIN으로 맞춘다
+  admin:
+    login-ids: ${ADMIN_LOGIN_IDS:}
+  # 가입·이메일 변경 시 이메일 인증 코드 확인
+  email-verification:
+    enabled: ${EMAIL_VERIFICATION_ENABLED:true}
+  # 메일 발송: Brevo API 키가 있으면 HTTPS API로 (Render 무료 플랜은 SMTP 포트를 막음), 없으면 아래 SMTP 설정으로
+  mail:
+    brevo-api-key: ${BREVO_API_KEY:}
   # 글·댓글·요청 도배 방지 (RateLimitInterceptor)
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}

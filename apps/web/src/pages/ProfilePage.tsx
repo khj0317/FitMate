@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { AtSign, LogOut, PartyPopper, RotateCcw, Save, Thermometer } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
+import { EmailVerificationField } from '../components/EmailVerificationField'
 import { AccountSafetySection } from '../components/AccountSafetySection'
 import { MannerPraise } from '../components/MannerPraise'
 import { NotificationSettingsSection } from '../components/NotificationSettingsSection'
@@ -105,6 +106,7 @@ const SERVER_ERROR_FIELD: Record<string, keyof Draft> = {
   DUPLICATE_NICKNAME: 'nickname',
   DUPLICATE_EMAIL: 'email',
   EMAIL_REQUIRED: 'email',
+  EMAIL_NOT_VERIFIED: 'email',
   INVALID_BIRTH_DATE: 'birthDate',
 }
 
@@ -130,6 +132,9 @@ function ProfileForm({ me }: { me: MyProfile }) {
   const [draft, setDraft] = useState<Draft>(initial)
   const [showErrors, setShowErrors] = useState(false)
   const [serverErrors, setServerErrors] = useState<DraftErrors>({})
+  /** 이메일을 바꿨을 때만 인증이 필요하다 (대소문자·공백은 무시하고 비교) */
+  const [emailToken, setEmailToken] = useState<string | null>(null)
+  const emailChanged = draft.email.trim().toLowerCase() !== (me.email ?? '').toLowerCase()
 
   const errors = { ...(showErrors ? validate(draft) : {}), ...serverErrors }
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial)
@@ -161,10 +166,16 @@ function ProfileForm({ me }: { me: MyProfile }) {
       toast('입력하지 않은 항목이 있어요', 'error')
       return
     }
+    if (emailChanged && !emailToken) {
+      setServerErrors({ email: '바꾼 이메일을 인증해 주세요' })
+      toast('바꾼 이메일을 인증해 주세요', 'error')
+      return
+    }
     try {
       await saveProfile.mutateAsync({
         nickname: draft.nickname.trim(),
         email: draft.email.trim(),
+        emailVerificationToken: emailChanged ? emailToken : null,
         bio: draft.bio,
         gender: draft.gender,
         birthDate: draft.birthDate,
@@ -173,6 +184,7 @@ function ProfileForm({ me }: { me: MyProfile }) {
         sports: draft.sports.map(([sportId, skillLevel]) => ({ sportId, skillLevel })),
         availableTimes: toAvailableTimes(draft.cells),
       })
+      setEmailToken(null)
       toast('프로필을 저장했어요')
       if (welcome) setParams({})
     } catch (e) {
@@ -226,13 +238,19 @@ function ProfileForm({ me }: { me: MyProfile }) {
             <Field label="아이디" hint="아이디는 바꿀 수 없어요">
               <Input value={me.loginId} disabled className="cursor-not-allowed text-ink-500" />
             </Field>
-            <Field
-              label="이메일"
-              hint={me.email ? '아이디·비밀번호 찾기에 사용돼요' : '⚠️ 이메일을 등록해야 아이디·비밀번호를 찾을 수 있어요'}
+            <EmailVerificationField
+              hint={
+                emailChanged
+                  ? '바꾼 이메일은 인증해야 저장할 수 있어요'
+                  : me.email ? '아이디·비밀번호 찾기에 사용돼요' : '⚠️ 이메일을 등록해야 아이디·비밀번호를 찾을 수 있어요'
+              }
+              email={draft.email}
+              onEmailChange={(value) => set('email', value)}
+              token={emailToken}
+              onToken={setEmailToken}
+              needsVerification={emailChanged}
               error={errors.email}
-            >
-              <Input type="email" value={draft.email} onChange={(e) => set('email', e.target.value)} placeholder="you@example.com" />
-            </Field>
+            />
             <Field label="닉네임" error={errors.nickname}>
               <Input value={draft.nickname} onChange={(e) => set('nickname', e.target.value)} maxLength={20} />
             </Field>
@@ -250,7 +268,7 @@ function ProfileForm({ me }: { me: MyProfile }) {
                 />
               </Field>
             </div>
-            <Field label="성별" error={errors.gender}>
+            <Field label="성별" group error={errors.gender}>
               <div>
                 <Segmented<Gender>
                   options={[

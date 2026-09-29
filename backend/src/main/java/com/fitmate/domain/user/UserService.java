@@ -3,6 +3,7 @@ package com.fitmate.domain.user;
 import com.fitmate.domain.auth.RefreshTokenStore;
 import com.fitmate.domain.safety.SafetyService;
 import com.fitmate.domain.sport.Sport;
+import com.fitmate.domain.account.EmailVerificationService;
 import com.fitmate.domain.community.PostRepository;
 import com.fitmate.domain.sport.SportRepository;
 import com.fitmate.domain.user.dto.UserRequests;
@@ -39,6 +40,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenStore refreshTokenStore;
     private final PostRepository postRepository;
+    private final EmailVerificationService emailVerificationService;
 
     public UserResponses.MyProfile getMyProfile(Long userId) {
         return UserResponses.MyProfile.from(getUser(userId));
@@ -82,7 +84,7 @@ public class UserService {
             applyNickname(user, request.nickname());
         }
         if (request.email() != null) {
-            applyEmail(user, request.email());
+            applyEmail(user, request.email(), request.emailVerificationToken());
         }
         if (request.bio() != null) {
             user.changeBio(request.bio());
@@ -126,7 +128,7 @@ public class UserService {
     public UserResponses.MyProfile updateAll(Long userId, UserRequests.UpdateAll request) {
         User user = getUser(userId);
         applyNickname(user, request.nickname());
-        applyEmail(user, request.email());
+        applyEmail(user, request.email(), request.emailVerificationToken());
         user.changeBio(request.bio() == null ? "" : request.bio());
         user.changeGender(request.gender());
         applyBirthDate(user, request.birthDate());
@@ -170,15 +172,19 @@ public class UserService {
         user.changeNickname(nickname);
     }
 
-    /** 이메일은 아이디·비밀번호 찾기에 쓰이므로 지울 수 없다 */
-    private void applyEmail(User user, String rawEmail) {
+    /** 이메일은 아이디·비밀번호 찾기에 쓰이므로 지울 수 없고, 바꿀 때는 새 이메일을 인증해야 한다 */
+    private void applyEmail(User user, String rawEmail, String verificationToken) {
         String email = rawEmail.strip().toLowerCase(Locale.ROOT);
         if (email.isEmpty()) {
             throw new BusinessException(ErrorCode.EMAIL_REQUIRED);
         }
+        if (email.equals(user.getEmail())) {
+            return;
+        }
         if (userRepository.existsByEmailAndIdNot(email, user.getId())) {
             throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
         }
+        emailVerificationService.consume(email, verificationToken);
         user.changeEmail(email);
     }
 

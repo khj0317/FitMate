@@ -12,7 +12,8 @@
     "build:web": "npm run build -w @fitmate/web",
     "test:api": "node scripts/gradle.mjs test",
     "infra:up": "node scripts/infra-up.mjs",
-    "infra:down": "docker compose down"
+    "infra:down": "docker compose down",
+    "test:e2e": "npm run test:e2e -w @fitmate/web"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"

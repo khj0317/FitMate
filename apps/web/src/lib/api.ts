@@ -1,9 +1,16 @@
 import type { ApiErrorBody, Tokens } from './types'
 
-/** 배포 시 VITE_API_URL=https://api.example.com, 개발 중에는 Vite 프록시를 쓰므로 비워 둔다. */
-export const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? ''
+/**
+ * REST 요청은 항상 같은 주소(/api)로 보낸다. 개발 중에는 Vite 프록시, 배포에서는 vercel.json의 rewrite가
+ * 백엔드로 전달한다. 같은 사이트로 보여야 리프레시 토큰 쿠키가 서드파티 쿠키로 막히지 않는다(Safari 등).
+ */
+export const API_BASE = ''
 
-const STORAGE_KEY = 'fitmate.tokens'
+/** WebSocket은 프록시를 거치지 않고 백엔드에 바로 연결한다 (배포: VITE_API_URL, 개발: Vite 프록시) */
+export const SOCKET_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? ''
+
+/** 이 헤더를 보내면 서버가 리프레시 토큰을 HttpOnly 쿠키로 주고받는다 */
+const AUTH_MODE_HEADER = { 'X-Auth-Mode': 'cookie' }
 
 export class ApiError extends Error {
   readonly status: number
@@ -19,38 +26,37 @@ export class ApiError extends Error {
   }
 }
 
-// ---------- 토큰 저장 ----------
+// ---------- 토큰 ----------
 
-type StoredTokens = Pick<Tokens, 'accessToken' | 'refreshToken'>
+/**
+ * 액세스 토큰(30분)은 메모리에만 둔다. 리프레시 토큰(14일)은 JavaScript가 읽을 수 없는 HttpOnly 쿠키라
+ * 화면에 악성 스크립트가 끼어들어도(XSS) 훔쳐 갈 수 없다. 새로고침하면 쿠키로 액세스 토큰을 다시 받는다.
+ */
+let accessToken: string | null = null
+const sessionListeners = new Set<(loggedIn: boolean) => void>()
 
-function readTokens(): StoredTokens | null {
+/**
+ * 예전 버전은 두 토큰을 localStorage에 저장했다. 남아 있으면 한 번만 꺼내서 쿠키 방식으로 바꾸고 지운다
+ * (업데이트 후에도 로그인이 풀리지 않게).
+ */
+const LEGACY_STORAGE_KEY = 'fitmate.tokens'
+let legacyRefreshToken: string | null = (() => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as StoredTokens) : null
+    const raw = localStorage.getItem(LEGACY_STORAGE_KEY)
+    localStorage.removeItem(LEGACY_STORAGE_KEY)
+    return raw ? ((JSON.parse(raw) as { refreshToken?: string }).refreshToken ?? null) : null
   } catch {
     return null
   }
-}
-
-let tokens: StoredTokens | null = readTokens()
-const sessionListeners = new Set<(loggedIn: boolean) => void>()
+})()
 
 export function getAccessToken() {
-  return tokens?.accessToken ?? null
+  return accessToken
 }
 
-export function getRefreshToken() {
-  return tokens?.refreshToken ?? null
-}
-
-export function setTokens(next: StoredTokens | null) {
-  tokens = next
-  try {
-    if (next) localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-    else localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // 저장소를 쓸 수 없는 환경(시크릿 모드 등)에서는 메모리에만 유지
-  }
+/** 로그인하면 액세스 토큰을 넣고, 로그아웃하면 null */
+export function setAccessToken(next: string | null) {
+  accessToken = next
   sessionListeners.forEach((listener) => listener(next !== null))
 }
 
@@ -61,41 +67,6 @@ export function onSessionChange(listener: (loggedIn: boolean) => void) {
     sessionListeners.delete(listener)
   }
 }
-
-// ---------- 토큰 재발급 ----------
-
-let refreshing: Promise<boolean> | null = null
-
-/**
- * 여러 요청이 동시에 401을 받아도 재발급은 한 번만 한다.
- * 서버의 리프레시 토큰은 1회용(Rotation)이라 두 번 요청하면 두 번째가 실패하기 때문이다.
- */
-export function refreshTokens(): Promise<boolean> {
-  if (!refreshing) {
-    refreshing = (async () => {
-      const refreshToken = getRefreshToken()
-      if (!refreshToken) return false
-      try {
-        const res = await fetch(`${API_BASE}/api/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken }),
-        })
-        if (!res.ok) return false
-        const next = (await res.json()) as Tokens
-        setTokens({ accessToken: next.accessToken, refreshToken: next.refreshToken })
-        return true
-      } catch {
-        return false
-      }
-    })().finally(() => {
-      refreshing = null
-    })
-  }
-  return refreshing
-}
-
-// ---------- 요청 ----------
 
 // ---------- 느린 응답 감지 (무료 서버가 잠들었다 깨어나는 중) ----------
 
@@ -120,33 +91,89 @@ function changeSlowRequests(delta: number) {
   slowListeners.forEach((listener) => listener())
 }
 
-async function request<T>(method: string, path: string, body?: unknown, retry = true): Promise<T> {
-  const accessToken = getAccessToken()
-  const isForm = body instanceof FormData // 파일 업로드는 브라우저가 boundary를 포함한 Content-Type을 직접 붙인다
-  // 사진 업로드는 원래 몇 초 걸릴 수 있으므로 서버가 깨어나는 중인지 판단하는 데서 뺀다
+/** fetch가 오래 걸리면 "서버를 깨우는 중" 안내에 반영한다 */
+async function trackedFetch(input: string, init: RequestInit, trackSlow = true): Promise<Response> {
   let slow = false
-  const slowTimer = isForm ? undefined : setTimeout(() => {
-    slow = true
-    changeSlowRequests(1)
-  }, SLOW_REQUEST_MS)
-  let res: Response
+  const slowTimer = trackSlow
+    ? setTimeout(() => {
+        slow = true
+        changeSlowRequests(1)
+      }, SLOW_REQUEST_MS)
+    : undefined
   try {
-    res = await fetch(`${API_BASE}${path}`, {
-      method,
-      headers: {
-        ...(body !== undefined && !isForm && { 'Content-Type': 'application/json' }),
-        ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
-      },
-      body: isForm ? body : body !== undefined ? JSON.stringify(body) : undefined,
-    })
+    return await fetch(input, init)
   } finally {
     clearTimeout(slowTimer)
     if (slow) changeSlowRequests(-1)
   }
+}
+
+// ---------- 토큰 재발급 ----------
+
+let refreshing: Promise<boolean> | null = null
+
+async function refreshOnce(): Promise<Response> {
+  const body = legacyRefreshToken ? JSON.stringify({ refreshToken: legacyRefreshToken }) : undefined
+  legacyRefreshToken = null
+  return trackedFetch(`${API_BASE}/api/auth/refresh`, {
+    method: 'POST',
+    headers: { ...AUTH_MODE_HEADER, ...(body && { 'Content-Type': 'application/json' }) },
+    body,
+  })
+}
+
+/**
+ * 쿠키의 리프레시 토큰으로 액세스 토큰을 새로 받는다. 앱을 처음 열 때(로그인 상태 복원)와 401을 받았을 때 쓴다.
+ * - 여러 요청이 동시에 401을 받아도 재발급은 한 번만 한다 (리프레시 토큰은 1회용이라 두 번째 요청은 실패)
+ * - 탭 두 개가 동시에 재발급하면 한쪽은 이미 교체된 쿠키를 보내 실패한다. 그 사이 다른 탭의 응답으로
+ *   브라우저 쿠키가 새것으로 바뀌므로 잠시 뒤 한 번 더 시도한다
+ */
+export function refreshTokens(): Promise<boolean> {
+  if (!refreshing) {
+    refreshing = (async () => {
+      try {
+        let res = await refreshOnce()
+        if (res.status === 401) {
+          await new Promise((resolve) => setTimeout(resolve, 400))
+          res = await refreshOnce()
+        }
+        if (!res.ok) return false
+        const next = (await res.json()) as Tokens
+        setAccessToken(next.accessToken)
+        return true
+      } catch {
+        return false
+      }
+    })().finally(() => {
+      refreshing = null
+    })
+  }
+  return refreshing
+}
+
+// ---------- 요청 ----------
+
+async function request<T>(method: string, path: string, body?: unknown, retry = true): Promise<T> {
+  const token = getAccessToken()
+  const isForm = body instanceof FormData // 파일 업로드는 브라우저가 boundary를 포함한 Content-Type을 직접 붙인다
+  const res = await trackedFetch(
+    `${API_BASE}${path}`,
+    {
+      method,
+      headers: {
+        ...AUTH_MODE_HEADER,
+        ...(body !== undefined && !isForm && { 'Content-Type': 'application/json' }),
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: isForm ? body : body !== undefined ? JSON.stringify(body) : undefined,
+    },
+    // 사진 업로드는 원래 몇 초 걸릴 수 있으므로 서버가 깨어나는 중인지 판단하는 데서 뺀다
+    !isForm,
+  )
 
   if (res.status === 401 && retry && !path.startsWith('/api/auth/')) {
     if (await refreshTokens()) return request<T>(method, path, body, false)
-    setTokens(null) // 재발급도 실패하면 로그아웃
+    setAccessToken(null) // 재발급도 실패하면 로그아웃
   }
 
   if (!res.ok) {

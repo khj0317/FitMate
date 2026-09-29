@@ -64,7 +64,9 @@ public class Notification {
 
     /** 사용자가 알림 설정에서 켜고 끄는 단위 */
     public enum Category {
-        MATCH, GATHERING, MANNER, COMMUNITY
+        MATCH, GATHERING, MANNER, COMMUNITY,
+        /** 운영 알림(경고·신고 처리 결과). 설정에서 끌 수 없다 */
+        SYSTEM
     }
 
     public enum Type {
@@ -76,7 +78,9 @@ public class Notification {
         MANNER_REVIEW_RECEIVED(Category.MANNER),
         REVIEW_REQUESTED(Category.MANNER),
         POST_COMMENTED(Category.COMMUNITY),
-        COMMENT_REPLIED(Category.COMMUNITY);
+        COMMENT_REPLIED(Category.COMMUNITY),
+        ADMIN_WARNING(Category.SYSTEM),
+        REPORT_RESOLVED(Category.SYSTEM);
 
         private final Category category;
 

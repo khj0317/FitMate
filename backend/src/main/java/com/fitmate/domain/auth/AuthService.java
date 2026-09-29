@@ -1,5 +1,6 @@
 package com.fitmate.domain.auth;
 
+import com.fitmate.domain.account.EmailVerificationService;
 import com.fitmate.domain.auth.dto.AuthRequests;
 import com.fitmate.domain.auth.dto.AuthResponses;
 import com.fitmate.domain.user.User;
@@ -12,6 +13,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +26,11 @@ public class AuthService {
     private final AccessTokenIssuer accessTokenIssuer;
     private final RefreshTokenStore refreshTokenStore;
     private final LoginAttemptLimiter loginAttemptLimiter;
+    private final EmailVerificationService emailVerificationService;
+
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+    /** 이보다 먼 정지는 영구 정지로 본다 */
+    private static final Instant PERMANENT_THRESHOLD = Instant.parse("2100-01-01T00:00:00Z");
 
     /**
      * 사전 중복 검사는 친절한 에러 메시지용이고, 동시 가입 요청은 DB 유니크 제약이 최종적으로 막는다.
@@ -44,6 +53,7 @@ public class AuthService {
         if (userRepository.existsByNickname(request.nickname())) {
             throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
         }
+        emailVerificationService.consume(request.email(), request.emailVerificationToken());
 
         User user = new User(request.loginId(), passwordEncoder.encode(request.password()), request.nickname());
         user.changeEmail(request.email());
@@ -67,15 +77,27 @@ public class AuthService {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
         loginAttemptLimiter.reset(request.loginId());
+        checkNotSuspended(user);
         return issueTokens(user.getId());
     }
 
     @Transactional(readOnly = true)
     public AuthResponses.Token refresh(AuthRequests.Refresh request) {
-        Long userId = refreshTokenStore.consume(request.refreshToken())
-                .filter(userRepository::existsById)
+        User user = refreshTokenStore.consume(request.refreshToken())
+                .flatMap(userRepository::findById)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
-        return issueTokens(userId);
+        checkNotSuspended(user);
+        return issueTokens(user.getId());
+    }
+
+    private void checkNotSuspended(User user) {
+        if (!user.isSuspended(Instant.now())) {
+            return;
+        }
+        String until = user.getSuspendedUntil().isAfter(PERMANENT_THRESHOLD) ? "영구 정지"
+                : DateTimeFormatter.ofPattern("yyyy년 M월 d일 HH:mm").withZone(SEOUL).format(user.getSuspendedUntil()) + "까지";
+        throw new BusinessException(ErrorCode.ACCOUNT_SUSPENDED,
+                "운영 정책 위반으로 이용이 정지된 계정이에요 (" + until + ").");
     }
 
     public void logout(AuthRequests.Refresh request) {

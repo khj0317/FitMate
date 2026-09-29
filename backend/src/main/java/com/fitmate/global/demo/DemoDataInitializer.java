@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.annotation.Order;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -54,6 +55,7 @@ import java.util.Random;
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "fitmate.demo-data.enabled", havingValue = "true")
+@Order(10) // 관리자 지정(AdminBootstrap)보다 먼저 데모 사용자를 만든다
 @RequiredArgsConstructor
 public class DemoDataInitializer implements ApplicationRunner {
 

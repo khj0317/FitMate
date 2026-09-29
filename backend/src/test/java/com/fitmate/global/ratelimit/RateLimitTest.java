@@ -63,6 +63,19 @@ class RateLimitTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("IP 헤더를 지정하면(Vercel 프록시 뒤) 그 헤더의 사용자 IP로 센다")
+    void clientIpHeader() {
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setRemoteAddr("76.76.21.21"); // 프록시(Vercel) 주소
+        request.addHeader("x-vercel-forwarded-for", "203.0.113.7, 76.76.21.21");
+        assertThat(new com.fitmate.global.web.ClientIp("x-vercel-forwarded-for").of(request)).isEqualTo("203.0.113.7");
+        assertThat(new com.fitmate.global.web.ClientIp("").of(request)).isEqualTo("76.76.21.21");
+        var direct = new org.springframework.mock.web.MockHttpServletRequest();
+        direct.setRemoteAddr("198.51.100.1");
+        assertThat(new com.fitmate.global.web.ClientIp("x-vercel-forwarded-for").of(direct)).isEqualTo("198.51.100.1");
+    }
+
+    @Test
     @DisplayName("동시에 몰려도 정확히 한도만큼만 통과한다")
     void concurrentRequestsAreCountedExactly() throws Exception {
         List<Boolean> allowed = runConcurrently(30, index -> {

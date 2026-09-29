@@ -28,7 +28,7 @@ public class AccountRecoveryService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final PasswordResetCodeStore codeStore;
+    private final VerificationCodeStore codeStore;
     private final RefreshTokenStore refreshTokenStore;
     private final AccountMailSender mailSender;
     private final StringRedisTemplate redisTemplate;
@@ -48,7 +48,7 @@ public class AccountRecoveryService {
         checkCooldown("password:" + loginId);
         userRepository.findByLoginId(loginId)
                 .filter(user -> email.equals(user.getEmail()))
-                .ifPresent(user -> mailSender.sendPasswordResetCode(email, codeStore.issue(loginId)));
+                .ifPresent(user -> mailSender.sendPasswordResetCode(email, codeStore.issue(VerificationCodeStore.Purpose.PASSWORD_RESET, loginId)));
     }
 
     @Transactional
@@ -57,7 +57,7 @@ public class AccountRecoveryService {
             throw new BusinessException(ErrorCode.PASSWORD_MISMATCH);
         }
         String loginId = normalize(rawLoginId);
-        if (!codeStore.verifyAndConsume(loginId, code.strip())) {
+        if (!codeStore.verifyAndConsume(VerificationCodeStore.Purpose.PASSWORD_RESET, loginId, code.strip())) {
             throw new BusinessException(ErrorCode.INVALID_VERIFICATION_CODE);
         }
         User user = userRepository.findByLoginId(loginId)

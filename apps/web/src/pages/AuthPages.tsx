@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { ArrowRight, Check, MapPin, MessageCircle, Sparkles } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router'
+import { EmailVerificationField } from '../components/EmailVerificationField'
 import { BirthDateInput } from '../components/BirthDateInput'
 import { LocationSearch } from '../components/LocationSearch'
 import { Logo } from '../components/Logo'
@@ -170,6 +171,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const ERROR_FIELD: Record<string, keyof SignupForm> = {
   DUPLICATE_LOGIN_ID: 'loginId',
   DUPLICATE_EMAIL: 'email',
+  EMAIL_NOT_VERIFIED: 'email',
   DUPLICATE_NICKNAME: 'nickname',
   PASSWORD_MISMATCH: 'passwordConfirm',
   INVALID_BIRTH_DATE: 'birthDate',
@@ -181,6 +183,8 @@ interface SignupForm {
   passwordConfirm: string
   nickname: string
   email: string
+  /** 이메일 인증을 마치면 서버가 준 토큰 */
+  emailToken: string | null
   birthDate: string
   gender: Gender | null
   location: LocationInput | null
@@ -196,6 +200,7 @@ function validate(form: SignupForm): FieldErrors {
   if (form.nickname.trim().length < 2) errors.nickname = '닉네임은 2자 이상이어야 해요'
   if (!form.email.trim()) errors.email = '이메일을 입력해 주세요'
   else if (!EMAIL_PATTERN.test(form.email.trim())) errors.email = '올바른 이메일 형식이 아니에요'
+  else if (!form.emailToken) errors.email = '이메일 인증을 완료해 주세요'
   if (!form.birthDate) errors.birthDate = '생년월일을 입력해 주세요'
   if (!form.gender) errors.gender = '성별을 선택해 주세요'
   if (!form.location) errors.location = '목록에서 활동 지역을 선택해 주세요'
@@ -208,6 +213,7 @@ const EMPTY_FORM: SignupForm = {
   passwordConfirm: '',
   nickname: '',
   email: '',
+  emailToken: null,
   birthDate: '',
   gender: null,
   location: null,
@@ -245,6 +251,7 @@ export function SignupPage() {
         passwordConfirm: form.passwordConfirm,
         nickname: form.nickname.trim(),
         email: form.email.trim(),
+        emailVerificationToken: form.emailToken,
         birthDate: form.birthDate,
         gender: form.gender,
         location: form.location,
@@ -253,6 +260,8 @@ export function SignupPage() {
       if (e instanceof ApiError && e.fieldErrors.length > 0) {
         setServerErrors(Object.fromEntries(e.fieldErrors.map(({ field, reason }) => [field, reason])))
       } else if (e instanceof ApiError && ERROR_FIELD[e.code]) {
+        // 인증 토큰이 만료됐으면 다시 인증하게 한다
+        if (e.code === 'EMAIL_NOT_VERIFIED') set('emailToken', null)
         setServerErrors({ [ERROR_FIELD[e.code]]: e.message })
       } else {
         setError(errorMessage(e))
@@ -317,16 +326,15 @@ export function SignupPage() {
               maxLength={20}
             />
           </Field>
-          <Field label="이메일" hint="아이디·비밀번호를 잊었을 때 찾는 데 사용돼요" error={fieldError('email')}>
-            <Input
-              type="email"
-              value={form.email}
-              onChange={(e) => set('email', e.target.value)}
-              onBlur={touch('email')}
-              placeholder="you@example.com"
-              autoComplete="email"
-            />
-          </Field>
+          <EmailVerificationField
+            hint="아이디·비밀번호를 잊었을 때 찾는 데 사용돼요"
+            email={form.email}
+            onEmailChange={(value) => set('email', value)}
+            token={form.emailToken}
+            onToken={(token) => set('emailToken', token)}
+            onBlur={touch('email')}
+            error={fieldError('email')}
+          />
           <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
             <Field label="생년월일">
               <BirthDateInput
@@ -336,7 +344,7 @@ export function SignupPage() {
                 error={fieldError('birthDate')}
               />
             </Field>
-            <Field label="성별" error={fieldError('gender')}>
+            <Field label="성별" group error={fieldError('gender')}>
               <div className="flex h-12 items-center">
                 <Segmented<Gender>
                   options={[

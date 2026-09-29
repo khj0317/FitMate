@@ -40,7 +40,8 @@ public class CommunityQuery {
             """;
 
     private static final String FEED = SELECT + """
-            WHERE (CAST(:cursor AS BIGINT) IS NULL OR p.id < CAST(:cursor AS BIGINT))
+            WHERE NOT p.hidden
+              AND (CAST(:cursor AS BIGINT) IS NULL OR p.id < CAST(:cursor AS BIGINT))
               AND (CAST(:category AS VARCHAR) IS NULL OR p.category = CAST(:category AS VARCHAR))
               AND (CAST(:sportId AS SMALLINT) IS NULL OR p.sport_id = CAST(:sportId AS SMALLINT))
               AND (CAST(:authorId AS BIGINT) IS NULL OR p.author_id = CAST(:authorId AS BIGINT))
@@ -50,7 +51,7 @@ public class CommunityQuery {
             LIMIT :limit
             """;
 
-    private static final String ONE = SELECT + " WHERE p.id = :postId AND " + NOT_BLOCKED;
+    private static final String ONE = SELECT + " WHERE p.id = :postId AND NOT p.hidden AND " + NOT_BLOCKED;
 
     private final JdbcClient jdbcClient;
 

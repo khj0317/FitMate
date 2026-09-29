@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import { LoaderCircle } from 'lucide-react'
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react'
+import { useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
@@ -93,17 +93,34 @@ export function Badge({ tone = 'neutral', children }: { tone?: 'neutral' | 'bran
   )
 }
 
-export function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-semibold text-ink-700">{label}</span>
+/**
+ * 입력 칸 하나에는 label로 감싸고, 버튼 여러 개(성별 선택 등)에는 group을 켜서 div + role="group"으로 만든다.
+ * label 안에 버튼이 여러 개 있으면 첫 번째 버튼이 label 이름을 가져가서 화면 읽기 프로그램이 잘못 읽고,
+ * label 글자를 누르면 첫 번째 버튼이 눌리기 때문이다.
+ */
+export function Field({ label, hint, error, group = false, children }: {
+  label: string
+  hint?: string
+  error?: string
+  group?: boolean
+  children: ReactNode
+}) {
+  const labelId = useId()
+  const body = (
+    <>
+      <span id={labelId} className="mb-1.5 block text-sm font-semibold text-ink-700">{label}</span>
       {children}
       {error ? (
         <span className="mt-1.5 block text-xs text-red-600">{error}</span>
       ) : (
         hint && <span className="mt-1.5 block text-xs text-ink-400">{hint}</span>
       )}
-    </label>
+    </>
+  )
+  return group ? (
+    <div role="group" aria-labelledby={labelId} className="block">{body}</div>
+  ) : (
+    <label className="block">{body}</label>
   )
 }
 
@@ -136,6 +153,7 @@ export function Segmented<T extends string>({
           key={option.value}
           type="button"
           onClick={() => onChange(option.value)}
+          aria-pressed={value === option.value}
           className={clsx(
             'cursor-pointer rounded-lg font-semibold transition-all',
             size === 'md' ? 'px-4 py-2 text-sm' : 'px-2.5 py-1 text-xs',

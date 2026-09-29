@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { AlarmClock, Bell, CheckCheck, CornerDownRight, HeartHandshake, Inbox, MessageCircle, MessageSquareText, Star, UserPlus, XCircle, type LucideIcon } from 'lucide-react'
+import { AlarmClock, Bell, BellRing, ShieldAlert, CheckCheck, CornerDownRight, HeartHandshake, Inbox, MessageCircle, MessageSquareText, Star, UserPlus, XCircle, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { timeAgo } from '../lib/format'
@@ -17,6 +17,8 @@ const TYPE_ICON: Record<NotificationType, { icon: LucideIcon; tone: string }> = 
   REVIEW_REQUESTED: { icon: Star, tone: 'bg-amber-50 text-amber-600' },
   POST_COMMENTED: { icon: MessageSquareText, tone: 'bg-teal-50 text-teal-600' },
   COMMENT_REPLIED: { icon: CornerDownRight, tone: 'bg-teal-50 text-teal-600' },
+  ADMIN_WARNING: { icon: ShieldAlert, tone: 'bg-red-50 text-red-600' },
+  REPORT_RESOLVED: { icon: BellRing, tone: 'bg-ink-100 text-ink-600' },
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { DayOfWeek, Gender, Presence, SkillLevel } from './types'
+import type { DayOfWeek, Gender, Presence, ReportReason, SkillLevel } from './types'
 
 export const SKILL_LABEL: Record<SkillLevel, string> = {
   BEGINNER: '초급',
@@ -90,3 +90,14 @@ export function presenceLabel(presence: Presence | undefined) {
   if (seconds < 86400 * 30) return `${Math.floor(seconds / 86400)}일 전 접속`
   return '한 달 이상 전 접속'
 }
+
+export const REPORT_REASONS: { value: ReportReason; label: string }[] = [
+  { value: 'NO_SHOW', label: '약속 불이행 (노쇼)' },
+  { value: 'ABUSE', label: '욕설 · 비하' },
+  { value: 'SEXUAL', label: '성희롱 · 불쾌한 행동' },
+  { value: 'SPAM', label: '스팸 · 광고' },
+  { value: 'FAKE_PROFILE', label: '허위 프로필' },
+  { value: 'OTHER', label: '기타' },
+]
+
+export const REPORT_REASON_LABEL = Object.fromEntries(REPORT_REASONS.map((r) => [r.value, r.label])) as Record<ReportReason, string>

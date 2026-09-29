@@ -96,7 +96,7 @@ class AccountRecoveryApiTest extends IntegrationTest {
         String code = mailbox.resetCodeSentTo(account.email()).orElseThrow();
         String wrong = code.equals("000000") ? "111111" : "000000";
 
-        for (int i = 0; i < PasswordResetCodeStore.MAX_ATTEMPTS; i++) {
+        for (int i = 0; i < VerificationCodeStore.MAX_ATTEMPTS; i++) {
             post("/api/auth/password-reset/confirm", confirmJson(account.loginId(), wrong))
                     .andExpect(status().isBadRequest());
         }

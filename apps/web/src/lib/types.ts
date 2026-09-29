@@ -7,7 +7,8 @@ export type MatchRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELED
 
 export interface Tokens {
   accessToken: string
-  refreshToken: string
+  /** 웹은 HttpOnly 쿠키로 받으므로 null */
+  refreshToken: string | null
   tokenType: string
   expiresIn: number
 }
@@ -45,6 +46,7 @@ export interface MyProfile {
   mannerScore: number
   sports: UserSport[]
   availableTimes: AvailableTime[]
+  role: 'USER' | 'ADMIN'
 }
 
 export interface LocationInput {
@@ -67,6 +69,8 @@ export interface SignupInput {
   birthDate: string
   gender: Gender
   location: LocationInput
+  /** 이메일 인증으로 받은 토큰 */
+  emailVerificationToken: string | null
 }
 
 export interface ProfileInput {
@@ -79,6 +83,8 @@ export interface ProfileInput {
   location: LocationInput
   sports: { sportId: number; skillLevel: SkillLevel }[]
   availableTimes: AvailableTime[]
+  /** 이메일을 바꿀 때만 필요 */
+  emailVerificationToken?: string | null
 }
 
 export interface MatchCandidate {
@@ -250,6 +256,8 @@ export type NotificationType =
   | 'REVIEW_REQUESTED'
   | 'POST_COMMENTED'
   | 'COMMENT_REPLIED'
+  | 'ADMIN_WARNING'
+  | 'REPORT_RESOLVED'
 
 export type NotificationCategory = 'MATCH' | 'GATHERING' | 'MANNER' | 'COMMUNITY'
 
@@ -326,6 +334,47 @@ export interface PublicProfile {
   mannerScore: number
   sports: UserSport[]
   availableTimes: AvailableTime[]
+}
+
+// ---------- 관리자 ----------
+
+export interface AdminStats {
+  totalUsers: number
+  newUsers7d: number
+  acceptedMatches: number
+  upcomingGatherings: number
+  posts7d: number
+  messages7d: number
+  pendingReports: number
+  suspendedUsers: number
+}
+
+export type AdminAction = 'DISMISS' | 'WARN' | 'SUSPEND_7D' | 'SUSPEND_PERMANENT'
+
+export interface AdminReport {
+  id: number
+  reason: ReportReason
+  detail: string | null
+  status: 'PENDING' | 'RESOLVED' | 'DISMISSED'
+  action: AdminAction | null
+  adminNote: string | null
+  createdAt: string
+  resolvedAt: string | null
+  /** null이면 탈퇴한 회원 */
+  reporter: { userId: number; nickname: string } | null
+  reported: {
+    userId: number
+    nickname: string
+    profileImageUrl: string | null
+    mannerScore: number
+    suspendedUntil: string | null
+    totalReports: number
+  } | null
+}
+
+export interface AdminReportPage {
+  items: AdminReport[]
+  nextCursor: number | null
 }
 
 export interface ApiErrorBody {

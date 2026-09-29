@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { AppLayout } from './components/AppLayout'
+import { Spinner } from './components/ui'
+import { AdminPage } from './pages/AdminPage'
 import { LoginPage, SignupPage } from './pages/AuthPages'
 import { ChatsPage } from './pages/ChatsPage'
 import { CommunityPage } from './pages/CommunityPage'
@@ -26,6 +28,15 @@ function GuestOnly({ children }: { children: ReactNode }) {
 }
 
 export function App() {
+  const { ready } = useAuth()
+  // 새로고침 직후 쿠키로 로그인 상태를 확인하는 동안은 로그인 화면으로 튕기지 않게 기다린다
+  if (!ready) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center">
+        <Spinner className="size-8" />
+      </div>
+    )
+  }
   return (
     <BrowserRouter>
       <Routes>
@@ -47,6 +58,7 @@ export function App() {
           <Route path="community" element={<CommunityPage />} />
           <Route path="community/:postId" element={<PostDetailPage />} />
           <Route path="users/:userId" element={<UserProfilePage />} />
+          <Route path="admin" element={<AdminPage />} />
           <Route path="requests" element={<RequestsPage />} />
           <Route path="chats" element={<ChatsPage />} />
           <Route path="chats/:roomId" element={<ChatsPage />} />

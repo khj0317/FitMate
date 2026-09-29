@@ -3,19 +3,12 @@ import clsx from 'clsx'
 import { Ban, Flag, MoreHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { api, errorMessage } from '../lib/api'
+import { REPORT_REASONS } from '../lib/format'
 import type { ReportReason } from '../lib/types'
 import { useToast } from '../providers/ToastProvider'
 import { Modal } from './Modal'
 import { Button, Chip, Field, Textarea } from './ui'
 
-const REASONS: { value: ReportReason; label: string }[] = [
-  { value: 'NO_SHOW', label: '약속 불이행 (노쇼)' },
-  { value: 'ABUSE', label: '욕설 · 비하' },
-  { value: 'SEXUAL', label: '성희롱 · 불쾌한 행동' },
-  { value: 'SPAM', label: '스팸 · 광고' },
-  { value: 'FAKE_PROFILE', label: '허위 프로필' },
-  { value: 'OTHER', label: '기타' },
-]
 
 /** 사람을 차단·신고하는 ⋯ 메뉴. 차단하면 추천·요청·채팅 목록이 모두 바뀌므로 관련 데이터를 새로 받는다 */
 export function SafetyMenu({
@@ -145,7 +138,7 @@ export function SafetyMenu({
         <div className="space-y-5">
           <Field label="어떤 문제가 있었나요?">
             <div className="flex flex-wrap gap-2">
-              {REASONS.map((option) => (
+              {REPORT_REASONS.map((option) => (
                 <Chip key={option.value} active={reason === option.value} onClick={() => setReason(option.value)}>
                   {option.label}
                 </Chip>

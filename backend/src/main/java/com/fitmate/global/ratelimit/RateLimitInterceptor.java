@@ -1,5 +1,6 @@
 package com.fitmate.global.ratelimit;
 
+import com.fitmate.global.web.ClientIp;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class RateLimitInterceptor implements HandlerInterceptor, WebMvcConfigurer {
 
     private final RateLimiter rateLimiter;
+    private final ClientIp clientIp;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -36,7 +38,7 @@ public class RateLimitInterceptor implements HandlerInterceptor, WebMvcConfigure
         if (limit == null) {
             return true;
         }
-        String subject = limit.key() == RateLimited.Key.USER ? userId().orElse(ipOf(request)) : ipOf(request);
+        String subject = limit.key() == RateLimited.Key.USER ? userId().orElseGet(() -> ipOf(request)) : ipOf(request);
         try {
             rateLimiter.check(limit.name(), subject, limit.limit(), limit.windowSeconds());
         } catch (RateLimiter.RateLimitExceededException e) {
@@ -53,8 +55,7 @@ public class RateLimitInterceptor implements HandlerInterceptor, WebMvcConfigure
                 : java.util.Optional.empty();
     }
 
-    /** 프록시 뒤라면 server.forward-headers-strategy=native가 신뢰할 수 있는 X-Forwarded-For로 바꿔 둔 주소 */
-    private static String ipOf(HttpServletRequest request) {
-        return "ip:" + request.getRemoteAddr();
+    private String ipOf(HttpServletRequest request) {
+        return "ip:" + clientIp.of(request);
     }
 }

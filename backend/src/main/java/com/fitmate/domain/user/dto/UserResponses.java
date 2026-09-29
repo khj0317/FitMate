@@ -35,7 +35,9 @@ public final class UserResponses {
             short searchRadiusKm,
             BigDecimal mannerScore,
             List<Sport> sports,
-            List<AvailableTime> availableTimes
+            List<AvailableTime> availableTimes,
+            /* ADMIN이면 웹에 관리자 메뉴가 보인다 */
+            User.Role role
     ) {
         public static MyProfile from(User user) {
             return new MyProfile(
@@ -51,7 +53,8 @@ public final class UserResponses {
                     user.getSearchRadiusKm(),
                     user.getMannerScore(),
                     Sport.listOf(user),
-                    AvailableTime.listOf(user)
+                    AvailableTime.listOf(user),
+                    user.getRole()
             );
         }
     }
