@@ -2,6 +2,7 @@ package com.fitmate.domain.auth;
 
 import com.fitmate.domain.auth.dto.AuthRequests;
 import com.fitmate.domain.auth.dto.AuthResponses;
+import com.fitmate.global.ratelimit.RateLimited;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +26,7 @@ public class AuthController {
     private final AuthService authService;
 
     @Operation(summary = "회원가입")
+    @RateLimited(name = "signup", limit = 10, windowSeconds = 3600, key = RateLimited.Key.IP)
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponses.Signup signup(@Valid @RequestBody AuthRequests.Signup request) {

@@ -2,6 +2,7 @@ package com.fitmate.domain.gathering;
 
 import com.fitmate.domain.gathering.dto.GatheringDtos;
 import com.fitmate.global.security.LoginUserId;
+import com.fitmate.global.ratelimit.RateLimited;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +32,7 @@ public class GatheringController {
     private final GatheringService gatheringService;
 
     @Operation(summary = "모임 만들기", description = "모임장이 첫 참가자가 되고 단체 채팅방이 만들어집니다. 시간은 10분 뒤 ~ 60일 안.")
+    @RateLimited(name = "gathering-create", limit = 10, windowSeconds = 3600)
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public GatheringDtos.Detail create(@Parameter(hidden = true) @LoginUserId Long userId,
@@ -59,6 +61,7 @@ public class GatheringController {
     }
 
     @Operation(summary = "모임 참여 (선착순)", description = "정원이 다 찼거나 마감·시작된 모임이면 409.")
+    @RateLimited(name = "gathering-join", limit = 30, windowSeconds = 600)
     @PostMapping("/{gatheringId}/participants")
     public GatheringDtos.Joined join(@Parameter(hidden = true) @LoginUserId Long userId, @PathVariable Long gatheringId) {
         return gatheringService.join(userId, gatheringId);

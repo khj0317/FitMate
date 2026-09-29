@@ -1,0 +1,4 @@
+# ./gradlew bootRun (local 프로필) 전용 설정
+fitmate:
+  demo-data:
+    enabled: true

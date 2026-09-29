@@ -3,6 +3,7 @@ package com.fitmate.domain.user;
 import com.fitmate.domain.user.dto.UserRequests;
 import com.fitmate.domain.user.dto.UserResponses;
 import com.fitmate.global.security.LoginUserId;
+import com.fitmate.global.ratelimit.RateLimited;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -54,6 +55,7 @@ public class UserController {
 
     @Operation(summary = "프로필 사진 올리기",
             description = "JPG·PNG 10MB 이하. 가운데를 정사각형으로 잘라 512px로 저장하고, 촬영 위치 등 메타데이터를 지웁니다.")
+    @RateLimited(name = "profile-image", limit = 20, windowSeconds = 3600)
     @PostMapping(value = "/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public UserResponses.MyProfile updateProfileImage(@Parameter(hidden = true) @LoginUserId Long userId,
                                                       @RequestPart("file") MultipartFile file) {

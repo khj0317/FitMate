@@ -66,6 +66,14 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+fitmate:
+  # 데모 사용자·모임·게시글 생성 (로컬은 application-local.yml에서 켬). 배포에서 체험 계정을 열어 두려면 true
+  demo-data:
+    enabled: ${DEMO_DATA_ENABLED:false}
+  # 글·댓글·요청 도배 방지 (RateLimitInterceptor)
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+
 # 배포 시 JWT_SECRET을 32자 이상의 랜덤 문자열로 반드시 교체
 jwt:
   secret: ${JWT_SECRET:local-dev-only-secret-change-me-0123456789}

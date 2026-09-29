@@ -1,6 +1,7 @@
 package com.fitmate.domain.account;
 
 import com.fitmate.domain.auth.dto.AuthRequests;
+import com.fitmate.global.ratelimit.RateLimited;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +29,7 @@ public class AccountRecoveryController {
 
     @Operation(summary = "아이디 찾기",
             description = "가입할 때 등록한 이메일로 아이디를 보냅니다. 가입 여부와 상관없이 항상 202를 반환합니다.")
+    @RateLimited(name = "account-recovery", limit = 20, windowSeconds = 3600, key = RateLimited.Key.IP)
     @PostMapping("/find-login-id")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void findLoginId(@Valid @RequestBody FindLoginId request) {
@@ -36,6 +38,7 @@ public class AccountRecoveryController {
 
     @Operation(summary = "비밀번호 재설정 코드 요청",
             description = "아이디와 등록한 이메일이 일치하면 6자리 인증 코드(10분 유효)를 보냅니다. 항상 202를 반환합니다.")
+    @RateLimited(name = "account-recovery", limit = 20, windowSeconds = 3600, key = RateLimited.Key.IP)
     @PostMapping("/password-reset/request")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void requestPasswordReset(@Valid @RequestBody PasswordResetRequest request) {
@@ -44,6 +47,7 @@ public class AccountRecoveryController {
 
     @Operation(summary = "비밀번호 재설정",
             description = "인증 코드가 맞으면 비밀번호를 바꾸고 모든 기기에서 로그아웃합니다. 코드는 5번 틀리면 폐기됩니다.")
+    @RateLimited(name = "password-reset-confirm", limit = 20, windowSeconds = 3600, key = RateLimited.Key.IP)
     @PostMapping("/password-reset/confirm")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void confirmPasswordReset(@Valid @RequestBody PasswordResetConfirm request) {

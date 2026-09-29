@@ -2,6 +2,7 @@ package com.fitmate.domain.matchrequest;
 
 import com.fitmate.domain.matchrequest.dto.MatchRequestDtos;
 import com.fitmate.global.security.LoginUserId;
+import com.fitmate.global.ratelimit.RateLimited;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +29,7 @@ public class MatchRequestController {
     private final MatchRequestService matchRequestService;
 
     @Operation(summary = "매칭 요청 보내기", description = "상대가 등록한 운동 종목으로만 요청할 수 있습니다.")
+    @RateLimited(name = "match-request", limit = 30, windowSeconds = 3600)
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public MatchRequestDtos.Created create(@Parameter(hidden = true) @LoginUserId Long userId,

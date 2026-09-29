@@ -1,6 +1,7 @@
 package com.fitmate.domain.safety;
 
 import com.fitmate.global.security.LoginUserId;
+import com.fitmate.global.ratelimit.RateLimited;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,6 +51,7 @@ public class SafetyController {
     }
 
     @Operation(summary = "신고", description = "운영자가 검토합니다. block=true면 함께 차단합니다.")
+    @RateLimited(name = "report", limit = 10, windowSeconds = 3600)
     @PostMapping("/{userId}/report")
     @ResponseStatus(HttpStatus.CREATED)
     public void report(@Parameter(hidden = true) @LoginUserId Long me, @PathVariable Long userId,

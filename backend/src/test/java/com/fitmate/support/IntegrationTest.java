@@ -35,7 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({TestcontainersConfiguration.class, TestMailConfiguration.class})
 @TestPropertySource(properties = {
         "storage.local.dir=build/test-uploads", // 테스트 사진은 개발용 uploads와 분리
-        "fitmate.scheduler.initial-delay-ms=3600000" // 모임 알림 스케줄러는 테스트에서 직접 호출한다
+        "fitmate.scheduler.initial-delay-ms=3600000", // 모임 알림 스케줄러는 테스트에서 직접 호출한다
+        "fitmate.rate-limit.enabled=false" // 한 IP에서 사용자를 수백 명 만들므로 끄고, RateLimitTest에서만 켠다
 })
 public abstract class IntegrationTest {
 

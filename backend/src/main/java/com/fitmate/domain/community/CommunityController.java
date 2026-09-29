@@ -1,6 +1,7 @@
 package com.fitmate.domain.community;
 
 import com.fitmate.global.security.LoginUserId;
+import com.fitmate.global.ratelimit.RateLimited;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +31,7 @@ public class CommunityController {
     private final CommunityService communityService;
 
     @Operation(summary = "글 쓰기", description = "multipart: post(JSON) + images(사진 최대 4장, 선택)")
+    @RateLimited(name = "post-create", limit = 10, windowSeconds = 600)
     @PostMapping(value = "/api/posts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public CommunityDtos.PostItem create(@Parameter(hidden = true) @LoginUserId Long me,
@@ -56,6 +58,7 @@ public class CommunityController {
     }
 
     @Operation(summary = "글 고치기", description = "작성자만. 사진은 바꿀 수 없음")
+    @RateLimited(name = "post-update", limit = 30, windowSeconds = 600)
     @PutMapping("/api/posts/{postId}")
     public CommunityDtos.PostItem update(@Parameter(hidden = true) @LoginUserId Long me, @PathVariable Long postId,
                                          @Valid @RequestBody CommunityDtos.PostInput request) {
@@ -70,6 +73,7 @@ public class CommunityController {
     }
 
     @Operation(summary = "좋아요", description = "여러 번 눌러도 한 번만 반영")
+    @RateLimited(name = "post-like", limit = 120, windowSeconds = 60)
     @PutMapping("/api/posts/{postId}/like")
     public CommunityDtos.LikeResult like(@Parameter(hidden = true) @LoginUserId Long me, @PathVariable Long postId) {
         return communityService.like(me, postId);
@@ -89,6 +93,7 @@ public class CommunityController {
     }
 
     @Operation(summary = "댓글 · 답글 쓰기", description = "parentId를 주면 답글 (한 단계까지)")
+    @RateLimited(name = "comment-create", limit = 30, windowSeconds = 300)
     @PostMapping("/api/posts/{postId}/comments")
     @ResponseStatus(HttpStatus.CREATED)
     public CommunityDtos.CommentItem addComment(@Parameter(hidden = true) @LoginUserId Long me,

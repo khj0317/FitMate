@@ -1,5 +1,6 @@
 package com.fitmate.domain.location;
 
+import com.fitmate.global.ratelimit.RateLimited;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +22,7 @@ public class LocationController {
     private final LocationSearchService locationSearchService;
 
     @Operation(summary = "지역 검색 (자동완성)", description = "동 이름, 역 이름 등으로 검색합니다. 예: 성수, 강남역, 망원동")
+    @RateLimited(name = "location-search", limit = 120, windowSeconds = 60, key = RateLimited.Key.IP)
     @GetMapping("/search")
     public List<LocationSuggestion> search(@RequestParam(defaultValue = "") String query) {
         return locationSearchService.search(query);

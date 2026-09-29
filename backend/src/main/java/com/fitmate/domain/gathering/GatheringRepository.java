@@ -7,7 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface GatheringRepository extends JpaRepository<Gathering, Long> {
 
-    boolean existsByHostId(Long hostId);
+    boolean existsByHostIdAndStartsAtAfter(Long hostId, java.time.Instant time);
 
     /**
      * 선착순 자리 확보. "모집 중이고, 자리가 남았고, 아직 시작 전"일 때만 인원을 1 늘리고,

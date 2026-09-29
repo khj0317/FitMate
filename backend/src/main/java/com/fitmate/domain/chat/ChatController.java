@@ -2,6 +2,7 @@ package com.fitmate.domain.chat;
 
 import com.fitmate.domain.chat.dto.ChatDtos;
 import com.fitmate.global.security.LoginUserId;
+import com.fitmate.global.ratelimit.RateLimited;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,6 +48,7 @@ public class ChatController {
 
     @Operation(summary = "메시지 보내기 (REST)",
             description = "WebSocket을 쓸 수 없을 때를 위한 API입니다. 보낸 메시지는 WebSocket 구독자에게도 전달됩니다.")
+    @RateLimited(name = "chat-message", limit = 60, windowSeconds = 60)
     @PostMapping("/{roomId}/messages")
     @ResponseStatus(HttpStatus.CREATED)
     public ChatDtos.Message send(@Parameter(hidden = true) @LoginUserId Long userId,
@@ -57,6 +59,7 @@ public class ChatController {
 
     @Operation(summary = "사진 보내기",
             description = "JPG·PNG 10MB 이하. 긴 변 1600px로 줄이고 촬영 위치 등 메타데이터를 지운 뒤 사진 메시지로 보냅니다.")
+    @RateLimited(name = "chat-image", limit = 20, windowSeconds = 60)
     @PostMapping(value = "/{roomId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public ChatDtos.Message sendImage(@Parameter(hidden = true) @LoginUserId Long userId,

@@ -79,6 +79,13 @@ function AuthLayout({
   )
 }
 
+/**
+ * 포트폴리오 방문자가 가입 없이 둘러볼 수 있는 체험 계정 (백엔드 DEMO_DATA_ENABLED=true로 만든 공개 데모 계정).
+ * 로컬 개발 중에는 항상, 배포에서는 VITE_DEMO_LOGIN=true일 때만 버튼을 보여준다
+ */
+const DEMO_LOGIN_ENABLED = import.meta.env.DEV || import.meta.env.VITE_DEMO_LOGIN === 'true'
+const DEMO_ACCOUNT = { loginId: 'demo01', password: 'password123' }
+
 export function LoginPage() {
   const { login } = useAuth()
   const [loginId, setLoginId] = useState('')
@@ -86,17 +93,21 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault()
+  const loginAs = async (id: string, pw: string) => {
     setError(null)
     setLoading(true)
     try {
-      await login(loginId, password) // 이동은 GuestOnly가 처리
+      await login(id, pw) // 이동은 GuestOnly가 처리
     } catch (e) {
       setError(errorMessage(e))
     } finally {
       setLoading(false)
     }
+  }
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    void loginAs(loginId, password)
   }
 
   return (
@@ -131,17 +142,15 @@ export function LoginPage() {
           <span className="text-ink-300">|</span>
           <Link to="/find-account?tab=password" className="hover:text-ink-900 hover:underline">비밀번호 찾기</Link>
         </div>
-        {import.meta.env.DEV && (
+        {DEMO_LOGIN_ENABLED && (
           <Button
             type="button"
             variant="secondary"
             className="w-full"
-            onClick={() => {
-              setLoginId('demo01')
-              setPassword('password123')
-            }}
+            loading={loading}
+            onClick={() => void loginAs(DEMO_ACCOUNT.loginId, DEMO_ACCOUNT.password)}
           >
-            🧪 데모 계정 입력 (로컬 개발용)
+            🧪 체험 계정으로 둘러보기
           </Button>
         )}
       </form>

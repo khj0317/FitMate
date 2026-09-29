@@ -1,6 +1,7 @@
 package com.fitmate.domain.manner;
 
 import com.fitmate.global.security.LoginUserId;
+import com.fitmate.global.ratelimit.RateLimited;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +31,7 @@ public class MannerController {
     }
 
     @Operation(summary = "매너 평가 남기기", description = "GOOD +0.5, NORMAL 0, BAD -0.5, 노쇼 태그는 추가로 -1.0")
+    @RateLimited(name = "manner-review", limit = 60, windowSeconds = 3600)
     @PostMapping("/api/manner/reviews")
     @ResponseStatus(HttpStatus.CREATED)
     public void review(@Parameter(hidden = true) @LoginUserId Long me,

@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -46,14 +46,15 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * 로컬(local 프로필)에서만 성수역 주변에 데모 사용자를 만든다. 매칭 기능을 직접 눌러보기 위한 용도.
+ * 성수역 주변에 데모 사용자·모임·게시글을 만든다. 로컬(local 프로필)은 항상 켜지고,
+ * 배포 환경에서는 DEMO_DATA_ENABLED=true일 때만 켜서 포트폴리오 방문자가 체험 계정으로 둘러볼 수 있게 한다.
  * 계정: 아이디 demo01 ~ demo30 / 비밀번호 password123
  * demo01은 성수역 한가운데에 있고 헬스·러닝을 하므로 이 계정으로 로그인해서 추천을 확인하면 된다.
  * 채팅 확인용으로 demo01-demo02는 매칭 완료(대화 있음), demo03 → demo01은 대기 중 요청을 만든다.
  */
 @Slf4j
 @Component
-@Profile("local")
+@ConditionalOnProperty(name = "fitmate.demo-data.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class DemoDataInitializer implements ApplicationRunner {
 
@@ -79,18 +80,21 @@ public class DemoDataInitializer implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        if (!userRepository.existsByLoginId(loginId(1))) {
-            seedUsers();
-        }
+        seedUsers();
         seedMatches();
         seedGatherings();
         seedPosts();
     }
 
+    /** 빠진 데모 사용자만 만든다 (예: 누군가 데모 계정을 지웠어도 재시작하면 복구) */
     private void seedUsers() {
+        if (countExisting() == DEMO_USER_COUNT) {
+            return;
+        }
         Random random = new Random(42); // 매번 같은 데이터가 생성되도록 시드 고정
         List<Sport> sports = sportRepository.findAll(Sort.by("id"));
         String passwordHash = passwordEncoder.encode(DEMO_PASSWORD); // 해시는 느리므로 한 번만 계산
+        int created = 0;
 
         for (int i = 1; i <= DEMO_USER_COUNT; i++) {
             User user = new User(loginId(i), passwordHash, "데모_%02d".formatted(i));
@@ -106,12 +110,14 @@ public class DemoDataInitializer implements ApplicationRunner {
                         new UserAvailableTime.Slot(DayOfWeek.SATURDAY, LocalTime.of(9, 0), LocalTime.of(12, 0))));
                 user.changeSearchRadiusKm((short) 10);
             } else {
-                randomize(user, random, sports);
+                randomize(user, random, sports); // 이미 있는 사용자도 호출해서 난수 순서를 항상 같게 유지한다
             }
-            userRepository.save(user);
+            if (!userRepository.existsByLoginId(loginId(i))) {
+                userRepository.save(user);
+                created++;
+            }
         }
-        log.info("로컬 데모 사용자 {}명을 생성했습니다. (아이디 demo01 ~ demo{})",
-                DEMO_USER_COUNT, DEMO_USER_COUNT);
+        log.info("데모 사용자 {}명을 생성했습니다. (아이디 demo01 ~ demo{})", created, DEMO_USER_COUNT);
     }
 
     private void seedMatches() {
@@ -138,10 +144,13 @@ public class DemoDataInitializer implements ApplicationRunner {
         }
     }
 
-    /** 성수역 주변에 앞으로 열릴 모임 5개. demo01은 그중 하나에 참여해 있다 */
+    /**
+     * 성수역 주변에 앞으로 열릴 모임 5개. demo01은 그중 하나에 참여해 있다.
+     * 배포 환경에서는 시간이 지나면 모임이 모두 끝나 버리므로, 다가오는 데모 모임이 없을 때마다(재시작 시) 새로 만든다.
+     */
     private void seedGatherings() {
         User host = user(4);
-        if (gatheringRepository.existsByHostId(host.getId())) {
+        if (gatheringRepository.existsByHostIdAndStartsAtAfter(host.getId(), Instant.now())) {
             return;
         }
         record Plan(int host, String sport, String title, String description, String place,
@@ -205,6 +214,21 @@ public class DemoDataInitializer implements ApplicationRunner {
             }
         }
         log.info("데모 게시글 {}개를 만들었습니다.", seeds.size());
+    }
+
+    private long countExisting() {
+        long count = 0;
+        for (int i = 1; i <= DEMO_USER_COUNT; i++) {
+            if (userRepository.existsByLoginId(loginId(i))) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /** 체험 계정 아이디인지 (demo01 ~ demo30) */
+    public static boolean isDemoLoginId(String loginId) {
+        return loginId != null && loginId.matches("demo(0[1-9]|[12][0-9]|30)");
     }
 
     private User user(int index) {

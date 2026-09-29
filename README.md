@@ -49,6 +49,20 @@ Windows에서는 루트의 **`dev.cmd`를 더블클릭**해도 됩니다.
 백엔드 포트가 다르면 `BACKEND_URL=http://localhost:8082 npm run dev:web`처럼 지정하세요.
 로그인 화면의 **데모 계정 입력** 버튼(개발 모드 전용)으로 `demo01`에 바로 로그인할 수 있습니다.
 
+## 배포
+
+Vercel(웹) · Railway(API, Docker) · Supabase(DB·사진) · Upstash(Redis) 구성입니다. 단계별 방법은 **[DEPLOY.md](DEPLOY.md)**.
+
+- `main`에 푸시하면 GitHub Actions가 백엔드 테스트 · 웹 빌드 · Docker 이미지 빌드를 확인하고, Railway·Vercel이 자동 배포
+- 설정은 모두 환경 변수 (`backend/.env.example`, `apps/web/.env.example`)
+- 컨테이너: 멀티 스테이지 빌드(JDK로 빌드 → JRE로 실행), root가 아닌 사용자로 실행, 컨테이너 메모리에 맞춘 힙 (`MaxRAMPercentage`)
+
+### 요청 횟수 제한 (도배 방지)
+- `@RateLimited(name, limit, windowSeconds)`를 컨트롤러 메서드에 붙이면 인터셉터가 사용자별(로그인 전 API는 IP별)로 센다
+- Redis `INCR` + 첫 요청 `EXPIRE`를 **Lua 스크립트 한 번**으로 실행해서, 서버 여러 대에서도 합산되고 30개 동시 요청 중 정확히 한도만큼만 통과 (테스트로 검증). 두 명령 사이에 서버가 죽어 만료 없는 키가 남는 문제도 없음
+- 넘으면 429와 `Retry-After` 헤더. WebSocket(STOMP)으로 보내는 채팅도 REST와 같은 한도를 공유
+- 예: 글 10개/10분, 댓글 30개/5분, 채팅 60개/1분, 매칭 요청 30개/1시간, 회원가입 IP당 10번/1시간
+
 ## 웹 화면
 
 | 화면 | 내용 |
@@ -287,7 +301,7 @@ GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 
 - `demo01`은 성수역에 있고 헬스·러닝을 합니다. 이 계정으로 로그인해서 `GET /api/matching/recommendations`를 호출해 보세요.
 - `demo01` ↔ `demo02`는 이미 매칭되어 대화가 있고, `demo03` → `demo01`로 대기 중인 매칭 요청이 있습니다.
 - 성수역 주변에 앞으로 열릴 모임 5개(`demo01`은 "서울숲 저녁 5km 러닝"에 참여 중)와 댓글이 달린 커뮤니티 글 6개가 있습니다.
-- 배포 환경(jar 실행)에서는 생성되지 않습니다.
+- 배포 환경에서는 `DEMO_DATA_ENABLED=true`일 때만 만들어지고, 로그인 화면의 **체험 계정으로 둘러보기** 버튼으로 바로 들어갈 수 있습니다 (`VITE_DEMO_LOGIN=true`). 체험 계정은 탈퇴할 수 없습니다.
 
 ### 채팅 테스트 페이지 (로컬 전용)
 http://localhost:8081/dev/chat.html
