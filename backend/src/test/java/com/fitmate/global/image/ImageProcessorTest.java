@@ -97,4 +97,35 @@ class ImageProcessorTest {
         assertThatThrownBy(() -> processor.process(corrupted, 1600, false))
                 .extracting("errorCode").isEqualTo(ErrorCode.UNSUPPORTED_IMAGE);
     }
+
+    @Test
+    @DisplayName("아주 큰 사진은 줄여 읽어도(subsampling) 결과 크기와 비율이 정확하다")
+    void subsampledLargeImage() {
+        ProcessedImage photo = processor.process(TestImages.jpeg(7200, 4800), 1600, false);
+        assertThat(photo.width()).isEqualTo(1600);
+        assertThat(photo.height()).isEqualTo(1067);
+
+        ProcessedImage profile = processor.process(TestImages.jpeg(7200, 4800), 512, true);
+        assertThat(profile.width()).isEqualTo(512);
+        assertThat(profile.height()).isEqualTo(512);
+    }
+
+    @Test
+    @DisplayName("동시에 처리하는 사진 수를 제한해도 여러 장이 동시에 들어오면 차례로 모두 처리된다")
+    void limitedConcurrencyStillProcessesAll() throws Exception {
+        ImageProcessor single = new ImageProcessor(1);
+        byte[] image = TestImages.jpeg(2400, 1600);
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(6);
+        try {
+            var futures = new java.util.ArrayList<java.util.concurrent.Future<ProcessedImage>>();
+            for (int i = 0; i < 6; i++) {
+                futures.add(executor.submit(() -> single.process(image, 1600, false)));
+            }
+            for (var future : futures) {
+                assertThat(future.get().width()).isEqualTo(1600);
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+    }
 }

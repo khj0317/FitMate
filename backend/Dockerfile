@@ -18,8 +18,8 @@ RUN ./gradlew bootJar --no-daemon -x test \
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-# root가 아닌 사용자로 실행
-RUN useradd --system --uid 1001 fitmate
+# root가 아닌 사용자로 실행. 로컬 저장소(STORAGE_TYPE=local)를 쓸 때를 위해 업로드 폴더는 이 사용자 소유로 만든다
+RUN useradd --system --uid 1001 fitmate && mkdir -p /app/uploads && chown fitmate:fitmate /app/uploads
 COPY --from=build --chown=fitmate:fitmate /app/app.jar app.jar
 USER fitmate
 

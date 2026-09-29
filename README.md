@@ -10,7 +10,7 @@
 | DB / Cache | PostgreSQL + PostGIS, Redis |
 | Web | React, Vite, TypeScript |
 | App | React Native (Expo) — 예정 |
-| 배포 | Vercel(웹), Railway/Render(API), Supabase(DB), Upstash(Redis), Expo EAS(앱) |
+| 배포 | Vercel(웹), Render(API, 무료 · Docker), Supabase(DB·사진), Upstash(Redis) — 전부 무료 플랜 |
 
 ## 프로젝트 구조
 
@@ -51,9 +51,14 @@ Windows에서는 루트의 **`dev.cmd`를 더블클릭**해도 됩니다.
 
 ## 배포
 
-Vercel(웹) · Railway(API, Docker) · Supabase(DB·사진) · Upstash(Redis) 구성입니다. 단계별 방법은 **[DEPLOY.md](DEPLOY.md)**.
+Vercel(웹) · Render(API, Docker) · Supabase(DB·사진) · Upstash(Redis) 구성이고 **전부 무료 플랜**입니다. 단계별 방법은 **[DEPLOY.md](DEPLOY.md)**.
 
-- `main`에 푸시하면 GitHub Actions가 백엔드 테스트 · 웹 빌드 · Docker 이미지 빌드를 확인하고, Railway·Vercel이 자동 배포
+- `main`에 푸시하면 GitHub Actions가 백엔드 테스트 · 웹 빌드 · Docker 이미지 빌드를 확인하고, Render·Vercel이 자동 배포 (API 설정은 `render.yaml` Blueprint)
+- **메모리 512MB(무료 플랜)에서 검증**: 512MB로 제한한 컨테이너에 사진 업로드 부하를 걸었더니 처음엔 컨테이너가 강제 종료(OOMKilled)됨. 원인은 큰 사진을 한꺼번에 여러 장 펼치는 이미지 처리와, 힙 밖 메모리(클래스 정보 · 스레드 · glibc arena 약 250MB)
+  - 사진을 결과 크기의 2배까지만 줄여 읽기(`ImageReadParam` subsampling: 8000px 사진도 원본을 펼치지 않음)
+  - 동시에 처리하는 사진 수 제한(Semaphore, 넘치면 잠시 대기 후 "잠시 후 다시" 안내)
+  - 힙 40% · `MALLOC_ARENA_MAX=2` · Tomcat 스레드 30
+  - 결과: 10명이 사진 4장씩 5번 동시에 올려도(사진 200장) 모두 성공, 최대 462MB, 헬스 체크 지연 없음
 - 설정은 모두 환경 변수 (`backend/.env.example`, `apps/web/.env.example`)
 - 컨테이너: 멀티 스테이지 빌드(JDK로 빌드 → JRE로 실행), root가 아닌 사용자로 실행, 컨테이너 메모리에 맞춘 힙 (`MaxRAMPercentage`)
 

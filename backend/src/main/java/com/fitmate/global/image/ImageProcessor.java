@@ -2,10 +2,13 @@ package com.fitmate.global.image;
 
 import com.fitmate.global.error.BusinessException;
 import com.fitmate.global.error.ErrorCode;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
@@ -19,6 +22,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Iterator;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 업로드된 사진을 검증하고 다시 인코딩한다.
@@ -33,10 +38,46 @@ public class ImageProcessor {
     static final int MAX_SOURCE_SIDE = 8_000;
     static final long MAX_SOURCE_PIXELS = 40_000_000L;
     private static final float JPEG_QUALITY = 0.85f;
+    private static final long WAIT_SECONDS = 20;
+
+    /**
+     * 사진 디코딩·인코딩은 JVM 힙 밖의 네이티브 메모리까지 크게 쓴다. 메모리가 작은 서버(예: 512MB)에서
+     * 여러 장이 한꺼번에 처리되면 컨테이너가 강제 종료되므로, 동시에 처리하는 장수를 제한하고 나머지는 잠시 기다리게 한다
+     */
+    private final Semaphore permits;
+
+    public ImageProcessor() {
+        this(4);
+    }
+
+    @Autowired
+    public ImageProcessor(@Value("${fitmate.image.max-concurrency:4}") int maxConcurrency) {
+        this.permits = new Semaphore(Math.max(1, maxConcurrency), true);
+    }
 
     public ProcessedImage process(byte[] data, int maxSide, boolean squareCrop) {
         Format format = detect(data);
-        BufferedImage image = read(data);
+        acquire();
+        try {
+            return processNow(data, format, maxSide, squareCrop);
+        } finally {
+            permits.release();
+        }
+    }
+
+    private void acquire() {
+        try {
+            if (!permits.tryAcquire(WAIT_SECONDS, TimeUnit.SECONDS)) {
+                throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS, "사진을 올리는 사람이 많아요. 잠시 후 다시 시도해 주세요.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS, "사진을 올리는 사람이 많아요. 잠시 후 다시 시도해 주세요.");
+        }
+    }
+
+    private ProcessedImage processNow(byte[] data, Format format, int maxSide, boolean squareCrop) {
+        BufferedImage image = read(data, maxSide, squareCrop);
 
         if (squareCrop) {
             int side = Math.min(image.getWidth(), image.getHeight());
@@ -63,7 +104,12 @@ public class ImageProcessor {
         throw new BusinessException(ErrorCode.UNSUPPORTED_IMAGE);
     }
 
-    private static BufferedImage read(byte[] data) {
+    /**
+     * 결과 크기의 2배보다 훨씬 큰 사진은 읽을 때부터 건너뛰며(subsampling) 읽는다.
+     * 예: 8000px 사진을 1600px로 줄일 때 원본(최대 160MB)을 다 펼치지 않고 약 3200px(약 1/4)로 읽어서 메모리를 크게 아낀다.
+     * 2배 여유를 두고 읽은 뒤 resize()에서 부드럽게 줄이므로 화질 차이는 거의 없다
+     */
+    private static BufferedImage read(byte[] data, int maxSide, boolean squareCrop) {
         try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(data))) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
             if (!readers.hasNext()) {
@@ -77,7 +123,12 @@ public class ImageProcessor {
                 if (width > MAX_SOURCE_SIDE || height > MAX_SOURCE_SIDE || (long) width * height > MAX_SOURCE_PIXELS) {
                     throw new BusinessException(ErrorCode.IMAGE_TOO_LARGE);
                 }
-                return reader.read(0);
+                // 정사각형으로 자르는 프로필 사진은 짧은 변이 결과 크기가 된다
+                int relevantSide = squareCrop ? Math.min(width, height) : Math.max(width, height);
+                int factor = Math.max(1, relevantSide / (maxSide * 2));
+                ImageReadParam param = reader.getDefaultReadParam();
+                param.setSourceSubsampling(factor, factor, 0, 0);
+                return reader.read(0, param);
             } finally {
                 reader.dispose();
             }
