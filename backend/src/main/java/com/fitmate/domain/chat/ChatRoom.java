@@ -55,6 +55,15 @@ public class ChatRoom {
         return room;
     }
 
+    /** 모임 단체 채팅방. 모임장이 첫 멤버이고, 참가자는 ChatService.joinGatheringRoom으로 들어온다 */
+    public static ChatRoom gathering(Long gatheringId, User host) {
+        ChatRoom room = new ChatRoom();
+        room.type = ChatRoomType.GATHERING;
+        room.gatheringId = gatheringId;
+        room.members.add(new ChatRoomMember(room, host));
+        return room;
+    }
+
     /** 요청 방향과 상관없이 같은 두 사람이면 같은 키가 나오도록 작은 ID를 앞에 둔다. */
     public static String directKey(Long userId1, Long userId2) {
         return Math.min(userId1, userId2) + ":" + Math.max(userId1, userId2);

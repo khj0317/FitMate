@@ -29,7 +29,10 @@ public class GlobalExceptionHandler {
             "users_nickname_key", ErrorCode.DUPLICATE_NICKNAME,
             "uq_match_requests_pending", ErrorCode.DUPLICATE_MATCH_REQUEST,
             "uq_chat_rooms_direct_key", ErrorCode.ALREADY_MATCHED,
-            "uq_user_reports_pending", ErrorCode.DUPLICATE_REPORT
+            "uq_user_reports_pending", ErrorCode.DUPLICATE_REPORT,
+            "gathering_participants_pkey", ErrorCode.ALREADY_JOINED,
+            "uq_manner_reviews_gathering", ErrorCode.DUPLICATE_REVIEW,
+            "uq_manner_reviews_match", ErrorCode.DUPLICATE_REVIEW
     );
 
     @ExceptionHandler(BusinessException.class)

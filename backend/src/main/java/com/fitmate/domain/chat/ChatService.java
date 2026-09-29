@@ -32,6 +32,7 @@ public class ChatService {
     static final int MAX_PAGE_SIZE = 100;
 
     private final ChatRoomMemberRepository memberRepository;
+    private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository messageRepository;
     private final ChatRoomQuery chatRoomQuery;
     private final UserRepository userRepository;
@@ -107,7 +108,15 @@ public class ChatService {
                 .map(message -> ChatDtos.Message.of(message, nicknames.get(message.getSenderId())))
                 .toList();
         return new ChatDtos.MessagePage(messages, hasNext ? page.get(page.size() - 1).getId() : null,
-                otherLastReadMessageId(roomId, userId));
+                otherLastReadMessageId(roomId, userId), readCursors(roomId, userId));
+    }
+
+    /** 나를 뺀 멤버들의 읽음 위치. 메시지마다 "안 읽은 사람 수"를 계산하는 데 쓴다 (단체방) */
+    private List<ChatDtos.ReadCursor> readCursors(Long roomId, Long userId) {
+        return memberRepository.findByIdRoomId(roomId).stream()
+                .filter(member -> !member.getId().getUserId().equals(userId))
+                .map(member -> new ChatDtos.ReadCursor(member.getId().getUserId(), member.getLastReadMessageId()))
+                .toList();
     }
 
     /** 1:1 방에서 상대가 어디까지 읽었는지. 이 ID보다 큰 내 메시지에 "1"을 표시한다 */
@@ -139,6 +148,41 @@ public class ChatService {
 
     public List<ChatDtos.Room> getRooms(Long userId) {
         return chatRoomQuery.findRooms(userId);
+    }
+
+    // ---------- 모임 단체 채팅방 (GatheringService에서 사용) ----------
+
+    @Transactional
+    public Long createGatheringRoom(Long gatheringId, User host) {
+        return chatRoomRepository.save(ChatRoom.gathering(gatheringId, host)).getId();
+    }
+
+    /** 모임에 참여하면 단체 채팅방에 들어간다. 이미 멤버면 그대로 둔다 */
+    @Transactional
+    public Long joinGatheringRoom(Long gatheringId, User user) {
+        ChatRoom room = gatheringRoom(gatheringId);
+        ChatRoomMember.Id id = new ChatRoomMember.Id(room.getId(), user.getId());
+        if (!memberRepository.existsById(id)) {
+            Long lastMessageId = messageRepository.findTopByRoomIdOrderByIdDesc(room.getId())
+                    .map(ChatMessage::getId).orElse(null);
+            memberRepository.save(new ChatRoomMember(room, user, lastMessageId));
+        }
+        return room.getId();
+    }
+
+    @Transactional
+    public void leaveGatheringRoom(Long gatheringId, Long userId) {
+        ChatRoom room = gatheringRoom(gatheringId);
+        memberRepository.deleteById(new ChatRoomMember.Id(room.getId(), userId));
+    }
+
+    public Long gatheringRoomId(Long gatheringId) {
+        return chatRoomRepository.findByGatheringId(gatheringId).map(ChatRoom::getId).orElse(null);
+    }
+
+    private ChatRoom gatheringRoom(Long gatheringId) {
+        return chatRoomRepository.findByGatheringId(gatheringId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
     }
 
     public boolean isMember(Long roomId, Long userId) {

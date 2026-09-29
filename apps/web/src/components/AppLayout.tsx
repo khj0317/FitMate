@@ -1,11 +1,12 @@
 import clsx from 'clsx'
-import { Compass, Inbox, LogOut, MessageCircle, UserRound, type LucideIcon } from 'lucide-react'
+import { Compass, Inbox, LogOut, MessageCircle, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useChatRooms, useMatchRequests, useMe } from '../lib/queries'
 import { useAuth } from '../providers/AuthProvider'
 import { useChatSocket } from '../providers/ChatSocketProvider'
 import { Avatar } from './Avatar'
 import { Logo } from './Logo'
+import { NotificationBell } from './NotificationBell'
 
 interface NavItem {
   to: string
@@ -20,6 +21,7 @@ function useNavItems(): NavItem[] {
   const unread = rooms?.reduce((sum, room) => sum + room.unreadCount, 0) ?? 0
   return [
     { to: '/', label: '운동 메이트', icon: Compass },
+    { to: '/gatherings', label: '모임', icon: UsersRound },
     { to: '/requests', label: '매칭 요청', icon: Inbox, badge: received?.length ?? 0 },
     { to: '/chats', label: '채팅', icon: MessageCircle, badge: unread },
     { to: '/profile', label: '내 프로필', icon: UserRound },
@@ -52,8 +54,11 @@ export function AppLayout() {
   return (
     <div className="min-h-dvh md:flex">
       {/* 데스크톱 사이드바 */}
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-ink-100 bg-white px-4 py-6 md:flex">
-        <Logo className="px-3" />
+      <aside className="sticky top-0 z-30 hidden h-dvh w-64 shrink-0 flex-col border-r border-ink-100 bg-white px-4 py-6 md:flex">
+        <div className="flex items-center justify-between">
+          <Logo className="px-3" />
+          <NotificationBell align="right" />
+        </div>
         <nav className="mt-10 flex flex-col gap-1">
           {items.map(({ to, label, icon: Icon, badge }) => (
             <NavLink
@@ -100,8 +105,9 @@ export function AppLayout() {
 
       {/* 모바일 상단 바 */}
       {!inChatRoom && (
-        <header className="sticky top-0 z-20 flex h-14 items-center border-b border-ink-100 bg-white/85 px-4 backdrop-blur md:hidden">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-ink-100 bg-white/85 px-4 backdrop-blur md:hidden">
           <Logo />
+          <NotificationBell className="-mr-2" />
         </header>
       )}
 
@@ -111,7 +117,7 @@ export function AppLayout() {
 
       {/* 모바일 하단 탭바 */}
       {!inChatRoom && (
-        <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-ink-100 bg-white/95 pt-2 backdrop-blur pb-safe md:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-ink-100 bg-white/95 pt-2 backdrop-blur pb-safe md:hidden">
           {items.map(({ to, label, icon: Icon, badge }) => (
             <NavLink
               key={to}

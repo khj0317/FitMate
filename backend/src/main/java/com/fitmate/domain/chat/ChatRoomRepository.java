@@ -8,5 +8,7 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
 
     Optional<ChatRoom> findByDirectKey(String directKey);
 
+    Optional<ChatRoom> findByGatheringId(Long gatheringId);
+
     boolean existsByDirectKey(String directKey);
 }

@@ -129,6 +129,10 @@ export interface ChatRoom {
   unreadCount: number
   /** 상대가 탈퇴했거나 차단 관계면 false */
   canSend: boolean
+  /** 모임 단체방 이름 (1:1 방은 null) */
+  title: string | null
+  gatheringId: number | null
+  memberCount: number
 }
 
 export type ReportReason = 'SPAM' | 'ABUSE' | 'SEXUAL' | 'FAKE_PROFILE' | 'NO_SHOW' | 'OTHER'
@@ -145,6 +149,8 @@ export interface MessagePage {
   nextCursor: number | null
   /** 상대가 읽은 마지막 메시지 ID (null이면 아직 하나도 안 읽음) */
   otherLastReadMessageId: number | null
+  /** 나를 뺀 멤버들의 읽음 위치 (단체방의 "안 읽은 사람 수" 계산용) */
+  readCursors: { userId: number; lastReadMessageId: number | null }[]
 }
 
 export interface ReadEvent {
@@ -157,6 +163,101 @@ export interface Presence {
   userId: number
   online: boolean
   lastSeenAt: string | null
+}
+
+// ---------- 모임 ----------
+
+export type GatheringStatus = 'RECRUITING' | 'CLOSED' | 'COMPLETED' | 'CANCELED'
+
+export interface GatheringSummary {
+  id: number
+  title: string
+  sportId: number
+  sportCode: string
+  sportName: string
+  placeName: string
+  startsAt: string
+  capacity: number
+  currentCount: number
+  status: GatheringStatus
+  host: { userId: number; nickname: string; profileImageUrl: string | null; mannerScore: number }
+  distanceKm: number | null
+  joined: boolean
+}
+
+export interface GatheringParticipant {
+  userId: number
+  nickname: string
+  profileImageUrl: string | null
+  mannerScore: number
+  host: boolean
+}
+
+export interface GatheringDetail {
+  summary: GatheringSummary
+  description: string | null
+  latitude: number
+  longitude: number
+  participants: GatheringParticipant[]
+  isHost: boolean
+  chatRoomId: number | null
+}
+
+export interface GatheringInput {
+  sportId: number
+  title: string
+  description: string
+  placeName: string
+  location: { latitude: number; longitude: number }
+  startsAt: string
+  capacity: number
+}
+
+// ---------- 매너 평가 ----------
+
+export type MannerRating = 'GOOD' | 'NORMAL' | 'BAD'
+export type MannerTag = 'PUNCTUAL' | 'KIND' | 'SKILLED' | 'TEACHES' | 'FUN' | 'LATE' | 'NO_SHOW' | 'RUDE'
+
+export interface PendingReview {
+  targetId: number
+  nickname: string
+  profileImageUrl: string | null
+  gatheringId: number | null
+  matchRequestId: number | null
+  /** 모임 제목 또는 1:1 매칭 종목 */
+  context: string
+  happenedAt: string
+}
+
+export interface MannerSummary {
+  mannerScore: number
+  reviewCount: number
+  tags: { tag: MannerTag; count: number }[]
+}
+
+// ---------- 알림 ----------
+
+export type NotificationType =
+  | 'MATCH_REQUEST_RECEIVED'
+  | 'MATCH_REQUEST_ACCEPTED'
+  | 'GATHERING_JOINED'
+  | 'GATHERING_CANCELED'
+  | 'MANNER_REVIEW_RECEIVED'
+
+export interface AppNotification {
+  id: number
+  type: NotificationType
+  title: string
+  body: string | null
+  link: string | null
+  read: boolean
+  createdAt: string
+}
+
+export interface NotificationPage {
+  items: AppNotification[]
+  nextCursor: number | null
+  unreadCount: number
 }
 
 export interface ApiErrorBody {

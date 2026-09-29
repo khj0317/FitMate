@@ -50,6 +50,12 @@ public class ChatRoomMember {
         this.user = user;
     }
 
+    /** 이미 대화가 있는 방에 새로 들어온 멤버. 들어오기 전 메시지는 안 읽은 메시지로 치지 않는다 */
+    ChatRoomMember(ChatRoom room, User user, Long lastReadMessageId) {
+        this(room, user);
+        this.lastReadMessageId = lastReadMessageId;
+    }
+
     /**
      * 늦게 도착한 읽음 요청이 더 최신 값을 덮어쓰지 않도록 앞으로만 이동시킨다.
      * @return 실제로 이동했으면 true

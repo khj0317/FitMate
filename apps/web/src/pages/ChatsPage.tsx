@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { ArrowLeft, ArrowUp, ChevronUp, ImagePlus, Smile, X } from 'lucide-react'
+import { ArrowLeft, ArrowUp, ChevronRight, ChevronUp, ImagePlus, Smile, UsersRound, X } from 'lucide-react'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Avatar } from '../components/Avatar'
@@ -40,7 +40,7 @@ export function ChatsPage() {
           {isLoading ? (
             <div className="flex justify-center py-10"><Spinner /></div>
           ) : !rooms?.length ? (
-            <EmptyState emoji="💬" title="아직 대화가 없어요" description="매칭 요청이 수락되면 여기에서 대화할 수 있어요." />
+            <EmptyState emoji="💬" title="아직 대화가 없어요" description="매칭 요청이 수락되거나 모임에 참여하면 여기에서 대화할 수 있어요." />
           ) : (
             rooms.map((r) => (
               <RoomItem
@@ -79,8 +79,38 @@ export function ChatsPage() {
   )
 }
 
+function roomName(room: ChatRoom) {
+  if (room.type === 'GATHERING') return room.title ?? '모임 채팅'
+  return room.counterpart?.nickname ?? '탈퇴한 회원'
+}
+
+/** 단체방은 사람 사진 대신 모임 아이콘을 보여준다 */
+function RoomAvatar({ room, size = 'md', online }: { room: ChatRoom; size?: 'sm' | 'md'; online?: boolean }) {
+  if (room.type === 'GATHERING') {
+    return (
+      <div
+        className={clsx(
+          'flex shrink-0 items-center justify-center rounded-full bg-linear-to-br from-brand-400 to-rose-500 text-white',
+          size === 'sm' ? 'size-9' : 'size-12',
+        )}
+      >
+        <UsersRound className={size === 'sm' ? 'size-4' : 'size-5'} />
+      </div>
+    )
+  }
+  return (
+    <Avatar
+      id={room.counterpart?.userId ?? room.roomId}
+      name={roomName(room)}
+      imageUrl={room.counterpart?.profileImageUrl}
+      size={size}
+      online={online}
+    />
+  )
+}
+
 function RoomItem({ room, active, online }: { room: ChatRoom; active: boolean; online: boolean }) {
-  const name = room.counterpart?.nickname ?? '탈퇴한 회원'
+  const name = roomName(room)
   return (
     <Link
       to={`/chats/${room.roomId}`}
@@ -89,15 +119,18 @@ function RoomItem({ room, active, online }: { room: ChatRoom; active: boolean; o
         active ? 'bg-brand-50' : 'hover:bg-ink-50',
       )}
     >
-      <Avatar id={room.counterpart?.userId ?? room.roomId} name={name} imageUrl={room.counterpart?.profileImageUrl} online={online} />
+      <RoomAvatar room={room} online={online} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="flex-1 truncate font-bold">{name}</p>
+          <p className="flex min-w-0 flex-1 items-center gap-1.5 font-bold">
+            <span className="truncate">{name}</span>
+            {room.type === 'GATHERING' && <span className="shrink-0 text-sm font-medium text-ink-400">{room.memberCount}</span>}
+          </p>
           {room.lastMessage && <span className="shrink-0 text-xs text-ink-400">{timeAgo(room.lastMessage.createdAt)}</span>}
         </div>
         <div className="mt-0.5 flex items-center gap-2">
           <p className={clsx('flex-1 truncate text-sm', room.unreadCount ? 'font-semibold text-ink-800' : 'text-ink-500')}>
-            {room.lastMessage?.content ?? '매칭됐어요! 먼저 인사를 건네 보세요 👋'}
+            {room.lastMessage?.content ?? (room.type === 'GATHERING' ? '모임 채팅방이 열렸어요 🙌' : '매칭됐어요! 먼저 인사를 건네 보세요 👋')}
           </p>
           {room.unreadCount > 0 && (
             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1.5 text-[11px] font-bold text-white">
@@ -122,12 +155,20 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
   const [loading, setLoading] = useState(true)
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [text, setText] = useState('')
-  /** 상대가 읽은 마지막 메시지 ID. 이보다 큰 내 메시지에 "1"을 표시한다 */
-  const [otherLastRead, setOtherLastRead] = useState<number | null>(null)
-  const advanceOtherRead = useCallback(
-    (id: number | null) => id !== null && setOtherLastRead((current) => Math.max(current ?? 0, id)),
-    [],
-  )
+  /**
+   * 나를 뺀 멤버별 읽은 위치. 메시지마다 "아직 안 읽은 사람 수"를 계산해서 카카오톡처럼 숫자로 표시한다.
+   * 읽음 위치는 앞으로만 움직이므로 늦게 도착한 이벤트가 되돌리지 않게 max로 합친다
+   */
+  const [readCursors, setReadCursors] = useState<Map<number, number>>(new Map())
+  const advanceRead = useCallback((cursors: { userId: number; lastReadMessageId: number | null }[]) => {
+    setReadCursors((current) => {
+      const next = new Map(current)
+      for (const { userId, lastReadMessageId } of cursors) {
+        next.set(userId, Math.max(next.get(userId) ?? 0, lastReadMessageId ?? 0))
+      }
+      return next
+    })
+  }, [])
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -135,7 +176,8 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
   const preserveFromBottom = useRef<number | null>(null)
   const lastReadId = useRef(0)
 
-  const name = room.counterpart?.nickname ?? '탈퇴한 회원'
+  const name = roomName(room)
+  const group = room.type === 'GATHERING'
 
   // 처음 열면 최근 메시지를 불러온다 (서버는 최신순이므로 뒤집어서 표시)
   useEffect(() => {
@@ -145,26 +187,26 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
         if (cancelled) return
         setMessages(page.messages.slice().reverse())
         setNextCursor(page.nextCursor)
-        advanceOtherRead(page.otherLastReadMessageId)
+        advanceRead(page.readCursors)
       })
       .catch((e) => toast(errorMessage(e), 'error'))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
-  }, [room.roomId, toast, advanceOtherRead])
+  }, [room.roomId, toast, advanceRead])
 
   // 상대가 읽으면 실시간으로 "1"을 지운다. 재연결되면(connected 변화) 다시 구독하고, 끊긴 사이 놓친 읽음도 다시 받아온다
   useEffect(() => {
     if (!connected) return
     fetchMessages(room.roomId)
-      .then((page) => advanceOtherRead(page.otherLastReadMessageId))
+      .then((page) => advanceRead(page.readCursors))
       .catch(() => undefined)
     return subscribe(`/topic/chat-rooms/${room.roomId}/reads`, (body) => {
       const event = JSON.parse(body) as ReadEvent
-      if (event.userId !== me?.id) advanceOtherRead(event.lastReadMessageId)
+      if (event.userId !== me?.id) advanceRead([event])
     })
-  }, [connected, subscribe, room.roomId, me?.id, advanceOtherRead])
+  }, [connected, subscribe, room.roomId, me?.id, advanceRead])
 
   // 실시간 메시지 수신
   useEffect(
@@ -287,13 +329,16 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
         <button onClick={() => navigate('/chats')} className="-ml-1 cursor-pointer rounded-full p-1.5 hover:bg-ink-100 md:hidden" aria-label="뒤로">
           <ArrowLeft className="size-5" />
         </button>
-        <Avatar
-          id={room.counterpart?.userId ?? room.roomId}
-          name={name}
-          imageUrl={room.counterpart?.profileImageUrl}
-          size="sm"
-          online={presence?.online}
-        />
+        <RoomAvatar room={room} size="sm" online={presence?.online} />
+        {group ? (
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-bold">{name}</p>
+            <p className="text-xs text-ink-500">
+              참여자 {room.memberCount}명
+              {!connected && <span className="text-amber-600"> · 내 연결 재시도 중</span>}
+            </p>
+          </div>
+        ) : (
         <div className="min-w-0 flex-1">
           <p className="truncate font-bold">{name}</p>
           <p className="flex items-center gap-1.5 text-xs text-ink-500">
@@ -304,7 +349,16 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
             {!connected && <span className="text-amber-600">· 내 연결 재시도 중</span>}
           </p>
         </div>
-        {room.counterpart && (
+        )}
+        {group && room.gatheringId && (
+          <Link
+            to={`/gatherings/${room.gatheringId}`}
+            className="flex shrink-0 items-center gap-0.5 rounded-full px-3 py-1.5 text-sm font-semibold text-ink-600 ring-1 ring-ink-200 hover:bg-ink-50"
+          >
+            모임 정보 <ChevronRight className="size-4" />
+          </Link>
+        )}
+        {!group && room.counterpart && (
           <SafetyMenu
             user={{ id: room.counterpart.userId, nickname: room.counterpart.nickname }}
             onBlocked={() => navigate('/chats')}
@@ -327,14 +381,18 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
               </div>
             )}
             {messages.length === 0 && (
-              <EmptyState emoji="🤝" title={`${name}님과 매칭됐어요!`} description="운동 종목, 시간, 장소를 이야기해 보세요." />
+              group ? (
+                <EmptyState emoji="🙌" title="모임 채팅방이에요" description="참여자들과 준비물, 만날 위치를 이야기해 보세요." />
+              ) : (
+                <EmptyState emoji="🤝" title={`${name}님과 매칭됐어요!`} description="운동 종목, 시간, 장소를 이야기해 보세요." />
+              )
             )}
             <MessageList
               messages={messages}
               myId={me?.id ?? -1}
-              counterpartId={room.counterpart?.userId ?? 0}
+              group={group}
               onOpenImage={setViewer}
-              otherLastReadId={otherLastRead}
+              readCursors={readCursors}
             />
             {uploading > 0 && (
               <div className="mt-3 flex justify-end">
@@ -352,7 +410,7 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
 
       {!room.canSend ? (
         <div className="border-t border-ink-100 bg-ink-50 p-4 pb-safe text-center text-sm text-ink-500 md:pb-4">
-          {room.counterpart ? '메시지를 보낼 수 없는 채팅방이에요' : '대화 상대가 탈퇴해서 메시지를 보낼 수 없어요'}
+          {group || room.counterpart ? '메시지를 보낼 수 없는 채팅방이에요' : '대화 상대가 탈퇴해서 메시지를 보낼 수 없어요'}
         </div>
       ) : (
       <div className="relative border-t border-ink-100 bg-white p-3 pb-safe md:pb-3">
@@ -426,19 +484,28 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
   )
 }
 
+/** 보낸 사람을 빼고, 이 메시지를 아직 읽지 않은 멤버 수 */
+function unreadCount(message: ChatMessage, readCursors: Map<number, number>) {
+  let count = 0
+  for (const [userId, lastRead] of readCursors) {
+    if (userId !== message.senderId && lastRead < message.id) count++
+  }
+  return count
+}
+
 /** 같은 사람이 3분 안에 연달아 보낸 메시지는 하나의 묶음으로 보여준다. */
 function MessageList({
   messages,
   myId,
-  counterpartId,
+  group,
   onOpenImage,
-  otherLastReadId,
+  readCursors,
 }: {
   messages: ChatMessage[]
   myId: number
-  counterpartId: number
+  group: boolean
   onOpenImage: (url: string) => void
-  otherLastReadId: number | null
+  readCursors: Map<number, number>
 }) {
   return (
     <div className="flex flex-col">
@@ -446,8 +513,8 @@ function MessageList({
         const prev = messages[index - 1]
         const next = messages[index + 1]
         const mine = message.senderId === myId
-        // 카카오톡처럼 상대가 아직 안 읽은 내 메시지에 1을 표시한다
-        const unread = mine && (otherLastReadId === null || message.id > otherLastReadId)
+        // 카카오톡처럼 아직 안 읽은 사람 수를 표시한다 (1:1 방에서는 내 메시지에만 1이 붙는다)
+        const unread = unreadCount(message, readCursors)
         const newDay = !prev || !isSameDay(prev.createdAt, message.createdAt)
         const groupedWithPrev = !newDay && prev?.senderId === message.senderId && withinMinutes(prev.createdAt, message.createdAt, 3)
         const groupedWithNext =
@@ -460,17 +527,28 @@ function MessageList({
                 <span className="rounded-full bg-ink-200/60 px-3 py-1 text-xs font-medium text-ink-500">{dayLabel(message.createdAt)}</span>
               </div>
             )}
-            <div className={clsx('flex items-end gap-2', mine ? 'justify-end' : 'justify-start', groupedWithPrev ? 'mt-1' : 'mt-3')}>
+            {group && !mine && !groupedWithPrev && (
+              <p className="mt-3 mb-1 ml-10 text-xs font-semibold text-ink-500">{message.senderNickname ?? '알 수 없음'}</p>
+            )}
+            <div
+              className={clsx(
+                'flex items-end gap-2',
+                mine ? 'justify-end' : 'justify-start',
+                groupedWithPrev || (group && !mine) ? 'mt-1' : 'mt-3',
+              )}
+            >
               {!mine && (
                 <div className="w-8 shrink-0">
-                  {!groupedWithNext && <Avatar id={counterpartId} name={message.senderNickname ?? '?'} size="sm" className="size-8! text-xs!" />}
+                  {!groupedWithNext && (
+                    <Avatar id={message.senderId ?? 0} name={message.senderNickname ?? '?'} size="sm" className="size-8! text-xs!" />
+                  )}
                 </div>
               )}
-              {mine && (unread || !groupedWithNext) && (
+              {mine && (unread > 0 || !groupedWithNext) && (
                 <div className="flex shrink-0 flex-col items-end">
-                  {unread && (
-                    <span className="mb-0.5 text-[11px] leading-none font-bold text-brand-500" aria-label="안 읽음">
-                      1
+                  {unread > 0 && (
+                    <span className="mb-0.5 text-[11px] leading-none font-bold text-brand-500" aria-label={`${unread}명 안 읽음`}>
+                      {unread}
                     </span>
                   )}
                   {!groupedWithNext && <Time iso={message.createdAt} />}
@@ -494,7 +572,16 @@ function MessageList({
                   {message.content}
                 </div>
               )}
-              {!mine && !groupedWithNext && <Time iso={message.createdAt} />}
+              {!mine && (unread > 0 || !groupedWithNext) && (
+                <div className="flex shrink-0 flex-col items-start">
+                  {unread > 0 && (
+                    <span className="mb-0.5 text-[11px] leading-none font-bold text-brand-500" aria-label={`${unread}명 안 읽음`}>
+                      {unread}
+                    </span>
+                  )}
+                  {!groupedWithNext && <Time iso={message.createdAt} />}
+                </div>
+              )}
             </div>
           </div>
         )

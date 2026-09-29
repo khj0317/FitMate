@@ -3,6 +3,8 @@ package com.fitmate.domain.matchrequest;
 import com.fitmate.domain.chat.ChatRoom;
 import com.fitmate.domain.chat.ChatRoomRepository;
 import com.fitmate.domain.matchrequest.dto.MatchRequestDtos;
+import com.fitmate.domain.notification.Notification;
+import com.fitmate.domain.notification.NotificationService;
 import com.fitmate.domain.safety.SafetyService;
 import com.fitmate.domain.sport.Sport;
 import com.fitmate.domain.sport.SportRepository;
@@ -26,6 +28,7 @@ public class MatchRequestService {
     private final SportRepository sportRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final SafetyService safetyService;
+    private final NotificationService notificationService;
 
     /**
      * 대기 중 요청 중복은 사전 검사로 친절한 에러를 주고,
@@ -63,6 +66,10 @@ public class MatchRequestService {
 
         String message = request.message() == null || request.message().isBlank() ? null : request.message().trim();
         MatchRequest saved = matchRequestRepository.save(new MatchRequest(requester, receiver, sport, message));
+        notificationService.notify(receiver.getId(), Notification.Type.MATCH_REQUEST_RECEIVED,
+                "새 운동 요청이 왔어요",
+                "%s님이 %s 같이 하자고 해요".formatted(requester.getNickname(), sport.getName()),
+                "/requests");
         return new MatchRequestDtos.Created(saved.getId());
     }
 
@@ -91,6 +98,10 @@ public class MatchRequestService {
         ChatRoom room = chatRoomRepository.findByDirectKey(ChatRoom.directKey(requester.getId(), receiver.getId()))
                 .orElseGet(() -> chatRoomRepository.save(ChatRoom.direct(requester, receiver)));
         request.accept(room);
+        notificationService.notify(requester.getId(), Notification.Type.MATCH_REQUEST_ACCEPTED,
+                "운동 요청이 수락됐어요",
+                "%s님과 채팅을 시작해 보세요".formatted(receiver.getNickname()),
+                "/chats/" + room.getId());
         return new MatchRequestDtos.Accepted(request.getId(), room.getId());
     }
 

@@ -65,6 +65,10 @@ public class StompAuthInterceptor implements ChannelInterceptor {
     private void authorizeSubscription(StompHeaderAccessor accessor) {
         Principal user = requireUser(accessor);
         String destination = accessor.getDestination();
+        // 개인 큐는 /user/queue/... 로만 구독한다. 변환된 /queue/...-user{세션} 을 직접 구독해서 남의 알림을 엿볼 수 없게 막는다
+        if (destination != null && destination.startsWith("/queue/")) {
+            throw new MessageDeliveryException("FORBIDDEN_DESTINATION");
+        }
         if (destination != null && destination.startsWith(ChatMessageSubscriber.ROOM_TOPIC_PREFIX)) {
             Long roomId = parseRoomId(destination);
             if (roomId == null || !chatService.isMember(roomId, Long.valueOf(user.getName()))) {

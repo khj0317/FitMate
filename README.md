@@ -55,9 +55,11 @@ Windows에서는 루트의 **`dev.cmd`를 더블클릭**해도 됩니다.
 |---|---|
 | 로그인 · 회원가입 | 브랜드 소개 패널 + 폼, 필드별 입력 오류 표시, 가입 후 프로필 설정으로 안내 |
 | 운동 메이트 | 매칭 점수 링, 점수 내역(거리·실력·시간·매너), 공통 종목 실력 비교, 종목·반경 필터, 요청 모달 |
+| 모임 | 근처 모임(종목·반경 필터) / 내 모임 탭, 정원 진행 바, 모임 만들기(날짜 칩·시간·정원·장소 검색), 상세(참여자·참여/나가기/취소·단체 채팅방), 함께 운동한 메이트 평가 |
 | 매칭 요청 | 받은/보낸 요청 탭, 상태 필터, 수락하면 바로 채팅방으로 이동 |
-| 채팅 | 실시간 수신, 안 읽은 수 배지, 날짜 구분선, 연속 메시지 묶기, 이전 대화 불러오기, 이모티콘(최근 사용, 이모티콘만 보내면 크게 표시), 사진(버튼·붙여넣기, 크게 보기), 읽음 표시 "1", 상대 접속 상태 |
-| 내 프로필 | 차단 목록·해제, 회원 탈퇴, 프로필 사진(즉시 저장), 기본 정보, 활동 지역(전국 자동완성 검색), 운동 종목·실력, 요일×시간대 표로 운동 가능 시간 선택 |
+| 알림 | 종 아이콘 + 안 읽은 수, 최근 알림 목록, 누르면 해당 화면으로 이동, 모두 읽음. 새 알림은 실시간 토스트 |
+| 채팅 | 1:1 · 모임 단체방, 실시간 수신, 안 읽은 수 배지, 날짜 구분선, 연속 메시지 묶기, 이전 대화 불러오기, 이모티콘(최근 사용, 이모티콘만 보내면 크게 표시), 사진(버튼·붙여넣기, 크게 보기), 읽음 표시(단체방은 안 읽은 사람 수), 상대 접속 상태 |
+| 내 프로필 | 받은 매너 칭찬, 차단 목록·해제, 회원 탈퇴, 프로필 사진(즉시 저장), 기본 정보, 활동 지역(전국 자동완성 검색), 운동 종목·실력, 요일×시간대 표로 운동 가능 시간 선택 |
 
 - **기술**: React 19, Vite, TypeScript, Tailwind CSS v4, TanStack Query, React Router, STOMP.js, Pretendard
 - **반응형**: 데스크톱은 사이드바, 모바일은 하단 탭바와 하단 시트 모달
@@ -139,10 +141,20 @@ GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 
 | POST | `/api/users/me/withdrawal` | 회원 탈퇴 (비밀번호 확인) | ✅ |
 | GET | `/api/users/presence?userIds=1,2` | 접속 상태 (현재 접속중 / 마지막 접속 시각) | ✅ |
 | POST · DELETE | `/api/users/me/profile-image` | 프로필 사진 올리기 · 삭제 (multipart) | ✅ |
+| POST | `/api/gatherings` | 모임 만들기 (단체 채팅방 함께 생성) | ✅ |
+| GET | `/api/gatherings` · `/mine` | 근처 모임 (`sportId`, `radiusKm`) · 내 모임 | ✅ |
+| GET | `/api/gatherings/{id}` | 모임 상세 (참여자, 단체 채팅방) | ✅ |
+| POST · DELETE | `/api/gatherings/{id}/participants` · `/participants/me` | 참여 (선착순) · 나가기 | ✅ |
+| DELETE | `/api/gatherings/{id}` | 모임 취소 (모임장, 참여자에게 알림) | ✅ |
+| GET | `/api/manner/pending` | 평가할 상대 (끝난 모임 참여자 · 1:1 매칭 상대) | ✅ |
+| POST | `/api/manner/reviews` | 매너 평가 | ✅ |
+| GET | `/api/users/{id}/manner` | 매너 온도 · 받은 칭찬 태그 | ✅ |
+| GET | `/api/notifications` | 알림 목록 (커서) + 안 읽은 수 | ✅ |
+| POST | `/api/notifications/{id}/read` · `/read-all` | 읽음 · 모두 읽음 | ✅ |
 
 **WebSocket (STOMP)**: `ws://localhost:8081/ws`
 - 연결: CONNECT 헤더에 `Authorization: Bearer <accessToken>`
-- 구독: `/topic/chat-rooms/{roomId}` (메시지), `/topic/chat-rooms/{roomId}/reads` (읽음 위치) — 채팅방 멤버만 가능, 에러는 `/user/queue/errors`
+- 구독: `/topic/chat-rooms/{roomId}` (메시지), `/topic/chat-rooms/{roomId}/reads` (읽음 위치) — 채팅방 멤버만 가능, 에러는 `/user/queue/errors`, 알림은 `/user/queue/notifications`
 - 전송: `/app/chat-rooms/{roomId}/messages` ← `{"content": "..."}`
 
 전체 명세는 서버 실행 후 `http://localhost:8081/swagger-ui.html`에서 확인할 수 있습니다.
@@ -221,6 +233,29 @@ GitHub에 푸시하면 GitHub Actions에서도 같은 테스트가 자동으로 
 - **메시지 페이지네이션**: `id < cursor` + `(room_id, id DESC)` 인덱스 → OFFSET 없이 대화가 길어져도 일정한 속도
 - **권한 없는 접근은 404**: 남의 요청·채팅방은 존재 여부도 노출하지 않음
 
+### 모임 모집 설계
+- **선착순 정원**: 자리 확보를 조건부 UPDATE 한 문장으로 처리
+  ```sql
+  UPDATE gatherings SET current_count = current_count + 1,
+         status = CASE WHEN current_count + 1 >= capacity THEN 'CLOSED' ELSE status END
+  WHERE id = ? AND status = 'RECRUITING' AND current_count < capacity AND starts_at > now()
+  ```
+  0행이면 마감·시작됨으로 거절. 정원 5명 모임에 20명이 동시에 참여하면 정확히 4명만 성공하고 자동 마감 (테스트로 검증)
+- **같은 사람의 연타**: 자리 확보 UPDATE가 모임 행을 잠그므로, 그 뒤에 참가 기록을 다시 읽어 확인. 처음엔 "참가 기록이 없으면 INSERT"로 막으려 했으나, 참가자 ID를 직접 정하는 엔티티라 `save()`가 merge로 동작해서 동시에 5번 누르면 5번 다 성공하던 문제를 동시성 테스트가 잡아냄. 나가기도 같은 방식으로 자리를 두 번 돌려주지 않게 함
+- **나가면 다시 모집**: 자리를 돌려주면서 마감(CLOSED)이었으면 모집 중으로 되돌림
+- **단체 채팅방**: 모임을 만들면 방이 생기고 참여/나가기에 따라 멤버가 바뀜. 새로 들어온 사람은 들어오기 전 메시지를 안 읽은 메시지로 세지 않음
+- **단체방 읽음 표시**: 메시지 목록과 함께 멤버별 읽음 위치를 내려주고, 메시지마다 "보낸 사람을 뺀 멤버 중 아직 안 읽은 사람 수"를 계산 (1:1 방은 자연히 "1")
+
+### 매너 평가 설계
+- **평가 자격**: 끝난 모임(14일 이내)에 함께 참여했거나 1:1 매칭이 수락된(30일 이내) 상대만. 같은 모임·매칭에서 같은 사람은 한 번만 (부분 유니크 인덱스)
+- **점수**: 좋았어요 +0.5 / 보통 0 / 별로였어요 −0.5, 노쇼 태그는 추가 −1.0. `LEAST(99.9, GREATEST(0, manner_score + ?))` 한 문장으로 더해서 동시에 평가가 몰려도 점수가 빠지지 않음 (8명 동시 평가 테스트)
+- **공개 범위**: 칭찬 태그 수만 공개, 아쉬운 태그는 본인에게도 보여 주지 않고 점수에만 반영
+
+### 알림 설계
+- 매칭 요청 받음 · 수락됨, 모임 참여자 생김 · 모임 취소, 매너 칭찬을 DB에 저장하고 **커밋 후** Redis `notifications` 채널로 발행 → 각 서버가 해당 사용자의 `/user/queue/notifications`로 전달 (서버가 여러 대여도 동작)
+- 사용자 전용 큐는 `/user/...`로만 구독 가능. 변환된 실제 큐 주소(`/queue/...-user{세션}`)를 직접 구독해 남의 알림을 엿보는 것을 막음 (테스트로 검증)
+- 웹은 알림을 받으면 토스트를 띄우고 알림 목록과 관련 화면(모임 인원, 채팅방 목록 등)을 새로 고침
+
 ## 로컬 데모 데이터
 `./gradlew bootRun`으로 실행하면 `local` 프로필이 켜지고, 처음 한 번 성수역 주변 8km 안에 데모 사용자 30명이 생성됩니다.
 
@@ -252,6 +287,10 @@ erDiagram
     users ||--o{ chat_room_members : ""
     chat_rooms ||--o{ chat_messages : ""
     users ||--o{ chat_messages : "보낸 메시지"
+    users ||--o{ manner_reviews : "받은 평가"
+    gatherings |o--o{ manner_reviews : ""
+    match_requests |o--o{ manner_reviews : ""
+    users ||--o{ notifications : "알림"
 
     users {
         bigint id PK
@@ -314,6 +353,24 @@ erDiagram
         bigint room_id FK
         bigint sender_id FK
         varchar content
+    }
+    manner_reviews {
+        bigint id PK
+        bigint reviewer_id FK
+        bigint target_id FK
+        bigint gathering_id FK "또는"
+        bigint match_request_id FK
+        varchar rating "GOOD/NORMAL/BAD"
+        text_array tags
+        numeric score_delta
+    }
+    notifications {
+        bigint id PK
+        bigint user_id FK
+        varchar type
+        varchar title
+        varchar link
+        timestamptz read_at
     }
 ```
 

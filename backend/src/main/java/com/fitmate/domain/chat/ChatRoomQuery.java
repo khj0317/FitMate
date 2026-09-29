@@ -36,12 +36,16 @@ public class ChatRoomQuery {
                    (r.type <> 'DIRECT' OR (other.id IS NOT NULL AND NOT EXISTS (
                         SELECT 1 FROM user_blocks b
                         WHERE (b.blocker_id = me.user_id AND b.blocked_id = other.id)
-                           OR (b.blocker_id = other.id AND b.blocked_id = me.user_id)))) AS can_send
+                           OR (b.blocker_id = other.id AND b.blocked_id = me.user_id)))) AS can_send,
+                   g.title AS title,
+                   r.gathering_id,
+                   (SELECT COUNT(*) FROM chat_room_members cnt WHERE cnt.room_id = r.id) AS member_count
             FROM chat_room_members me
             JOIN chat_rooms r ON r.id = me.room_id
             LEFT JOIN chat_room_members om
                    ON r.type = 'DIRECT' AND om.room_id = r.id AND om.user_id <> me.user_id
             LEFT JOIN users other ON other.id = om.user_id
+            LEFT JOIN gatherings g ON g.id = r.gathering_id
             LEFT JOIN LATERAL (
                 SELECT id, content, message_type, created_at
                 FROM chat_messages
@@ -68,7 +72,10 @@ public class ChatRoomQuery {
                         counterpart(rs),
                         lastMessage(rs),
                         rs.getLong("unread_count"),
-                        rs.getBoolean("can_send")))
+                        rs.getBoolean("can_send"),
+                        rs.getString("title"),
+                        rs.getObject("gathering_id", Long.class),
+                        rs.getInt("member_count")))
                 .list();
     }
 

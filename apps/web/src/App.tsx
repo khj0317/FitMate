@@ -5,6 +5,8 @@ import { LoginPage, SignupPage } from './pages/AuthPages'
 import { ChatsPage } from './pages/ChatsPage'
 import { DiscoverPage } from './pages/DiscoverPage'
 import { FindAccountPage } from './pages/FindAccountPage'
+import { GatheringDetailPage } from './pages/GatheringDetailPage'
+import { GatheringsPage } from './pages/GatheringsPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RequestsPage } from './pages/RequestsPage'
 import { useAuth } from './providers/AuthProvider'
@@ -37,6 +39,8 @@ export function App() {
           }
         >
           <Route index element={<DiscoverPage />} />
+          <Route path="gatherings" element={<GatheringsPage />} />
+          <Route path="gatherings/:gatheringId" element={<GatheringDetailPage />} />
           <Route path="requests" element={<RequestsPage />} />
           <Route path="chats" element={<ChatsPage />} />
           <Route path="chats/:roomId" element={<ChatsPage />} />

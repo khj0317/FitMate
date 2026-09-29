@@ -3,6 +3,7 @@ import { AtSign, LogOut, PartyPopper, RotateCcw, Save, Thermometer } from 'lucid
 import { useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { AccountSafetySection } from '../components/AccountSafetySection'
+import { MannerPraise } from '../components/MannerPraise'
 import { BirthDateInput } from '../components/BirthDateInput'
 import { LocationSearch } from '../components/LocationSearch'
 import { ProfilePhoto } from '../components/ProfilePhoto'
@@ -215,6 +216,8 @@ function ProfileForm({ me }: { me: MyProfile }) {
           <p className="text-xs font-medium text-ink-400">매너 온도</p>
         </div>
       </Card>
+
+      <MannerPraise userId={me.id} />
 
       <div className="space-y-6">
         <Section title="기본 정보" description="다른 사람에게는 닉네임, 나이대, 성별, 자기소개만 보여요">

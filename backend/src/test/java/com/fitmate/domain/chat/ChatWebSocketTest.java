@@ -146,6 +146,35 @@ class ChatWebSocketTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("알림은 받는 사람의 개인 큐(/user/queue/notifications)로만 실시간 전달된다")
+    void notificationIsDeliveredToReceiverOnly() throws Exception {
+        TestUser a = signupWithGym();
+        TestUser b = signupWithGym();
+
+        BlockingQueue<String> bNotifications = subscribe(connect(b), "/user/queue/notifications");
+        BlockingQueue<String> aNotifications = subscribe(connect(a), "/user/queue/notifications");
+        Thread.sleep(SUBSCRIBE_SETTLE_MILLIS);
+
+        requestMatch(a, b);
+
+        String notification = bNotifications.poll(5, TimeUnit.SECONDS);
+        assertThat(notification).isNotNull();
+        assertThat((String) JsonPath.read(notification, "$.type")).isEqualTo("MATCH_REQUEST_RECEIVED");
+        assertThat((String) JsonPath.read(notification, "$.link")).isEqualTo("/requests");
+        assertThat(aNotifications.poll(500, TimeUnit.MILLISECONDS)).isNull();
+    }
+
+    @Test
+    @DisplayName("변환된 개인 큐 주소를 직접 구독하면 서버가 연결을 끊는다")
+    void cannotSubscribeRawQueue() throws Exception {
+        TestUser user = signupAndLogin();
+        StompSession session = connect(user);
+        subscribe(session, "/queue/notifications-user1");
+
+        assertThat(waitUntilDisconnected(session)).isTrue();
+    }
+
+    @Test
     @DisplayName("토큰 없이 또는 잘못된 토큰으로는 연결할 수 없다")
     void connectWithoutValidToken() {
         assertThatThrownBy(() -> connectWithToken(null)).isInstanceOf(ExecutionException.class);

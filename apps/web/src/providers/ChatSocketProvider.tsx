@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { API_BASE, api, getAccessToken, refreshTokens } from '../lib/api'
 import { keys, useChatRooms } from '../lib/queries'
-import type { ChatMessage } from '../lib/types'
+import type { AppNotification, ChatMessage } from '../lib/types'
 import { useAuth } from './AuthProvider'
 import { useToast } from './ToastProvider'
 
@@ -17,6 +17,14 @@ interface ChatSocketValue {
 }
 
 const ChatSocketContext = createContext<ChatSocketValue | null>(null)
+
+const RELATED_QUERIES: Record<AppNotification['type'], string[][]> = {
+  MATCH_REQUEST_RECEIVED: [['matchRequests']],
+  MATCH_REQUEST_ACCEPTED: [['matchRequests'], ['chatRooms'], ['manner']],
+  GATHERING_JOINED: [['gatherings'], ['chatRooms']],
+  GATHERING_CANCELED: [['gatherings'], ['chatRooms']],
+  MANNER_REVIEW_RECEIVED: [['manner'], ['me']],
+}
 
 function socketUrl() {
   const base = API_BASE || window.location.origin
@@ -50,6 +58,14 @@ export function ChatSocketProvider({ children }: { children: ReactNode }) {
       onConnect: () => {
         setConnected(true)
         client.subscribe('/user/queue/errors', (frame) => toast(JSON.parse(frame.body).message, 'error'))
+        client.subscribe('/user/queue/notifications', (frame) => {
+          const notification = JSON.parse(frame.body) as AppNotification
+          toast(notification.title)
+          void queryClient.invalidateQueries({ queryKey: keys.notifications })
+          // 알림 종류에 따라 바뀌었을 화면 데이터도 새로 고친다
+          const related = RELATED_QUERIES[notification.type] ?? []
+          related.forEach((queryKey) => void queryClient.invalidateQueries({ queryKey }))
+        })
       },
       onWebSocketClose: () => setConnected(false),
       onStompError: () => {
@@ -64,7 +80,7 @@ export function ChatSocketProvider({ children }: { children: ReactNode }) {
       clientRef.current = null
       setConnected(false)
     }
-  }, [loggedIn, toast])
+  }, [loggedIn, toast, queryClient])
 
   // 채팅방 목록이 바뀌면(새 매칭 등) 구독도 다시 맞춘다
   const roomIds = rooms?.map((room) => room.roomId).join(',') ?? ''

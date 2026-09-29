@@ -54,6 +54,20 @@ public enum ErrorCode {
     ALREADY_MATCHED(HttpStatus.CONFLICT, "이미 매칭되어 채팅방이 있는 상대입니다."),
     INVALID_MATCH_REQUEST_STATUS(HttpStatus.CONFLICT, "이미 처리된 매칭 요청입니다."),
 
+    // 모임
+    GATHERING_NOT_FOUND(HttpStatus.NOT_FOUND, "모임을 찾을 수 없어요."),
+    GATHERING_FULL(HttpStatus.CONFLICT, "정원이 다 찼거나 모집이 끝난 모임이에요."),
+    GATHERING_ALREADY_STARTED(HttpStatus.CONFLICT, "이미 시작된 모임이에요."),
+    ALREADY_JOINED(HttpStatus.CONFLICT, "이미 참여한 모임이에요."),
+    NOT_JOINED(HttpStatus.BAD_REQUEST, "참여하지 않은 모임이에요."),
+    HOST_CANNOT_LEAVE(HttpStatus.BAD_REQUEST, "모임장은 나갈 수 없어요. 모임을 취소해 주세요."),
+    NOT_GATHERING_HOST(HttpStatus.FORBIDDEN, "모임장만 할 수 있어요."),
+    INVALID_GATHERING_TIME(HttpStatus.BAD_REQUEST, "모임 시간은 지금부터 10분 뒤 ~ 60일 안으로 정해 주세요."),
+
+    // 매너 평가
+    REVIEW_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "함께 운동한 사람만 평가할 수 있어요."),
+    DUPLICATE_REVIEW(HttpStatus.CONFLICT, "이미 평가한 상대예요."),
+
     // 채팅
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."),
     CHAT_UNAVAILABLE(HttpStatus.FORBIDDEN, "메시지를 보낼 수 없는 채팅방이에요."),

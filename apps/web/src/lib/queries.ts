@@ -2,6 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api'
 import type {
   ChatRoom,
+  GatheringDetail,
+  GatheringInput,
+  GatheringSummary,
+  MannerRating,
+  MannerSummary,
+  MannerTag,
+  NotificationPage,
+  PendingReview,
   LocationSuggestion,
   MatchCandidate,
   MatchRequest,
@@ -21,6 +29,12 @@ export const keys = {
   chatRooms: ['chatRooms'] as const,
   messages: (roomId: number) => ['messages', roomId] as const,
   presence: (userIds: number[]) => ['presence', ...userIds] as const,
+  gatherings: (sportId: number | null, radiusKm: number | null) => ['gatherings', 'nearby', sportId, radiusKm] as const,
+  myGatherings: ['gatherings', 'mine'] as const,
+  gathering: (id: number) => ['gatherings', 'detail', id] as const,
+  pendingReviews: ['manner', 'pending'] as const,
+  manner: (userId: number) => ['manner', 'summary', userId] as const,
+  notifications: ['notifications'] as const,
 }
 
 export function useMe(enabled = true) {
@@ -76,6 +90,48 @@ export function fetchMessages(roomId: number, cursor?: number | null) {
   return api.get<MessagePage>(`/api/chat-rooms/${roomId}/messages?${params}`)
 }
 
+export function useNearbyGatherings(sportId: number | null, radiusKm: number | null, enabled: boolean) {
+  return useQuery({
+    queryKey: keys.gatherings(sportId, radiusKm),
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (sportId) params.set('sportId', String(sportId))
+      if (radiusKm) params.set('radiusKm', String(radiusKm))
+      return api.get<GatheringSummary[]>(`/api/gatherings?${params}`)
+    },
+    enabled,
+  })
+}
+
+export function useMyGatherings() {
+  return useQuery({ queryKey: keys.myGatherings, queryFn: () => api.get<GatheringSummary[]>('/api/gatherings/mine') })
+}
+
+export function useGathering(id: number) {
+  return useQuery({
+    queryKey: keys.gathering(id),
+    queryFn: () => api.get<GatheringDetail>(`/api/gatherings/${id}`),
+    retry: false,
+  })
+}
+
+export function usePendingReviews() {
+  return useQuery({ queryKey: keys.pendingReviews, queryFn: () => api.get<PendingReview[]>('/api/manner/pending') })
+}
+
+export function useMannerSummary(userId: number | undefined) {
+  return useQuery({
+    queryKey: keys.manner(userId ?? 0),
+    queryFn: () => api.get<MannerSummary>(`/api/users/${userId}/manner`),
+    enabled: !!userId,
+  })
+}
+
+/** 최근 알림 30개와 안 읽은 수. 새 알림은 WebSocket으로 오면 다시 불러온다 */
+export function useNotifications() {
+  return useQuery({ queryKey: keys.notifications, queryFn: () => api.get<NotificationPage>('/api/notifications') })
+}
+
 // ---------- 변경 ----------
 
 function useInvalidate() {
@@ -99,6 +155,50 @@ export function useHandleMatchRequest() {
     mutationFn: ({ id, action }: { id: number; action: 'accept' | 'reject' | 'cancel' }) =>
       api.post<{ matchRequestId: number; chatRoomId: number } | undefined>(`/api/match-requests/${id}/${action}`),
     onSuccess: () => invalidate(['matchRequests'], ['chatRooms']),
+  })
+}
+
+export function useCreateGathering() {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: (body: GatheringInput) => api.post<GatheringDetail>('/api/gatherings', body),
+    onSuccess: () => invalidate(['gatherings'], ['chatRooms']),
+  })
+}
+
+/** 참여 / 나가기 / 취소. 인원·채팅방 목록이 바뀌므로 관련 목록을 모두 새로 고친다 */
+export function useGatheringAction() {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: ({ id, action }: { id: number; action: 'join' | 'leave' | 'cancel' }) => {
+      if (action === 'join') return api.post<{ gatheringId: number; chatRoomId: number }>(`/api/gatherings/${id}/participants`)
+      if (action === 'leave') return api.delete<undefined>(`/api/gatherings/${id}/participants/me`)
+      return api.delete<undefined>(`/api/gatherings/${id}`)
+    },
+    onSuccess: () => invalidate(['gatherings'], ['chatRooms']),
+  })
+}
+
+export function useSubmitReview() {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: (body: {
+      targetId: number
+      gatheringId: number | null
+      matchRequestId: number | null
+      rating: MannerRating
+      tags: MannerTag[]
+    }) => api.post<undefined>('/api/manner/reviews', body),
+    onSuccess: () => invalidate(['manner']),
+  })
+}
+
+export function useReadNotifications() {
+  const invalidate = useInvalidate()
+  return useMutation({
+    mutationFn: (id: number | 'all') =>
+      api.post<undefined>(id === 'all' ? '/api/notifications/read-all' : `/api/notifications/${id}/read`),
+    onSuccess: () => invalidate([...keys.notifications]),
   })
 }
 
