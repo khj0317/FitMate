@@ -18,6 +18,9 @@ test('글을 쓰면 다른 사람이 댓글·좋아요를 남길 수 있고, 글
   await reader.goto('/community')
   await reader.getByRole('button', { name: '전체', exact: true }).click()
   await reader.locator('a[href="' + postUrl + '"]').click()
+  // 피드에도 좋아요 버튼이 여러 개 있으므로 상세 화면으로 넘어간 뒤에 찾는다
+  await expect(reader).toHaveURL(new RegExp(`${postUrl}$`))
+  await expect(reader.getByText(content)).toBeVisible()
   await reader.getByRole('button', { name: '좋아요' }).click()
   await expect(reader.getByRole('button', { name: '좋아요 취소' })).toContainText('1')
 
