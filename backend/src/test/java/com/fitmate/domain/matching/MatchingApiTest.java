@@ -33,6 +33,8 @@ class MatchingApiTest extends IntegrationTest {
     private double baseLng;
 
     private TestUser me;
+    private TestUser near;
+    private TestUser runner;
     private Long nearId;
     private Long runnerId;
     private Long midId;
@@ -50,13 +52,13 @@ class MatchingApiTest extends IntegrationTest {
         setTimes(me, time("MONDAY", "19:00", "21:00"), time("SATURDAY", "09:00", "12:00"));
 
         // 0.9km, 헬스 중급(같은 실력), 월 19~21시(2시간 겹침) → 1순위
-        TestUser near = signupAndLogin();
+        near = signupAndLogin();
         nearId = placeAt(near, 0.9, 0);
         setSports(near, sport(GYM, "INTERMEDIATE"));
         setTimes(near, time("MONDAY", "19:00", "21:00"));
 
         // 2km, 러닝 초급(같은 실력), 겹치는 시간 없음 → 2순위
-        TestUser runner = signupAndLogin();
+        runner = signupAndLogin();
         runnerId = placeAt(runner, 0, 2);
         setSports(runner, sport(RUNNING, "BEGINNER"));
 
@@ -119,6 +121,36 @@ class MatchingApiTest extends IntegrationTest {
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(ids(body)).containsExactly(nearId);
+    }
+
+    @Test
+    @DisplayName("요청을 보냈거나 받은 사람, 이미 매칭된 사람은 추천에서 빠진다")
+    void excludePendingAndMatched() throws Exception {
+        Long requestId = createdMatchRequestId(me, near);
+        assertThat(ids(recommend("").andReturn().getResponse().getContentAsString())).doesNotContain(nearId);
+        // 받은 쪽에서도 요청을 보낸 사람이 추천에 보이지 않는다
+        assertThat(ids(call(HttpMethod.GET, "/api/matching/recommendations?sportId=" + GYM, null, near.accessToken())
+                .andReturn().getResponse().getContentAsString())).doesNotContain(me.id());
+
+        call(HttpMethod.POST, "/api/match-requests/" + requestId + "/accept", null, near.accessToken())
+                .andExpect(status().isOk());
+        assertThat(ids(recommend("").andReturn().getResponse().getContentAsString()))
+                .doesNotContain(nearId)
+                .contains(runnerId, midId);
+    }
+
+    @Test
+    @DisplayName("차단한 사람과 나를 차단한 사람은 추천에서 빠지고, 해제하면 다시 나온다")
+    void excludeBlocked() throws Exception {
+        call(HttpMethod.PUT, "/api/users/" + runnerId + "/block", null, me.accessToken());
+        call(HttpMethod.PUT, "/api/users/" + me.id() + "/block", null, near.accessToken());
+
+        assertThat(ids(recommend("").andReturn().getResponse().getContentAsString()))
+                .containsExactly(midId);
+
+        call(HttpMethod.DELETE, "/api/users/" + runnerId + "/block", null, me.accessToken());
+        assertThat(ids(recommend("").andReturn().getResponse().getContentAsString()))
+                .containsExactly(runnerId, midId);
     }
 
     @Test

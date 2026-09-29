@@ -1,5 +1,7 @@
 package com.fitmate.domain.user;
 
+import com.fitmate.domain.auth.RefreshTokenStore;
+import com.fitmate.domain.safety.SafetyService;
 import com.fitmate.domain.sport.Sport;
 import com.fitmate.domain.sport.SportRepository;
 import com.fitmate.domain.user.dto.UserRequests;
@@ -10,6 +12,7 @@ import com.fitmate.global.image.ImagePurpose;
 import com.fitmate.global.image.ImageUploader;
 import com.fitmate.global.util.GeoPoints;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,13 +34,40 @@ public class UserService {
     private final UserRepository userRepository;
     private final SportRepository sportRepository;
     private final ImageUploader imageUploader;
+    private final SafetyService safetyService;
+    private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenStore refreshTokenStore;
 
     public UserResponses.MyProfile getMyProfile(Long userId) {
         return UserResponses.MyProfile.from(getUser(userId));
     }
 
-    public UserResponses.PublicProfile getPublicProfile(Long userId) {
+    /** 차단 관계면 없는 사용자처럼 보인다 */
+    public UserResponses.PublicProfile getPublicProfile(Long viewerId, Long userId) {
+        if (safetyService.isBlockedBetween(viewerId, userId)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
         return UserResponses.PublicProfile.from(getUser(userId));
+    }
+
+    /**
+     * 회원 탈퇴: 계정과 개인정보(프로필·사진·지역·운동 정보)를 완전히 지우고 모든 기기에서 로그아웃한다.
+     * - 운동 종목·시간·매칭 요청·채팅방 참여·차단은 DB의 ON DELETE CASCADE로 함께 지워진다
+     * - 상대방 채팅방의 메시지는 남기되 보낸 사람은 비운다(ON DELETE SET NULL) → "탈퇴한 회원"으로 표시
+     * - 신고 기록은 운영 검토를 위해 남긴다(ID만 비움)
+     */
+    @Transactional
+    public void deleteAccount(Long userId, String password) {
+        User user = getUser(userId);
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.INVALID_PASSWORD);
+        }
+        if (user.getProfileImageUrl() != null) {
+            imageUploader.deleteAfterCommit(user.getProfileImageUrl());
+        }
+        userRepository.delete(user);
+        userRepository.flush(); // 삭제 실패(제약 조건 등)를 여기서 확인한 뒤에 토큰을 폐기한다
+        refreshTokenStore.revokeAll(userId);
     }
 
     @Transactional

@@ -16,7 +16,7 @@ public class MatchCandidateQuery {
 
     /*
      * 1) ST_DWithin + GIST 인덱스로 반경 안의 사용자만 거른다 (geography 타입이라 단위는 미터)
-     * 2) 검색 종목 중 하나 이상을 하는 사람만 남기고, 가까운 순으로 poolSize명까지 자른다
+     * 2) 검색 종목 중 하나 이상을 하는 사람만 남기고(차단·매칭 완료·대기 중 요청 제외), 가까운 순으로 poolSize명까지 자른다
      * 3) 후보별로 나와 같은 요일에 겹치는 운동 가능 시간(분)을 합산한다
      */
     private static final String SQL = """
@@ -32,6 +32,22 @@ public class MatchCandidateQuery {
                   AND EXISTS (
                       SELECT 1 FROM user_sports us
                       WHERE us.user_id = u.id AND us.sport_id IN (:sportIds)
+                  )
+                  -- 차단 관계(어느 쪽이든), 이미 매칭된 사람, 대기 중인 요청이 있는 사람은 추천하지 않는다
+                  AND NOT EXISTS (
+                      SELECT 1 FROM user_blocks b
+                      WHERE (b.blocker_id = me.id AND b.blocked_id = u.id)
+                         OR (b.blocker_id = u.id AND b.blocked_id = me.id)
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM chat_rooms cr
+                      WHERE cr.direct_key = LEAST(u.id, me.id) || ':' || GREATEST(u.id, me.id)
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM match_requests mr
+                      WHERE mr.status = 'PENDING'
+                        AND ((mr.requester_id = me.id AND mr.receiver_id = u.id)
+                          OR (mr.requester_id = u.id AND mr.receiver_id = me.id))
                   )
                 ORDER BY distance_meters
                 LIMIT :poolSize

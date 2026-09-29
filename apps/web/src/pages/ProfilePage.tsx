@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { AtSign, LogOut, PartyPopper, RotateCcw, Save, Thermometer } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
+import { AccountSafetySection } from '../components/AccountSafetySection'
 import { BirthDateInput } from '../components/BirthDateInput'
 import { LocationSearch } from '../components/LocationSearch'
 import { ProfilePhoto } from '../components/ProfilePhoto'
@@ -372,6 +373,10 @@ function ProfileForm({ me }: { me: MyProfile }) {
             )}
           </div>
         </Section>
+      </div>
+
+      <div className="mt-6">
+        <AccountSafetySection />
       </div>
 
       {/* 모바일에는 사이드바가 없어서 여기서 로그아웃한다 */}

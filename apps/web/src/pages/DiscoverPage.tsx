@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Avatar } from '../components/Avatar'
 import { Modal } from '../components/Modal'
+import { SafetyMenu } from '../components/SafetyMenu'
 import { ScoreRing } from '../components/ScoreRing'
 import { Badge, Button, Card, Chip, EmptyState, Field, PageHeader, PageLoader, Textarea } from '../components/ui'
 import { ApiError, errorMessage } from '../lib/api'
@@ -229,17 +230,20 @@ function CandidateCard({
           ))}
         </div>
 
-        <Button className="mt-5 w-full" variant={requested ? 'secondary' : 'primary'} disabled={requested} onClick={onRequest}>
-          {requested ? (
-            <>
-              <Check className="size-4" /> 요청 보냄
-            </>
-          ) : (
-            <>
-              <Send className="size-4" /> 같이 운동하기
-            </>
-          )}
-        </Button>
+        <div className="mt-5 flex gap-2">
+          <Button className="flex-1" variant={requested ? 'secondary' : 'primary'} disabled={requested} onClick={onRequest}>
+            {requested ? (
+              <>
+                <Check className="size-4" /> 요청 보냄
+              </>
+            ) : (
+              <>
+                <Send className="size-4" /> 같이 운동하기
+              </>
+            )}
+          </Button>
+          <SafetyMenu user={{ id: candidate.userId, nickname: candidate.nickname }} />
+        </div>
       </div>
     </Card>
   )

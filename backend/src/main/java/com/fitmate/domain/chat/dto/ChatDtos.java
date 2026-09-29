@@ -55,7 +55,8 @@ public final class ChatDtos {
             ChatRoomType type,
             Counterpart counterpart,
             LastMessage lastMessage,
-            long unreadCount
+            long unreadCount,
+            boolean canSend
     ) {
     }
 

@@ -127,6 +127,17 @@ export interface ChatRoom {
   counterpart: { userId: number; nickname: string; profileImageUrl: string | null } | null
   lastMessage: { id: number; content: string; createdAt: string } | null
   unreadCount: number
+  /** 상대가 탈퇴했거나 차단 관계면 false */
+  canSend: boolean
+}
+
+export type ReportReason = 'SPAM' | 'ABUSE' | 'SEXUAL' | 'FAKE_PROFILE' | 'NO_SHOW' | 'OTHER'
+
+export interface BlockedUser {
+  userId: number
+  nickname: string
+  profileImageUrl: string | null
+  blockedAt: string
 }
 
 export interface MessagePage {

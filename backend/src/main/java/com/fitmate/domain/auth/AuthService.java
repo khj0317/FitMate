@@ -21,6 +21,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AccessTokenIssuer accessTokenIssuer;
     private final RefreshTokenStore refreshTokenStore;
+    private final LoginAttemptLimiter loginAttemptLimiter;
 
     /**
      * 사전 중복 검사는 친절한 에러 메시지용이고, 동시 가입 요청은 DB 유니크 제약이 최종적으로 막는다.
@@ -55,11 +56,17 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
-    public AuthResponses.Token login(AuthRequests.Login request) {
+    public AuthResponses.Token login(AuthRequests.Login request, String clientIp) {
+        loginAttemptLimiter.checkAllowed(request.loginId(), clientIp);
         // 아이디 존재 여부를 노출하지 않도록 계정이 없을 때와 비밀번호가 틀릴 때 같은 에러를 준다
         User user = userRepository.findByLoginId(request.loginId())
                 .filter(found -> passwordEncoder.matches(request.password(), found.getPasswordHash()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
+                .orElse(null);
+        if (user == null) {
+            loginAttemptLimiter.recordFailure(request.loginId(), clientIp);
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+        }
+        loginAttemptLimiter.reset(request.loginId());
         return issueTokens(user.getId());
     }
 

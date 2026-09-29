@@ -28,12 +28,15 @@ public class GlobalExceptionHandler {
             "users_email_key", ErrorCode.DUPLICATE_EMAIL,
             "users_nickname_key", ErrorCode.DUPLICATE_NICKNAME,
             "uq_match_requests_pending", ErrorCode.DUPLICATE_MATCH_REQUEST,
-            "uq_chat_rooms_direct_key", ErrorCode.ALREADY_MATCHED
+            "uq_chat_rooms_direct_key", ErrorCode.ALREADY_MATCHED,
+            "uq_user_reports_pending", ErrorCode.DUPLICATE_REPORT
     );
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusiness(BusinessException e) {
-        return toResponse(e.getErrorCode());
+        ErrorCode code = e.getErrorCode();
+        return ResponseEntity.status(code.getStatus())
+                .body(new ErrorResponse(code.getStatus().value(), code.name(), e.getMessage(), List.of()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

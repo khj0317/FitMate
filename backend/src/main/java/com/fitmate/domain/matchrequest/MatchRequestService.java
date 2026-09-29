@@ -3,6 +3,7 @@ package com.fitmate.domain.matchrequest;
 import com.fitmate.domain.chat.ChatRoom;
 import com.fitmate.domain.chat.ChatRoomRepository;
 import com.fitmate.domain.matchrequest.dto.MatchRequestDtos;
+import com.fitmate.domain.safety.SafetyService;
 import com.fitmate.domain.sport.Sport;
 import com.fitmate.domain.sport.SportRepository;
 import com.fitmate.domain.user.User;
@@ -24,6 +25,7 @@ public class MatchRequestService {
     private final UserRepository userRepository;
     private final SportRepository sportRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final SafetyService safetyService;
 
     /**
      * 대기 중 요청 중복은 사전 검사로 친절한 에러를 주고,
@@ -36,6 +38,9 @@ public class MatchRequestService {
         }
         User requester = getUser(requesterId);
         User receiver = getUser(request.receiverId());
+        if (safetyService.isBlockedBetween(requesterId, receiver.getId())) {
+            throw new BusinessException(ErrorCode.USER_UNAVAILABLE);
+        }
         Sport sport = sportRepository.findById(request.sportId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.SPORT_NOT_FOUND));
 
@@ -79,6 +84,9 @@ public class MatchRequestService {
         MatchRequest request = lockForReceiver(userId, requestId);
         User requester = request.getRequester();
         User receiver = request.getReceiver();
+        if (safetyService.isBlockedBetween(requester.getId(), receiver.getId())) {
+            throw new BusinessException(ErrorCode.USER_UNAVAILABLE);
+        }
 
         ChatRoom room = chatRoomRepository.findByDirectKey(ChatRoom.directKey(requester.getId(), receiver.getId()))
                 .orElseGet(() -> chatRoomRepository.save(ChatRoom.direct(requester, receiver)));

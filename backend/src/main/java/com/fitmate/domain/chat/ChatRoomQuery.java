@@ -31,7 +31,12 @@ public class ChatRoomQuery {
                     FROM chat_messages cm
                     WHERE cm.room_id = r.id
                       AND cm.id > COALESCE(me.last_read_message_id, 0)
-                      AND cm.sender_id IS DISTINCT FROM me.user_id) AS unread_count
+                      AND cm.sender_id IS DISTINCT FROM me.user_id) AS unread_count,
+                   -- 1:1 방은 상대가 탈퇴했거나 차단 관계면 보낼 수 없다
+                   (r.type <> 'DIRECT' OR (other.id IS NOT NULL AND NOT EXISTS (
+                        SELECT 1 FROM user_blocks b
+                        WHERE (b.blocker_id = me.user_id AND b.blocked_id = other.id)
+                           OR (b.blocker_id = other.id AND b.blocked_id = me.user_id)))) AS can_send
             FROM chat_room_members me
             JOIN chat_rooms r ON r.id = me.room_id
             LEFT JOIN chat_room_members om
@@ -45,6 +50,10 @@ public class ChatRoomQuery {
                 LIMIT 1
             ) lm ON TRUE
             WHERE me.user_id = :userId
+              -- 내가 차단한 사람과의 방은 목록에서 숨긴다
+              AND NOT EXISTS (
+                  SELECT 1 FROM user_blocks b WHERE b.blocker_id = me.user_id AND b.blocked_id = om.user_id
+              )
             ORDER BY COALESCE(lm.id, 0) DESC, r.id DESC
             """;
 
@@ -58,7 +67,8 @@ public class ChatRoomQuery {
                         ChatRoomType.valueOf(rs.getString("type")),
                         counterpart(rs),
                         lastMessage(rs),
-                        rs.getLong("unread_count")))
+                        rs.getLong("unread_count"),
+                        rs.getBoolean("can_send")))
                 .list();
     }
 

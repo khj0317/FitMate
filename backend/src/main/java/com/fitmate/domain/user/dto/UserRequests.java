@@ -88,6 +88,9 @@ public final class UserRequests {
     ) {
     }
 
+    public record Withdrawal(@NotBlank(message = "비밀번호를 입력해 주세요.") String password) {
+    }
+
     public record UpdateLocation(
             @NotNull @DecimalMin("-90.0") @DecimalMax("90.0") Double latitude,
             @NotNull @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude,

@@ -1,6 +1,7 @@
 package com.fitmate.domain.chat;
 
 import com.fitmate.domain.chat.dto.ChatDtos;
+import com.fitmate.domain.safety.SafetyService;
 import com.fitmate.domain.user.User;
 import com.fitmate.domain.user.UserRepository;
 import com.fitmate.global.error.BusinessException;
@@ -36,6 +37,7 @@ public class ChatService {
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final ImageUploader imageUploader;
+    private final SafetyService safetyService;
 
     /**
      * 메시지를 저장하고, 커밋이 끝난 뒤 Redis로 발행한다(ChatMessagePublisher).
@@ -44,6 +46,7 @@ public class ChatService {
     @Transactional
     public ChatDtos.Message send(Long roomId, Long senderId, String content) {
         ChatRoomMember sender = getMember(roomId, senderId);
+        ensureCanSend(sender);
         String trimmed = content == null ? "" : content.strip();
         if (trimmed.isEmpty() || trimmed.length() > ChatMessage.MAX_LENGTH) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
@@ -56,9 +59,26 @@ public class ChatService {
     @Transactional
     public ChatDtos.Message sendImage(Long roomId, Long senderId, MultipartFile file) {
         ChatRoomMember sender = getMember(roomId, senderId);
+        ensureCanSend(sender); // 사진을 올리기 전에 확인해서 보낼 수 없는 방에 파일이 쌓이지 않게 한다
         StoredImage image = imageUploader.upload(file, ImagePurpose.CHAT);
         return publish(sender, messageRepository.save(
                 ChatMessage.image(roomId, senderId, image.url(), image.width(), image.height())));
+    }
+
+    /** 1:1 방에서 상대가 탈퇴했거나 차단 관계면 보낼 수 없다 */
+    private void ensureCanSend(ChatRoomMember sender) {
+        if (sender.getRoom().getType() != ChatRoomType.DIRECT) {
+            return;
+        }
+        Long me = sender.getId().getUserId();
+        Long other = memberRepository.findByIdRoomId(sender.getId().getRoomId()).stream()
+                .map(member -> member.getId().getUserId())
+                .filter(userId -> !userId.equals(me))
+                .findFirst()
+                .orElse(null);
+        if (other == null || safetyService.isBlockedBetween(me, other)) {
+            throw new BusinessException(ErrorCode.CHAT_UNAVAILABLE);
+        }
     }
 
     private ChatDtos.Message publish(ChatRoomMember sender, ChatMessage saved) {

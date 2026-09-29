@@ -5,6 +5,7 @@ import com.fitmate.domain.auth.dto.AuthResponses;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -32,8 +33,9 @@ public class AuthController {
 
     @Operation(summary = "로그인", description = "액세스 토큰(30분)과 리프레시 토큰(14일)을 발급합니다.")
     @PostMapping("/login")
-    public AuthResponses.Token login(@Valid @RequestBody AuthRequests.Login request) {
-        return authService.login(request);
+    public AuthResponses.Token login(@Valid @RequestBody AuthRequests.Login request, HttpServletRequest servletRequest) {
+        // 프록시 뒤에서는 server.forward-headers-strategy=native 설정으로 실제 클라이언트 IP가 들어온다
+        return authService.login(request, servletRequest.getRemoteAddr());
     }
 
     @Operation(summary = "토큰 재발급", description = "리프레시 토큰은 한 번만 사용할 수 있으며, 새 리프레시 토큰으로 교체됩니다.")

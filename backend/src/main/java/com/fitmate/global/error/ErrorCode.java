@@ -21,6 +21,8 @@ public enum ErrorCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않거나 만료된 토큰입니다."),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다."),
+    LOGIN_LOCKED(HttpStatus.TOO_MANY_REQUESTS, "로그인 시도가 너무 많아요. 잠시 후 다시 시도해 주세요."),
+    INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호가 올바르지 않아요."),
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 유효하지 않습니다. 다시 로그인해 주세요."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
     INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "인증 코드가 올바르지 않거나 만료되었습니다."),
@@ -53,7 +55,12 @@ public enum ErrorCode {
     INVALID_MATCH_REQUEST_STATUS(HttpStatus.CONFLICT, "이미 처리된 매칭 요청입니다."),
 
     // 채팅
-    CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다.");
+    CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."),
+    CHAT_UNAVAILABLE(HttpStatus.FORBIDDEN, "메시지를 보낼 수 없는 채팅방이에요."),
+
+    // 차단 · 신고
+    USER_UNAVAILABLE(HttpStatus.BAD_REQUEST, "요청을 보낼 수 없는 사용자예요."),
+    DUPLICATE_REPORT(HttpStatus.CONFLICT, "이미 신고한 사용자예요. 운영자가 검토하고 있어요.");
 
     private final HttpStatus status;
     private final String message;

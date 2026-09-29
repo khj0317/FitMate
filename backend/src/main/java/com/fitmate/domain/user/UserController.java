@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -87,7 +89,17 @@ public class UserController {
 
     @Operation(summary = "다른 사용자 프로필 조회")
     @GetMapping("/{userId}")
-    public UserResponses.PublicProfile getPublicProfile(@PathVariable Long userId) {
-        return userService.getPublicProfile(userId);
+    public UserResponses.PublicProfile getPublicProfile(@Parameter(hidden = true) @LoginUserId Long viewerId,
+                                                        @PathVariable Long userId) {
+        return userService.getPublicProfile(viewerId, userId);
+    }
+
+    @Operation(summary = "회원 탈퇴",
+            description = "비밀번호를 확인한 뒤 계정과 개인정보를 삭제하고 모든 기기에서 로그아웃합니다. 되돌릴 수 없습니다.")
+    @PostMapping("/me/withdrawal")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void withdraw(@Parameter(hidden = true) @LoginUserId Long userId,
+                         @Valid @RequestBody UserRequests.Withdrawal request) {
+        userService.deleteAccount(userId, request.password());
     }
 }

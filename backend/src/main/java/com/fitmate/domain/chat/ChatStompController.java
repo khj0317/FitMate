@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
+import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
@@ -29,7 +30,7 @@ public class ChatStompController {
     @MessageExceptionHandler(BusinessException.class)
     @SendToUser(destinations = "/queue/errors", broadcast = false)
     public ErrorResponse handleBusiness(BusinessException e) {
-        return ErrorResponse.of(e.getErrorCode());
+        return new ErrorResponse(e.getErrorCode().getStatus().value(), e.getErrorCode().name(), e.getMessage(), List.of());
     }
 
     @MessageExceptionHandler(Exception.class)

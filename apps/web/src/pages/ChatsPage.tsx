@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Keyboar
 import { Link, useNavigate, useParams } from 'react-router'
 import { Avatar } from '../components/Avatar'
 import { EmojiPicker, isBigEmoji } from '../components/EmojiPicker'
+import { SafetyMenu } from '../components/SafetyMenu'
 import { Button, EmptyState, Spinner } from '../components/ui'
 import { api, errorMessage, fileUrl } from '../lib/api'
 import { compressImage, ImageError } from '../lib/image'
@@ -79,7 +80,7 @@ export function ChatsPage() {
 }
 
 function RoomItem({ room, active, online }: { room: ChatRoom; active: boolean; online: boolean }) {
-  const name = room.counterpart?.nickname ?? `채팅방 ${room.roomId}`
+  const name = room.counterpart?.nickname ?? '탈퇴한 회원'
   return (
     <Link
       to={`/chats/${room.roomId}`}
@@ -134,7 +135,7 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
   const preserveFromBottom = useRef<number | null>(null)
   const lastReadId = useRef(0)
 
-  const name = room.counterpart?.nickname ?? `채팅방 ${room.roomId}`
+  const name = room.counterpart?.nickname ?? '탈퇴한 회원'
 
   // 처음 열면 최근 메시지를 불러온다 (서버는 최신순이므로 뒤집어서 표시)
   useEffect(() => {
@@ -303,6 +304,14 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
             {!connected && <span className="text-amber-600">· 내 연결 재시도 중</span>}
           </p>
         </div>
+        {room.counterpart && (
+          <SafetyMenu
+            user={{ id: room.counterpart.userId, nickname: room.counterpart.nickname }}
+            onBlocked={() => navigate('/chats')}
+            placement="down"
+            className="[&>button]:size-9 [&>button]:ring-0"
+          />
+        )}
       </header>
 
       <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto bg-ink-50/60 px-4 py-4 scrollbar-thin">
@@ -341,6 +350,11 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
 
       {viewer && <PhotoViewer url={viewer} onClose={() => setViewer(null)} />}
 
+      {!room.canSend ? (
+        <div className="border-t border-ink-100 bg-ink-50 p-4 pb-safe text-center text-sm text-ink-500 md:pb-4">
+          {room.counterpart ? '메시지를 보낼 수 없는 채팅방이에요' : '대화 상대가 탈퇴해서 메시지를 보낼 수 없어요'}
+        </div>
+      ) : (
       <div className="relative border-t border-ink-100 bg-white p-3 pb-safe md:pb-3">
         {emojiOpen && <EmojiPicker onSelect={insertEmoji} onClose={closeEmoji} />}
         <div className="flex items-end gap-1 rounded-3xl bg-ink-50 p-1.5 ring-1 ring-ink-200 focus-within:ring-2 focus-within:ring-brand-400">
@@ -407,6 +421,7 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
           </button>
         </div>
       </div>
+      )}
     </div>
   )
 }
