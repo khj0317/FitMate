@@ -9,7 +9,7 @@
                                  └──▶ Upstash Redis (토큰 · 실시간 메시지 · 접속 상태 · 요청 제한)
 ```
 
-모든 서비스를 **싱가포르 리전**으로 맞추면 서버끼리 주고받는 지연이 가장 짧습니다 (Render·Railway의 아시아 리전이 싱가포르). 전부 무료 플랜으로 운영할 수 있습니다.
+모든 서비스를 **싱가포르 리전**으로 맞추면 서버끼리 주고받는 지연이 가장 짧습니다 (Render의 아시아 리전이 싱가포르). 전부 무료 플랜으로 운영할 수 있습니다.
 
 순서: **① Supabase → ② Upstash → ③ Render(API, 무료) → ④ Vercel(웹) → ⑤ CORS 마무리**
 
@@ -29,7 +29,7 @@
      - `DB_URL` = `jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require`
      - `DB_USERNAME` = `postgres.<ref>`
      - `DB_PASSWORD` = 1에서 만든 비밀번호
-   - **Direct connection이 아니라 Session pooler**를 쓰는 이유: Direct는 IPv6 전용이라 Railway에서 접속이 안 될 수 있음. Transaction pooler(6543)는 JDBC Prepared Statement와 맞지 않음
+   - **Direct connection이 아니라 Session pooler**를 쓰는 이유: Direct는 IPv6 전용이라 IPv4만 되는 호스팅(Render 등)에서 접속이 안 될 수 있음. Transaction pooler(6543)는 JDBC Prepared Statement와 맞지 않음
    - PostGIS는 따로 켤 필요 없습니다. 서버가 처음 뜰 때 Flyway 마이그레이션이 `CREATE EXTENSION postgis`까지 실행합니다
 3. **사진 저장소**: 왼쪽 **Storage** → **New bucket**
    - 이름 `fitmate`, **Public bucket 켜기** (사진 URL을 로그인 없이 보여 주기 위해. 파일명은 추측할 수 없는 UUID)
@@ -60,8 +60,6 @@ Render 무료 플랜은 메일 포트(SMTP)를 막아서, 가입 이메일 인�
 
 ## ③ Render (API 서버, 무료)
 
-> 유료(월 $5)여도 괜찮다면 Railway를 써도 됩니다 → 맨 아래 [Railway로 배포하기](#railway로-배포하기-유료) 참고
-
 무료 플랜의 특징
 - 메모리 512MB: 이 값에 맞춘 설정이 `render.yaml`에 들어 있습니다 (512MB로 제한한 컨테이너에 사진 업로드 부하를 걸어 검증)
 - **15분 동안 요청이 없으면 잠들고**, 다음 첫 요청에 30~60초 걸려 깨어납니다 → 아래 "잠들지 않게 하기"로 해결
@@ -73,28 +71,30 @@ Render 무료 플랜은 메일 포트(SMTP)를 막아서, 가입 이메일 인�
    - 저장소 목록에서 **khj0317/FitMate** → **Connect**
 3. Render가 저장소의 `render.yaml`을 읽어서 **fitmate-api** 서비스(Free, Singapore)를 보여 줍니다
    - Blueprint Name: `fitmate`
-   - 아래에 비밀 값 입력 칸이 나옵니다. `backend/.env.railway`에서 같은 이름의 값을 복사해 넣으세요
+   - 아래에 비밀 값 입력 칸이 나옵니다. ①·② 값을 모아 둔 로컬 파일 `backend/.env.deploy`(git에 올라가지 않음)에서 같은 이름의 값을 복사해 넣으세요
 
      | 칸 | 값 |
      |---|---|
-     | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | `.env.railway` 그대로 |
-     | `REDIS_URL` | `.env.railway` 그대로 |
-     | `JWT_SECRET` | `.env.railway` 그대로 |
+     | `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | ①의 DB 연결 정보 |
+     | `REDIS_URL` | ②의 Redis URL |
+     | `JWT_SECRET` | 32자 이상 임의 문자열 (`openssl rand -base64 48`) |
      | `CORS_ALLOWED_ORIGINS` | 지금은 `http://localhost:5173` (⑤에서 Vercel 주소로 바꿈) |
-     | `S3_ENDPOINT`, `S3_PUBLIC_URL`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | `.env.railway` 그대로 |
+     | `S3_ENDPOINT`, `S3_PUBLIC_URL`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | ①의 S3 키 |
+     | `BREVO_API_KEY`, `MAIL_FROM` | ①-2의 Brevo 키와 발신자 |
+     | `PROXY_SECRET` | 임의 문자열 (`openssl rand -hex 32`). ④ Vercel에도 같은 값 |
+     | `ADMIN_LOGIN_IDS` | 관리자로 쓸 내 아이디 (가입 후 넣어도 됨) |
 
    - 나머지(메모리 설정, 저장소 종류 등)는 `render.yaml`에 이미 들어 있어서 입력하지 않아도 됩니다
 4. **Apply** (또는 Deploy Blueprint) → 첫 빌드 5~10분
 5. 왼쪽 **fitmate-api** → **Logs**에서 아래가 보이면 성공
-   - `Successfully applied 7 migrations`
-   - `데모 사용자 30명을 생성했습니다`
+   - `Successfully applied ... migrations`
    - `Started BackendApplication`
 6. 서비스 화면 위쪽의 주소(`https://fitmate-api-xxxx.onrender.com`)를 복사 → ④에서 사용
    - 확인: `https://<주소>/actuator/health` → `{"status":"UP"}`
 
 > Blueprint에서 결제 수단을 요구하면: **+ New → Web Service** → FitMate 선택 →
 > Language **Docker**, Root Directory `backend`, Region **Singapore**, Instance Type **Free**,
-> Health Check Path `/actuator/health`, Environment Variables에 `.env.railway` 내용 + 아래 값 추가
+> Health Check Path `/actuator/health`, Environment Variables에 위 표의 값 + 아래 값 추가
 > ```env
 > JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=40 -XX:MaxMetaspaceSize=150m -XX:ReservedCodeCacheSize=40m -XX:MaxDirectMemorySize=32m -Xss512k -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Seoul
 > MALLOC_ARENA_MAX=2
@@ -120,7 +120,7 @@ Render 무료 플랜은 메일 포트(SMTP)를 막아서, 가입 이메일 인�
 
 ## ⑤ 마무리: CORS
 
-Render(fitmate-api → **Environment**) 또는 Railway(**Variables**)의 `CORS_ALLOWED_ORIGINS`를 ④의 Vercel 주소로 바꾸고 저장하면 자동으로 다시 배포됩니다.
+Render(fitmate-api → **Environment**)의 `CORS_ALLOWED_ORIGINS`를 ④의 Vercel 주소로 바꾸고 저장하면 자동으로 다시 배포됩니다.
 
 ```env
 CORS_ALLOWED_ORIGINS=https://fitmate-xxxx.vercel.app
@@ -147,7 +147,7 @@ CORS_ALLOWED_ORIGINS=https://fitmate-xxxx.vercel.app
 | 채팅이 "연결 중..."에서 멈춤 | 위와 같은 CORS 설정 (WebSocket도 같은 값을 씀) |
 | 사진 업로드 500 | S3 키·버킷 이름, 버킷이 Public인지 |
 | 사진이 안 보임 (403) | 버킷이 Public이 아님 |
-| 아이디·비밀번호 찾기 메일이 안 옴 | 메일은 선택 사항. `backend/.env.example`의 `MAIL_*`(예: Gmail 앱 비밀번호)을 넣어야 발송됨 |
+| 인증·계정 찾기 메일이 안 옴 | `BREVO_API_KEY`, `MAIL_FROM`(Brevo에서 인증한 발신자와 같은 주소) 확인. 받은 편지함에 없으면 스팸함 확인 |
 
 ## 운영 설정 요약
 
@@ -157,11 +157,3 @@ CORS_ALLOWED_ORIGINS=https://fitmate-xxxx.vercel.app
 - **헬스 체크**: `/actuator/health` (DB·Redis 포함)
 - **자동 배포**: `main`에 푸시 → GitHub Actions(백엔드 테스트, 웹 빌드, Docker 이미지 빌드) → Render(백엔드가 바뀐 경우)·Vercel이 각각 자동 배포
 - **작은 서버 대응**: 사진은 결과 크기의 2배까지만 줄여 읽고(subsampling), 동시에 처리하는 장수를 제한. 512MB 컨테이너에서 6명이 사진 4장씩 동시에 올려도 최대 452MB, 헬스 체크 지연 없음
-
-## Railway로 배포하기 (유료)
-
-Render 대신 Railway(체험 후 월 $5, 잠들지 않음)를 쓰려면:
-1. https://railway.com → GitHub로 가입 → **New Project → GitHub Repository → khj0317/FitMate**
-2. 서비스 **Settings**: Root Directory `/backend`, Config file `/backend/railway.json`, Region Singapore,
-   Networking → **Generate Domain** (포트 8081)
-3. **Variables → Raw Editor**에 `backend/.env.railway` 내용을 그대로 붙여넣기 → Deploy

@@ -112,11 +112,6 @@ public class Gathering {
         status = Status.CANCELED;
     }
 
-    /** 시작 시각이 지나면 저장된 상태와 상관없이 끝난 모임으로 본다 */
-    public Status effectiveStatus(Instant now) {
-        return status != Status.CANCELED && hasStarted(now) ? Status.COMPLETED : status;
-    }
-
     public enum Status {
         RECRUITING,
         CLOSED,

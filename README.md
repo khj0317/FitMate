@@ -32,7 +32,6 @@ fitmate/
 ├─ apps/
 │  ├─ web/             React 웹
 │  └─ mobile/          React Native 앱 (예정)
-├─ packages/           웹/앱 공유 코드 (OpenAPI 클라이언트 등, 예정)
 └─ docker-compose.yml  로컬 PostgreSQL(PostGIS) + Redis
 ```
 
@@ -364,17 +363,11 @@ docker run --rm -i -e BASE_URL=http://host.docker.internal:8081 grafana/k6 run -
 ## 로컬 데모 데이터
 `./gradlew bootRun`으로 실행하면 `local` 프로필이 켜지고, 처음 한 번 성수역 주변 8km 안에 데모 사용자 30명이 생성됩니다.
 
-- 계정: 아이디 `demo01` ~ `demo30`, 비밀번호 `password123` (이메일 `demo01@fitmate.com` 등록됨)
+- 계정: 아이디 `demo01` ~ `demo30`, 비밀번호 `password123` (이메일 `demo01@fitmate.com` 등록됨). 닉네임은 성별에 맞춘 실제 이름 (`demo01` 김도현, `demo02` 이수아, `demo03` 박지은 …)
 - `demo01`은 성수역에 있고 헬스·러닝을 합니다. 이 계정으로 로그인해서 `GET /api/matching/recommendations`를 호출해 보세요.
 - `demo01` ↔ `demo02`는 이미 매칭되어 대화가 있고, `demo03` → `demo01`로 대기 중인 매칭 요청이 있습니다.
 - 성수역 주변에 앞으로 열릴 모임 5개(`demo01`은 "서울숲 저녁 5km 러닝"에 참여 중)와 댓글이 달린 커뮤니티 글 6개가 있습니다.
 - 배포 환경에서는 만들어지지 않습니다 (`DEMO_DATA_ENABLED=false`).
-
-### 채팅 테스트 페이지 (로컬 전용)
-http://localhost:8081/dev/chat.html
-1. 브라우저 창 두 개를 열고 각각 `demo01`, `demo02`로 로그인
-2. 채팅방을 선택하고 메시지를 보내면 다른 창에 실시간으로 나타납니다
-3. 안 읽은 수 뱃지, 이전 메시지 더 보기도 확인할 수 있습니다
 
 ## ERD
 

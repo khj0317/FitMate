@@ -44,10 +44,6 @@ public class EmailVerificationService {
         this.enabled = enabled;
     }
 
-    public boolean isEnabled() {
-        return enabled;
-    }
-
     public void sendCode(String rawEmail) {
         String email = normalize(rawEmail);
         if (userRepository.existsByEmail(email)) {

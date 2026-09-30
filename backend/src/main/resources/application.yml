@@ -48,7 +48,7 @@ spring:
 
 server:
   port: ${PORT:8081}
-  # Railway 등 프록시 뒤에서 실제 클라이언트 IP를 쓴다 (로그인 제한용). native는 내부망 프록시가 붙인
+  # 프록시 뒤에서 실제 클라이언트 IP를 쓴다 (로그인 제한용). native는 내부망 프록시가 붙인
   # X-Forwarded-For만 믿어서, 클라이언트가 헤더를 위조해 IP 제한을 피하는 것을 막는다
   forward-headers-strategy: native
 

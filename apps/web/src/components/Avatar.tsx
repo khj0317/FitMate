@@ -1,5 +1,4 @@
 import clsx from 'clsx'
-import { fileUrl } from '../lib/api'
 
 const GRADIENTS = [
   'from-orange-400 to-rose-500',
@@ -17,12 +16,6 @@ const SIZES = {
   md: 'size-12 text-lg',
   lg: 'size-16 text-2xl',
   xl: 'size-24 text-4xl',
-}
-
-/** 데모 계정(데모_07)처럼 숫자로 구분되는 이름은 숫자를, 그 외에는 첫 글자를 보여준다. */
-function initials(name: string) {
-  const stripped = name.replace(/^데모_/, '')
-  return /^\d+$/.test(stripped) ? stripped.slice(-2) : stripped.charAt(0).toUpperCase()
 }
 
 /** 프로필 사진이 없으면 사용자 ID로 고른 그라데이션 위에 닉네임 첫 글자를 보여준다. */
@@ -57,7 +50,7 @@ export function Avatar({
     )
   }
   if (imageUrl) {
-    return <img src={fileUrl(imageUrl)!} alt="" className={clsx('shrink-0 rounded-full object-cover', SIZES[size], className)} />
+    return <img src={imageUrl} alt="" className={clsx('shrink-0 rounded-full object-cover', SIZES[size], className)} />
   }
   return (
     <div
@@ -69,7 +62,7 @@ export function Avatar({
         className,
       )}
     >
-      {initials(name)}
+      {name.charAt(0).toUpperCase()}
     </div>
   )
 }

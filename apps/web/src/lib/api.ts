@@ -1,10 +1,7 @@
 import type { ApiErrorBody, Tokens } from './types'
 
-/**
- * REST 요청은 항상 같은 주소(/api)로 보낸다. 개발 중에는 Vite 프록시, 배포에서는 vercel.json의 rewrite가
- * 백엔드로 전달한다. 같은 사이트로 보여야 리프레시 토큰 쿠키가 서드파티 쿠키로 막히지 않는다(Safari 등).
- */
-export const API_BASE = ''
+// REST 요청은 항상 같은 주소(/api)로 보낸다. 개발 중에는 Vite 프록시, 배포에서는 vercel.json의 rewrite가
+// 백엔드로 전달한다. 같은 사이트로 보여야 리프레시 토큰 쿠키가 서드파티 쿠키로 막히지 않는다(Safari 등).
 
 /** WebSocket은 프록시를 거치지 않고 백엔드에 바로 연결한다 (배포: VITE_API_URL, 개발: Vite 프록시) */
 export const SOCKET_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? ''
@@ -34,21 +31,6 @@ export class ApiError extends Error {
  */
 let accessToken: string | null = null
 const sessionListeners = new Set<(loggedIn: boolean) => void>()
-
-/**
- * 예전 버전은 두 토큰을 localStorage에 저장했다. 남아 있으면 한 번만 꺼내서 쿠키 방식으로 바꾸고 지운다
- * (업데이트 후에도 로그인이 풀리지 않게).
- */
-const LEGACY_STORAGE_KEY = 'fitmate.tokens'
-let legacyRefreshToken: string | null = (() => {
-  try {
-    const raw = localStorage.getItem(LEGACY_STORAGE_KEY)
-    localStorage.removeItem(LEGACY_STORAGE_KEY)
-    return raw ? ((JSON.parse(raw) as { refreshToken?: string }).refreshToken ?? null) : null
-  } catch {
-    return null
-  }
-})()
 
 export function getAccessToken() {
   return accessToken
@@ -112,14 +94,8 @@ async function trackedFetch(input: string, init: RequestInit, trackSlow = true):
 
 let refreshing: Promise<boolean> | null = null
 
-async function refreshOnce(): Promise<Response> {
-  const body = legacyRefreshToken ? JSON.stringify({ refreshToken: legacyRefreshToken }) : undefined
-  legacyRefreshToken = null
-  return trackedFetch(`${API_BASE}/api/auth/refresh`, {
-    method: 'POST',
-    headers: { ...AUTH_MODE_HEADER, ...(body && { 'Content-Type': 'application/json' }) },
-    body,
-  })
+function refreshOnce(): Promise<Response> {
+  return trackedFetch('/api/auth/refresh', { method: 'POST', headers: AUTH_MODE_HEADER })
 }
 
 /**
@@ -157,7 +133,7 @@ async function request<T>(method: string, path: string, body?: unknown, retry = 
   const token = getAccessToken()
   const isForm = body instanceof FormData // 파일 업로드는 브라우저가 boundary를 포함한 Content-Type을 직접 붙인다
   const res = await trackedFetch(
-    `${API_BASE}${path}`,
+    path,
     {
       method,
       headers: {
@@ -198,12 +174,6 @@ export const api = {
     form.append('file', file, filename)
     return request<T>('POST', path, form)
   },
-}
-
-/** 서버가 준 파일 경로(/files/...)를 실제 주소로 바꾼다. 외부 저장소(S3) URL은 그대로 둔다 */
-export function fileUrl(url: string | null | undefined) {
-  if (!url) return null
-  return url.startsWith('/') ? `${API_BASE}${url}` : url
 }
 
 export function errorMessage(error: unknown) {

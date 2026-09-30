@@ -65,6 +65,15 @@ public class DemoDataInitializer implements ApplicationRunner {
     private static final double CENTER_LNG = 127.0559;
     private static final double MAX_DISTANCE_KM = 8.0;
     private static final String[] AREAS = {"성수동", "건대입구", "왕십리", "뚝섬", "서울숲", "구의동", "자양동", "금호동"};
+    /** demoNN의 닉네임: 성별에 맞춰 둘 중 하나 (V10 마이그레이션과 같은 값) */
+    private static final String[] MALE_NAMES = {
+            "김도현", "이준서", "박현우", "최민재", "정우진", "박준호", "이성민", "강지훈", "조현석", "윤재석",
+            "정민혁", "최태윤", "강동욱", "한승우", "임현준", "송민규", "권태호", "유진우", "오태윤", "홍준영",
+            "배성훈", "서동욱", "신유찬", "조영호", "문재민", "백승현", "노정훈", "전민규", "안재원", "장석진"};
+    private static final String[] FEMALE_NAMES = {
+            "김서윤", "이수아", "박지은", "최윤정", "김하린", "정다은", "이유나", "정미경", "강서연", "조은영",
+            "한소영", "임채은", "송지아", "윤소희", "한지혜", "임다은", "권나연", "유가은", "송예린", "오세영",
+            "문채원", "서지현", "신예진", "조수빈", "배수빈", "홍나영", "권민지", "유선영", "안시은", "장유진"};
 
     private final UserRepository userRepository;
     private final SportRepository sportRepository;
@@ -98,7 +107,7 @@ public class DemoDataInitializer implements ApplicationRunner {
         int created = 0;
 
         for (int i = 1; i <= DEMO_USER_COUNT; i++) {
-            User user = new User(loginId(i), passwordHash, "데모_%02d".formatted(i));
+            User user = new User(loginId(i), passwordHash, "demo");
             user.changeEmail(loginId(i) + "@fitmate.com");
             if (i == 1) {
                 user.changeGender(Gender.MALE);
@@ -113,6 +122,7 @@ public class DemoDataInitializer implements ApplicationRunner {
             } else {
                 randomize(user, random, sports); // 이미 있는 사용자도 호출해서 난수 순서를 항상 같게 유지한다
             }
+            user.changeNickname((user.getGender() == Gender.MALE ? MALE_NAMES : FEMALE_NAMES)[i - 1]);
             if (!userRepository.existsByLoginId(loginId(i))) {
                 userRepository.save(user);
                 created++;

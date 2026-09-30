@@ -1,5 +1,5 @@
 # Render Blueprint: Render 대시보드 → New → Blueprint → 이 저장소를 고르면 아래 설정으로 API 서버를 만든다.
-# sync: false인 값(비밀번호·키)은 처음 만들 때 화면에서 직접 입력한다 (backend/.env.railway 값을 그대로 쓰면 됨)
+# sync: false인 값(비밀번호·키)은 처음 만들 때 화면에서 직접 입력한다 (backend/.env.deploy에 모아 둔 값)
 services:
   - type: web
     name: fitmate-api

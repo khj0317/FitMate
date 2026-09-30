@@ -7,7 +7,7 @@ test('1:1 채팅 메시지가 새로고침 없이 상대에게 도착하고, 상
   const receiver = await loginAs(browser, 'demo02')
 
   await sender.goto('/chats')
-  await sender.locator('a[href^="/chats/"]', { hasText: '데모_02' }).first().click()
+  await sender.locator('a[href^="/chats/"]', { hasText: '이수아' }).first().click()
   await expect(sender).toHaveURL(/\/chats\/\d+/)
 
   // 받는 사람은 채팅 목록 화면에 있다가 메시지를 받는다
@@ -23,7 +23,7 @@ test('1:1 채팅 메시지가 새로고침 없이 상대에게 도착하고, 상
   await expect(sentRow.getByLabel('1명 안 읽음')).toBeVisible()
 
   // 받는 쪽: 목록의 마지막 메시지가 바로 바뀌고, 방을 열면 메시지가 보인다
-  const room = receiver.locator('a[href^="/chats/"]', { hasText: '데모_01' }).first()
+  const room = receiver.locator('a[href^="/chats/"]', { hasText: '김도현' }).first()
   await expect(room).toContainText(text)
   await room.click()
   await expect(receiver.getByText(text)).toBeVisible()

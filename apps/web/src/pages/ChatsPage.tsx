@@ -8,7 +8,7 @@ import { EmojiPicker, isBigEmoji } from '../components/EmojiPicker'
 import { PhotoViewer } from '../components/PhotoViewer'
 import { SafetyMenu } from '../components/SafetyMenu'
 import { Button, EmptyState, Spinner } from '../components/ui'
-import { api, errorMessage, fileUrl } from '../lib/api'
+import { api, errorMessage } from '../lib/api'
 import { compressImage, ImageError } from '../lib/image'
 import { clockTime, dayLabel, isSameDay, presenceLabel, timeAgo } from '../lib/format'
 import { fetchMessages, keys, useChatRooms, useMe, usePresence } from '../lib/queries'
@@ -638,7 +638,7 @@ function withinMinutes(a: string, b: string, minutes: number) {
 
 /** 사진 크기를 미리 알고 있으므로 비율대로 자리를 잡아 두어, 사진이 늦게 떠도 스크롤이 튀지 않는다 */
 function PhotoBubble({ message, onOpen }: { message: ChatMessage; onOpen: (url: string) => void }) {
-  const url = fileUrl(message.imageUrl)!
+  const url = message.imageUrl!
   const ratio = message.imageWidth && message.imageHeight ? message.imageWidth / message.imageHeight : 4 / 3
   return (
     <button

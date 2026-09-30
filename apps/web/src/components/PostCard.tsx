@@ -2,7 +2,6 @@ import clsx from 'clsx'
 import { Heart, MessageCircle } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { fileUrl } from '../lib/api'
 import { CATEGORY_INFO } from '../lib/community'
 import { sportEmoji, timeAgo } from '../lib/format'
 import { useToggleLike } from '../lib/queries'
@@ -72,7 +71,7 @@ export function PostImages({ post, className }: { post: Post; className?: string
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
-              setViewer(fileUrl(image.url))
+              setViewer(image.url)
             }}
             className={clsx(
               'block cursor-zoom-in overflow-hidden bg-ink-100',
@@ -81,7 +80,7 @@ export function PostImages({ post, className }: { post: Post; className?: string
             aria-label="사진 크게 보기"
           >
             <img
-              src={fileUrl(image.url)!}
+              src={image.url}
               alt=""
               loading="lazy"
               className={clsx(

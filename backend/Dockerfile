@@ -23,9 +23,9 @@ RUN useradd --system --uid 1001 fitmate && mkdir -p /app/uploads && chown fitmat
 COPY --from=build --chown=fitmate:fitmate /app/app.jar app.jar
 USER fitmate
 
-# 컨테이너 메모리 한도에 맞춰 힙을 잡는다 (Railway 등 작은 인스턴스에서 OOM 방지)
+# 컨테이너 메모리 한도에 맞춰 힙을 잡는다 (작은 인스턴스에서 OOM 방지. Render 무료 플랜 값은 render.yaml)
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Seoul"
-# Railway는 PORT 환경 변수를 주고, application.yml이 server.port=${PORT}로 받는다
+# 호스팅이 PORT 환경 변수를 주면 application.yml이 server.port=${PORT}로 받는다
 EXPOSE 8081
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

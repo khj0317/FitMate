@@ -20,7 +20,6 @@ backend/uploads/
 # Frontend (Node)
 node_modules/
 dist/
-.expo/
 *.log
 
 # Playwright
