@@ -42,16 +42,7 @@
 
 ## 아키텍처
 
-```mermaid
-flowchart LR
-    U[브라우저] -->|HTTPS| V["Vercel<br/>React 웹 + /api 프록시"]
-    V -->|REST /api| R["Render<br/>Spring Boot (Docker)"]
-    U -->|WebSocket · STOMP| R
-    R --> P[("Supabase<br/>PostgreSQL + PostGIS")]
-    R --> S[("Supabase Storage<br/>사진 · S3 호환")]
-    R --> D[("Upstash Redis<br/>토큰 · Pub/Sub · 접속 상태 · 요청 제한")]
-    R --> M[Brevo<br/>메일 API]
-```
+![아키텍처](docs/architecture.png)
 
 | 영역 | 기술 |
 |---|---|

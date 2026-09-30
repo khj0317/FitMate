@@ -105,9 +105,11 @@ Render 무료 플랜은 메일 포트(SMTP)를 막아서, 가입 이메일 인�
 > (Environment Variables 화면의 **Add from .env** 버튼으로 한 번에 붙여 넣을 수 있습니다)
 
 ### 잠들지 않게 하기 (선택, 무료)
-포트폴리오를 보는 사람이 첫 화면에서 1분 가까이 기다리지 않게, 5분마다 서버를 두드려 깨워 둡니다.
-1. https://uptimerobot.com 무료 가입 → **+ New monitor**
-2. Monitor Type **HTTP(s)**, URL `https://<Render 주소>/actuator/health`, Interval **5 minutes** → Create
+포트폴리오를 보는 사람이 첫 화면에서 1분 가까이 기다리지 않게, `.github/workflows/keep-awake.yml`이 10분마다 헬스 체크를 불러 서버를 깨워 둡니다 (따로 할 일 없음).
+- 헬스 체크는 DB·Redis도 조회하므로, 오래 안 쓰면 일시정지되는 Supabase·Upstash도 함께 깨어 있습니다
+- Render 무료 사용 시간은 워크스페이스당 월 750시간이라 서비스 하나는 한 달 내내 켜 둘 수 있습니다 (같은 워크스페이스에 무료 서비스가 더 있으면 시간을 나눠 씀)
+- GitHub은 저장소에 60일 동안 커밋이 없으면 예약 실행을 멈춥니다 → Actions 탭에서 다시 켜기
+- Render 주소가 바뀌면 워크플로의 URL도 바꿉니다
 
 ## ④ Vercel (웹)
 

@@ -1,0 +1,20 @@
+# 무료 서버(Render)는 15분 동안 요청이 없으면 잠들어서 첫 접속에 최대 1분이 걸린다.
+# 10분마다 헬스 체크를 불러 깨어 있게 한다. 헬스 체크는 DB·Redis도 조회하므로
+# 오래 쓰지 않으면 일시정지되는 Supabase·Upstash도 함께 깨어 있게 된다.
+name: Keep API awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # GitHub 사정에 따라 몇 분씩 늦게 실행될 수 있다
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping health check
+        run: |
+          # 잠들어 있었다면 깨어나는 데 1분 가까이 걸리므로 넉넉히 기다리고, 실패하면 두 번 더 시도한다
+          curl -fsS --max-time 90 --retry 2 --retry-delay 10 --retry-all-errors \
+            https://fitmate-api-dwrd.onrender.com/actuator/health
