@@ -4,6 +4,8 @@ import { lazy, Suspense, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { Avatar } from '../components/Avatar'
 import { LocationSearch } from '../components/LocationSearch'
+import { PlacePicker } from '../components/PlacePicker'
+import { kakaoMapAvailable } from '../lib/kakaoMap'
 import { MannerReviewModal } from '../components/MannerReviewModal'
 import { Modal } from '../components/Modal'
 import { Badge, Button, Card, Chip, EmptyState, Field, Input, PageHeader, PageLoader, Segmented, Textarea } from '../components/ui'
@@ -323,7 +325,7 @@ function CreateGatheringModal({
   const errors = {
     sport: sportId === null ? '종목을 골라 주세요' : undefined,
     title: !title.trim() ? '모임 이름을 입력해 주세요' : undefined,
-    place: !placeName.trim() ? '만날 장소를 입력해 주세요' : !location ? '지역을 검색해서 골라 주세요' : undefined,
+    place: !placeName.trim() ? '만날 장소를 입력해 주세요' : !location ? '장소를 검색하거나 지도에서 골라 주세요' : undefined,
     time: tooSoon ? '지금부터 10분 뒤 이후로 골라 주세요' : undefined,
   }
   const valid = !Object.values(errors).some(Boolean)
@@ -392,6 +394,18 @@ function CreateGatheringModal({
           <Textarea value={description} maxLength={2000} rows={3} onChange={(e) => setDescription(e.target.value)} />
         </Field>
 
+        {kakaoMapAvailable ? (
+          <div>
+            <p className="mb-1.5 text-sm font-semibold text-ink-700">만날 장소</p>
+            <PlacePicker
+              placeName={placeName}
+              onPlaceNameChange={setPlaceName}
+              location={location}
+              onLocationChange={(picked) => setLocation({ ...picked, areaName: location?.areaName ?? '' })}
+              error={submitted ? errors.place : undefined}
+            />
+          </div>
+        ) : (
         <div className="space-y-2">
           <Field label="만날 장소" error={submitted ? errors.place : undefined}>
             <Input value={placeName} maxLength={100} onChange={(e) => setPlaceName(e.target.value)} placeholder="예) 뚝섬유원지역 2번 출구" />
@@ -405,6 +419,7 @@ function CreateGatheringModal({
           />
           <p className="text-xs text-ink-400">지역은 근처 사람에게 모임을 보여 주는 데 쓰여요.</p>
         </div>
+        )}
 
         <div>
           <p className="mb-1.5 text-sm font-semibold text-ink-700">날짜</p>

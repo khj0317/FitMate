@@ -59,6 +59,9 @@ services:
       # Vercel 미들웨어와 같은 비밀값. 웹 요청은 Vercel을 거쳐 오므로, 비밀값이 맞을 때만 미들웨어가 보낸 사용자 IP를 믿는다
       - key: PROXY_SECRET
         sync: false
+      # 카카오 REST API 키 (지역·장소 검색). 없으면 내장 지역 목록으로 검색
+      - key: KAKAO_REST_API_KEY
+        sync: false
       - key: DB_POOL_SIZE
         value: "5"
       # ---- 무료 플랜(메모리 512MB)에 맞춘 설정. 512MB로 제한한 컨테이너에 부하를 걸어 검증한 값 ----

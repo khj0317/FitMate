@@ -83,6 +83,7 @@ Render 무료 플랜은 메일 포트(SMTP)를 막아서, 가입 이메일 인�
      | `BREVO_API_KEY`, `MAIL_FROM` | ①-2의 Brevo 키와 발신자 |
      | `PROXY_SECRET` | 임의 문자열 (`openssl rand -hex 32`). ④ Vercel에도 같은 값 |
      | `ADMIN_LOGIN_IDS` | 관리자로 쓸 내 아이디 (가입 후 넣어도 됨) |
+     | `KAKAO_REST_API_KEY` | (선택) 카카오 개발자 콘솔 → 내 앱 → 플랫폼 키 → REST API 키. 가입·프로필의 지역 검색이 역·상호까지 찾음 |
 
    - 나머지(메모리 설정, 저장소 종류 등)는 `render.yaml`에 이미 들어 있어서 입력하지 않아도 됩니다
 4. **Apply** (또는 Deploy Blueprint) → 첫 빌드 5~10분

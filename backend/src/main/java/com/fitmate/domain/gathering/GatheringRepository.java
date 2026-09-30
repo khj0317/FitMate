@@ -21,8 +21,7 @@ public interface GatheringRepository extends JpaRepository<Gathering, Long> {
     @Query(value = """
             UPDATE gatherings
             SET current_count = current_count + 1,
-                status = CASE WHEN current_count + 1 >= capacity THEN 'CLOSED' ELSE status END,
-                version = version + 1
+                status = CASE WHEN current_count + 1 >= capacity THEN 'CLOSED' ELSE status END
             WHERE id = :id
               AND status = 'RECRUITING'
               AND current_count < capacity
@@ -35,8 +34,7 @@ public interface GatheringRepository extends JpaRepository<Gathering, Long> {
     @Query(value = """
             UPDATE gatherings
             SET current_count = current_count - 1,
-                status = CASE WHEN status = 'CLOSED' THEN 'RECRUITING' ELSE status END,
-                version = version + 1
+                status = CASE WHEN status = 'CLOSED' THEN 'RECRUITING' ELSE status END
             WHERE id = :id
               AND current_count > 1
               AND status IN ('RECRUITING', 'CLOSED')

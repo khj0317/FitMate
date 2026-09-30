@@ -1,11 +1,13 @@
 import clsx from 'clsx'
 import { Compass, Inbox, LogOut, MessageCircle, Newspaper, ShieldCheck, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
+import { Suspense } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useChatRooms, useMatchRequests, useMe } from '../lib/queries'
 import { useAuth } from '../providers/AuthProvider'
 import { useChatSocket } from '../providers/ChatSocketProvider'
 import { Avatar } from './Avatar'
 import { Logo } from './Logo'
+import { PageLoader } from './ui'
 import { NotificationBell } from './NotificationBell'
 
 interface NavItem {
@@ -138,7 +140,10 @@ export function AppLayout() {
       )}
 
       <main className={clsx('min-w-0 flex-1', !inChatRoom && 'pb-24 md:pb-0')}>
-        <Outlet />
+        {/* 다른 화면으로 옮길 때 메뉴는 그대로 두고 내용 자리에만 로딩을 보여 준다 */}
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       {/* 모바일 하단 탭바 */}
