@@ -1,6 +1,8 @@
 package com.fitmate.global.web;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -8,26 +10,36 @@ import org.springframework.stereotype.Component;
  * 요청한 사용자의 IP (로그인 시도 제한, IP별 요청 제한에 쓴다).
  * 기본은 server.forward-headers-strategy=native가 신뢰할 수 있는 프록시 헤더로 바꿔 둔 주소다.
  * 웹 요청이 Vercel 프록시를 거치면 그 주소는 Vercel 서버가 되어 모든 사용자가 한 IP로 묶이므로,
- * fitmate.client-ip-header(예: x-vercel-forwarded-for)를 지정하면 그 헤더의 첫 번째 값을 쓴다.
- * 이 헤더는 서버에 직접 요청하면 위조할 수 있지만, 아이디별 로그인 제한·이메일별 발송 제한은 그대로라
- * IP 제한은 "추가 방어선"으로만 본다. 자체 도메인을 쓰면 api 하위 도메인으로 옮겨 이 설정 없이 운영할 수 있다.
+ * Vercel 미들웨어(apps/web/middleware.ts)가 사용자 IP를 {@value #CLIENT_IP_HEADER}에 담아 보낸다.
+ * 이 헤더는 누구나 서버에 직접 보내 위조할 수 있으므로, 둘만 아는 비밀값({@value #PROXY_SECRET_HEADER})이
+ * 맞을 때만 믿는다. 비밀값이 틀리거나 없으면 실제 접속 주소를 쓴다.
  */
 @Component
 public class ClientIp {
 
-    private final String header;
+    static final String PROXY_SECRET_HEADER = "x-fitmate-proxy-secret";
+    static final String CLIENT_IP_HEADER = "x-fitmate-client-ip";
 
-    public ClientIp(@Value("${fitmate.client-ip-header:}") String header) {
-        this.header = header == null ? "" : header.strip();
+    private final byte[] proxySecret;
+
+    public ClientIp(@Value("${fitmate.proxy-secret:}") String proxySecret) {
+        this.proxySecret = proxySecret == null ? new byte[0] : proxySecret.strip().getBytes(StandardCharsets.UTF_8);
     }
 
     public String of(HttpServletRequest request) {
-        if (!header.isEmpty()) {
-            String value = request.getHeader(header);
+        if (fromTrustedProxy(request)) {
+            String value = request.getHeader(CLIENT_IP_HEADER);
             if (value != null && !value.isBlank()) {
                 return value.split(",")[0].strip();
             }
         }
         return request.getRemoteAddr();
+    }
+
+    private boolean fromTrustedProxy(HttpServletRequest request) {
+        if (proxySecret.length == 0) return false;
+        String given = request.getHeader(PROXY_SECRET_HEADER);
+        // 한 글자씩 비교하면 응답 시간 차이로 비밀값을 추측할 수 있으므로 일정한 시간에 비교한다
+        return given != null && MessageDigest.isEqual(proxySecret, given.getBytes(StandardCharsets.UTF_8));
     }
 }

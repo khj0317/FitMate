@@ -73,8 +73,8 @@ fitmate:
   # 웹 리프레시 토큰 쿠키. https가 아닌 로컬 개발에서는 application-local.yml에서 false
   auth:
     cookie-secure: ${AUTH_COOKIE_SECURE:true}
-  # 사용자 IP를 읽을 헤더 (Vercel 프록시 뒤: x-vercel-forwarded-for). 비우면 요청 주소 그대로
-  client-ip-header: ${CLIENT_IP_HEADER:}
+  # Vercel 미들웨어와 나눠 가진 비밀값. 맞을 때만 미들웨어가 보낸 사용자 IP를 믿는다. 비우면 요청 주소 그대로
+  proxy-secret: ${PROXY_SECRET:}
   # 관리자로 지정할 아이디 (쉼표로 여러 명). 서버가 뜰 때 이 사용자들의 권한을 ADMIN으로 맞춘다
   admin:
     login-ids: ${ADMIN_LOGIN_IDS:}

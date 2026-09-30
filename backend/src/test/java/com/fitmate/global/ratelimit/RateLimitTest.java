@@ -63,16 +63,29 @@ class RateLimitTest extends IntegrationTest {
     }
 
     @Test
-    @DisplayName("IP 헤더를 지정하면(Vercel 프록시 뒤) 그 헤더의 사용자 IP로 센다")
-    void clientIpHeader() {
-        var request = new org.springframework.mock.web.MockHttpServletRequest();
-        request.setRemoteAddr("76.76.21.21"); // 프록시(Vercel) 주소
-        request.addHeader("x-vercel-forwarded-for", "203.0.113.7, 76.76.21.21");
-        assertThat(new com.fitmate.global.web.ClientIp("x-vercel-forwarded-for").of(request)).isEqualTo("203.0.113.7");
-        assertThat(new com.fitmate.global.web.ClientIp("").of(request)).isEqualTo("76.76.21.21");
-        var direct = new org.springframework.mock.web.MockHttpServletRequest();
-        direct.setRemoteAddr("198.51.100.1");
-        assertThat(new com.fitmate.global.web.ClientIp("x-vercel-forwarded-for").of(direct)).isEqualTo("198.51.100.1");
+    @DisplayName("비밀값이 맞을 때만(Vercel 미들웨어) 헤더의 사용자 IP를 믿고, 직접 보낸 위조 헤더는 무시한다")
+    void clientIpFromTrustedProxyOnly() {
+        var clientIp = new com.fitmate.global.web.ClientIp("s3cret");
+
+        var viaProxy = new org.springframework.mock.web.MockHttpServletRequest();
+        viaProxy.setRemoteAddr("76.76.21.21"); // 프록시(Vercel) 주소
+        viaProxy.addHeader("x-fitmate-proxy-secret", "s3cret");
+        viaProxy.addHeader("x-fitmate-client-ip", "203.0.113.7");
+        assertThat(clientIp.of(viaProxy)).isEqualTo("203.0.113.7");
+
+        var forged = new org.springframework.mock.web.MockHttpServletRequest();
+        forged.setRemoteAddr("198.51.100.1"); // 서버에 직접 요청하며 IP를 바꿔 제한을 피하려는 경우
+        forged.addHeader("x-fitmate-proxy-secret", "guess");
+        forged.addHeader("x-fitmate-client-ip", "203.0.113.99");
+        assertThat(clientIp.of(forged)).isEqualTo("198.51.100.1");
+
+        var noSecret = new org.springframework.mock.web.MockHttpServletRequest();
+        noSecret.setRemoteAddr("198.51.100.1");
+        noSecret.addHeader("x-fitmate-client-ip", "203.0.113.99");
+        assertThat(clientIp.of(noSecret)).isEqualTo("198.51.100.1");
+
+        // 비밀값을 설정하지 않은 서버(로컬 등)는 헤더를 전혀 믿지 않는다
+        assertThat(new com.fitmate.global.web.ClientIp("").of(viaProxy)).isEqualTo("76.76.21.21");
     }
 
     @Test

@@ -115,6 +115,7 @@ Render 무료 플랜은 메일 포트(SMTP)를 막아서, 가입 이메일 인�
    - **Root Directory**: `apps/web` (Framework: Vite 자동 인식, 빌드 설정은 `apps/web/vercel.json`에 있음)
    - **Environment Variables**
      - `VITE_API_URL` = ③에서 만든 API 주소 (예: `https://fitmate-api-xxxx.onrender.com`, 끝에 `/` 없이)
+     - `PROXY_SECRET` = Render의 `PROXY_SECRET`과 같은 값 (`openssl rand -hex 32`로 만든 임의 문자열). `apps/web/middleware.ts`가 로그인·가입 요청에 사용자 IP와 함께 붙여 보내고, API는 이 값이 맞을 때만 그 IP로 요청 횟수를 제한합니다
 3. **Deploy** → `https://fitmate-xxxx.vercel.app` 같은 주소가 생깁니다
 
 ## ⑤ 마무리: CORS

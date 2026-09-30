@@ -56,9 +56,9 @@ services:
       # 관리자 아이디 (쉼표로 여러 명)
       - key: ADMIN_LOGIN_IDS
         sync: false
-      # 웹 요청은 Vercel 프록시를 거치므로 사용자 IP는 이 헤더로 읽는다 (IP별 요청 제한용)
-      - key: CLIENT_IP_HEADER
-        value: x-vercel-forwarded-for
+      # Vercel 미들웨어와 같은 비밀값. 웹 요청은 Vercel을 거쳐 오므로, 비밀값이 맞을 때만 미들웨어가 보낸 사용자 IP를 믿는다
+      - key: PROXY_SECRET
+        sync: false
       - key: DB_POOL_SIZE
         value: "5"
       # ---- 무료 플랜(메모리 512MB)에 맞춘 설정. 512MB로 제한한 컨테이너에 부하를 걸어 검증한 값 ----
