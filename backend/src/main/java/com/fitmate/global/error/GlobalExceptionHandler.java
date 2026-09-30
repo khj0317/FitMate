@@ -1,6 +1,7 @@
 package com.fitmate.global.error;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.http.InvalidParameterException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -50,8 +51,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ErrorResponse.of(ErrorCode.INVALID_INPUT, errors));
     }
 
+    /** InvalidParameterException: 쿼리 문자열이 올바른 UTF-8이 아닐 때 (Tomcat이 파라미터를 해석하지 못함) */
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class,
-            HandlerMethodValidationException.class})
+            HandlerMethodValidationException.class, InvalidParameterException.class})
     public ResponseEntity<ErrorResponse> handleUnreadable(Exception e) {
         return toResponse(ErrorCode.INVALID_INPUT);
     }
