@@ -113,23 +113,12 @@ public class User {
         this.mannerScore = INITIAL_MANNER_SCORE;
     }
 
-    /** GUEST: 로그인 화면의 "체험하기"로 만든 1회용 계정 (일부 기능 제한, 24시간 뒤 삭제) */
     public enum Role {
-        USER, ADMIN, GUEST
-    }
-
-    public static User guest(String loginId, String passwordHash, String nickname) {
-        User user = new User(loginId, passwordHash, nickname);
-        user.role = Role.GUEST;
-        return user;
+        USER, ADMIN
     }
 
     public boolean isAdmin() {
         return role == Role.ADMIN;
-    }
-
-    public boolean isGuest() {
-        return role == Role.GUEST;
     }
 
     public boolean isSuspended(Instant now) {

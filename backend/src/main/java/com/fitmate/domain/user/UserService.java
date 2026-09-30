@@ -66,17 +66,6 @@ public class UserService {
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new BusinessException(ErrorCode.INVALID_PASSWORD);
         }
-        delete(user);
-    }
-
-    /** 기한이 지난 체험 계정 정리용 (비밀번호 확인 없이 탈퇴와 똑같이 지운다) */
-    @Transactional
-    public void deleteGuest(Long userId) {
-        userRepository.findById(userId).filter(User::isGuest).ifPresent(this::delete);
-    }
-
-    private void delete(User user) {
-        Long userId = user.getId();
         if (user.getProfileImageUrl() != null) {
             imageUploader.deleteAfterCommit(user.getProfileImageUrl());
         }
@@ -117,9 +106,6 @@ public class UserService {
     @Transactional
     public UserResponses.MyProfile updateProfileImage(Long userId, MultipartFile file) {
         User user = getUser(userId);
-        if (user.isGuest()) {
-            throw new BusinessException(ErrorCode.GUEST_RESTRICTED);
-        }
         String previous = user.getProfileImageUrl();
         user.changeProfileImageUrl(imageUploader.upload(file, ImagePurpose.PROFILE).url());
         if (previous != null) {
@@ -195,9 +181,6 @@ public class UserService {
         }
         if (email.equals(user.getEmail())) {
             return;
-        }
-        if (user.isGuest()) {
-            throw new BusinessException(ErrorCode.GUEST_RESTRICTED); // 체험 계정의 이메일은 가짜 주소로 고정
         }
         if (userRepository.existsByEmailAndIdNot(email, user.getId())) {
             throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);

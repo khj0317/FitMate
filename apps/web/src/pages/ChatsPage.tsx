@@ -12,7 +12,7 @@ import { Button, EmptyState, Spinner } from '../components/ui'
 import { api, errorMessage } from '../lib/api'
 import { compressImage, ImageError } from '../lib/image'
 import { clockTime, dayLabel, isSameDay, presenceLabel, timeAgo } from '../lib/format'
-import { fetchMessages, keys, useChatRooms, useIsGuest, useMe, usePresence } from '../lib/queries'
+import { fetchMessages, keys, useChatRooms, useMe, usePresence } from '../lib/queries'
 import type { ChatMessage, ChatRoom, Presence, ReadEvent } from '../lib/types'
 import { useChatSocket } from '../providers/chatSocketContext'
 import { useToast } from '../providers/toastContext'
@@ -285,7 +285,6 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
   const closeEmoji = useCallback(() => setEmojiOpen(false), [])
 
   const fileRef = useRef<HTMLInputElement>(null)
-  const guest = useIsGuest()
   const [uploading, setUploading] = useState(0)
   const [viewer, setViewer] = useState<string | null>(null)
 
@@ -293,10 +292,6 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
   const sendPhotos = async (files: File[]) => {
     const images = files.filter((file) => file.type.startsWith('image/')).slice(0, 5)
     if (images.length === 0) return
-    if (guest) {
-      toast('체험 계정은 사진을 보낼 수 없어요', 'error')
-      return
-    }
     stickToBottom.current = true
     for (const file of images) {
       setUploading((count) => count + 1)
@@ -456,7 +451,7 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
           >
             <Smile className="size-5" />
           </button>
-          {!guest && <button
+          <button
             type="button"
             onClick={() => fileRef.current?.click()}
             aria-label="사진 보내기"
@@ -464,7 +459,7 @@ function ChatRoomView({ room, presence }: { room: ChatRoom; presence: Presence |
             className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700"
           >
             <ImagePlus className="size-5" />
-          </button>}
+          </button>
           <input
             ref={fileRef}
             type="file"

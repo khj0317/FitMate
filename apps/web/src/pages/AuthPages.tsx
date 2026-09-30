@@ -84,25 +84,23 @@ function AuthLayout({
 const DEMO_ACCOUNT = { loginId: 'demo01', password: 'password123' }
 
 export function LoginPage() {
-  const { login, startGuest } = useAuth()
+  const { login } = useAuth()
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // 이동은 GuestOnly가 처리
-  const run = async (action: () => Promise<void>) => {
+  const loginAs = async (id: string, pw: string) => {
     setError(null)
     setLoading(true)
     try {
-      await action()
+      await login(id, pw) // 이동은 GuestOnly가 처리
     } catch (e) {
       setError(errorMessage(e))
     } finally {
       setLoading(false)
     }
   }
-  const loginAs = (id: string, pw: string) => run(() => login(id, pw))
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -141,17 +139,6 @@ export function LoginPage() {
           <span className="text-ink-300">|</span>
           <Link to="/find-account?tab=password" className="hover:text-ink-900 hover:underline">비밀번호 찾기</Link>
         </div>
-        <div className="flex items-center gap-3 pt-2 text-xs text-ink-400">
-          <span className="h-px flex-1 bg-ink-100" />
-          가입 없이 먼저 써 보고 싶다면
-          <span className="h-px flex-1 bg-ink-100" />
-        </div>
-        <Button type="button" variant="secondary" size="lg" className="w-full" loading={loading} onClick={() => void run(startGuest)}>
-          <Sparkles className="size-4" /> 체험 계정으로 둘러보기
-        </Button>
-        <p className="-mt-2 text-center text-xs text-ink-400">
-          성수역 근처 프로필과 예시 채팅이 준비돼 있어요 · 24시간 뒤 자동 삭제
-        </p>
         {import.meta.env.DEV && (
           <Button
             type="button"

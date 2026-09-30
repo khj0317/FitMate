@@ -5,7 +5,7 @@ import { errorMessage } from '../lib/api'
 import { POST_CATEGORIES } from '../lib/community'
 import { sportEmoji } from '../lib/format'
 import { compressImage, ImageError } from '../lib/image'
-import { useCreatePost, useIsGuest, useSports, useUpdatePost } from '../lib/queries'
+import { useCreatePost, useSports, useUpdatePost } from '../lib/queries'
 import type { Post, PostCategory } from '../lib/types'
 import { useToast } from '../providers/toastContext'
 import { Modal } from './Modal'
@@ -34,7 +34,6 @@ export function PostComposer({ open, onClose, editing, onCreated }: {
   const create = useCreatePost()
   const update = useUpdatePost()
   const fileRef = useRef<HTMLInputElement>(null)
-  const guest = useIsGuest()
 
   const [category, setCategory] = useState<PostCategory>(editing?.category ?? 'CERTIFY')
   const [sportId, setSportId] = useState<number | null>(editing?.sportId ?? null)
@@ -154,8 +153,7 @@ export function PostComposer({ open, onClose, editing, onCreated }: {
           <p className="mt-1 text-right text-xs text-ink-400">{content.length} / {MAX_LENGTH}</p>
         </div>
 
-        {!editing && guest && <p className="text-xs text-ink-400">체험 계정은 사진 없이 글만 올릴 수 있어요</p>}
-        {!editing && !guest && (
+        {!editing && (
           <div>
             <div className="flex flex-wrap gap-2">
               {photos.map((photo, index) => (

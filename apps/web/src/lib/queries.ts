@@ -64,10 +64,6 @@ export function useMe(enabled = true) {
   return useQuery({ queryKey: keys.me, queryFn: () => api.get<MyProfile>('/api/users/me'), enabled })
 }
 
-export function useIsGuest() {
-  return useMe().data?.role === 'GUEST'
-}
-
 export function useSports() {
   return useQuery({ queryKey: keys.sports, queryFn: () => api.get<Sport[]>('/api/sports'), staleTime: Infinity })
 }

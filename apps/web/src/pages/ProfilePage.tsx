@@ -238,11 +238,7 @@ function ProfileForm({ me }: { me: MyProfile }) {
             <Field label="아이디" hint="아이디는 바꿀 수 없어요">
               <Input value={me.loginId} disabled className="cursor-not-allowed text-ink-500" />
             </Field>
-            {me.role === 'GUEST' ? (
-              <Field label="이메일" hint="체험 계정은 이메일을 등록할 수 없어요">
-                <Input value="체험 계정" disabled className="cursor-not-allowed text-ink-500" />
-              </Field>
-            ) : <EmailVerificationField
+            <EmailVerificationField
               hint={
                 emailChanged
                   ? '바꾼 이메일은 인증해야 저장할 수 있어요'
@@ -254,7 +250,7 @@ function ProfileForm({ me }: { me: MyProfile }) {
               onToken={setEmailToken}
               needsVerification={emailChanged}
               error={errors.email}
-            />}
+            />
             <Field label="닉네임" error={errors.nickname}>
               <Input value={draft.nickname} onChange={(e) => set('nickname', e.target.value)} maxLength={20} />
             </Field>

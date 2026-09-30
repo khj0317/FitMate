@@ -52,9 +52,6 @@ public class CommunityService {
         validateSport(input.sportId());
         User author = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-        if (author.isGuest() && !images.isEmpty()) {
-            throw new BusinessException(ErrorCode.GUEST_RESTRICTED);
-        }
 
         Post post = new Post(userId, input.category(), input.sportId(), input.content().strip(),
                 author.getActivityLocation(), author.getActivityAreaName());

@@ -61,9 +61,6 @@ public class ChatService {
     public ChatDtos.Message sendImage(Long roomId, Long senderId, MultipartFile file) {
         ChatRoomMember sender = getMember(roomId, senderId);
         ensureCanSend(sender); // 사진을 올리기 전에 확인해서 보낼 수 없는 방에 파일이 쌓이지 않게 한다
-        if (userRepository.existsByIdAndRole(senderId, User.Role.GUEST)) {
-            throw new BusinessException(ErrorCode.GUEST_RESTRICTED); // 누구나 만들 수 있는 체험 계정으로는 파일을 올릴 수 없다
-        }
         StoredImage image = imageUploader.upload(file, ImagePurpose.CHAT);
         return publish(sender, messageRepository.save(
                 ChatMessage.image(roomId, senderId, image.url(), image.width(), image.height())));

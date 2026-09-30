@@ -1,7 +1,7 @@
 import clsx from 'clsx'
-import { Compass, Inbox, LogOut, MessageCircle, Newspaper, ShieldCheck, Sparkles, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
+import { Compass, Inbox, LogOut, MessageCircle, Newspaper, ShieldCheck, UserRound, UsersRound, type LucideIcon } from 'lucide-react'
 import { Suspense } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
+import { NavLink, Outlet, useLocation } from 'react-router'
 import { useChatRooms, useMatchRequests, useMe } from '../lib/queries'
 import { useAuth } from '../providers/authContext'
 import { useChatSocket } from '../providers/chatSocketContext'
@@ -47,30 +47,6 @@ function CountBadge({ count, className }: { count?: number; className?: string }
     >
       {count > 99 ? '99+' : count}
     </span>
-  )
-}
-
-/** 체험 계정으로 둘러보는 중임을 알리고, 바로 가입하러 갈 수 있게 한다 */
-function GuestBanner() {
-  const { logout } = useAuth()
-  const navigate = useNavigate()
-  return (
-    <div className="flex items-center gap-3 bg-brand-50 px-4 py-2.5 text-sm text-brand-800 md:px-8">
-      <Sparkles className="size-4 shrink-0 text-brand-500" />
-      <p className="min-w-0 flex-1">
-        <b>체험 계정</b>으로 둘러보는 중이에요 <span className="text-brand-700/70">· 24시간 뒤 자동으로 지워져요</span>
-      </p>
-      <button
-        type="button"
-        onClick={async () => {
-          await logout()
-          navigate('/signup')
-        }}
-        className="shrink-0 cursor-pointer font-bold text-brand-600 hover:underline"
-      >
-        회원가입
-      </button>
-    </div>
   )
 }
 
@@ -164,7 +140,6 @@ export function AppLayout() {
       )}
 
       <main className={clsx('min-w-0 flex-1', !inChatRoom && 'pb-24 md:pb-0')}>
-        {me?.role === 'GUEST' && !inChatRoom && <GuestBanner />}
         {/* 다른 화면으로 옮길 때 메뉴는 그대로 두고 내용 자리에만 로딩을 보여 준다 */}
         <Suspense fallback={<PageLoader />}>
           <Outlet />
