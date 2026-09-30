@@ -9,7 +9,9 @@
 
 > 서버가 잠들어 있으면 첫 연결에 30초 정도 걸릴 수 있어요. 그동안 화면 위에 "서버를 깨우는 중" 안내가 뜹니다.
 
-![운동 메이트 추천](docs/screenshots/matching.png)
+![매칭 요청부터 실시간 채팅까지](docs/screenshots/demo.gif)
+
+*두 사용자가 추천 목록에서 매칭 요청 → 실시간 알림 → 수락 → 1:1 채팅까지 (실제 화면 녹화)*
 
 ## 주요 기능
 
@@ -24,13 +26,13 @@
 
 ## 화면
 
-| 모임 지도 | 1:1 채팅 |
+| 운동 메이트 추천 | 모임 지도 |
 |---|---|
-| ![모임 지도](docs/screenshots/gatherings-map.jpg) | ![1:1 채팅](docs/screenshots/chat.png) |
-| **모임 단체 채팅** | **커뮤니티** |
-| ![단체 채팅](docs/screenshots/group-chat.png) | ![커뮤니티](docs/screenshots/community.png) |
-| **관리자 (신고 처리)** | **로그인** |
-| ![관리자](docs/screenshots/admin.png) | ![로그인](docs/screenshots/login.jpg) |
+| ![운동 메이트 추천](docs/screenshots/matching.png) | ![모임 지도](docs/screenshots/gatherings-map.jpg) |
+| **1:1 채팅** | **모임 단체 채팅** |
+| ![1:1 채팅](docs/screenshots/chat.png) | ![단체 채팅](docs/screenshots/group-chat.png) |
+| **커뮤니티** | **관리자 (신고 처리)** |
+| ![커뮤니티](docs/screenshots/community.png) | ![관리자](docs/screenshots/admin.png) |
 
 **모바일** (하단 탭, 하단 시트 모달)
 
