@@ -38,6 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(tokens.accessToken) // 리프레시 토큰은 서버가 HttpOnly 쿠키로 저장했다
   }
 
+  const startGuest = async () => {
+    const tokens = await api.post<Tokens>('/api/auth/guest')
+    setAccessToken(tokens.accessToken)
+  }
+
   const signup = async (input: SignupInput) => {
     await api.post('/api/auth/signup', input)
     // 로그인되는 순간 GuestOnly가 리다이렉트하므로, 그 전에 목적지를 정해 둔다
@@ -52,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext value={{ ready: status !== 'checking', loggedIn: status === 'in', afterLoginPath, login, signup, logout }}>
+    <AuthContext value={{ ready: status !== 'checking', loggedIn: status === 'in', afterLoginPath, login, startGuest, signup, logout }}>
       {children}
     </AuthContext>
   )

@@ -3,6 +3,7 @@ package com.fitmate.domain.account;
 import com.fitmate.domain.auth.RefreshTokenStore;
 import com.fitmate.domain.user.User;
 import com.fitmate.domain.user.UserRepository;
+import com.fitmate.global.demo.DemoAccounts;
 import com.fitmate.global.error.BusinessException;
 import com.fitmate.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -32,12 +33,14 @@ public class AccountRecoveryService {
     private final RefreshTokenStore refreshTokenStore;
     private final AccountMailSender mailSender;
     private final StringRedisTemplate redisTemplate;
+    private final DemoAccounts demoAccounts;
 
     @Transactional(readOnly = true)
     public void sendLoginId(String rawEmail) {
         String email = normalize(rawEmail);
         checkCooldown("login-id:" + email);
         userRepository.findByEmail(email)
+                .filter(this::recoverable)
                 .ifPresent(user -> mailSender.sendLoginId(email, user.getLoginId()));
     }
 
@@ -48,6 +51,7 @@ public class AccountRecoveryService {
         checkCooldown("password:" + loginId);
         userRepository.findByLoginId(loginId)
                 .filter(user -> email.equals(user.getEmail()))
+                .filter(this::recoverable)
                 .ifPresent(user -> mailSender.sendPasswordResetCode(email, codeStore.issue(VerificationCodeStore.Purpose.PASSWORD_RESET, loginId)));
     }
 
@@ -64,6 +68,11 @@ public class AccountRecoveryService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_VERIFICATION_CODE));
         user.changePassword(passwordEncoder.encode(newPassword));
         refreshTokenStore.revokeAll(user.getId()); // 다른 기기에 남아 있던 로그인도 모두 끊는다
+    }
+
+    /** 체험 계정은 이메일이 가짜 주소이고, 데모 계정은 배포 서버에서 로그인을 막아 두었으므로 메일을 보내지 않는다 */
+    private boolean recoverable(User user) {
+        return !user.isGuest() && !demoAccounts.locked(user.getLoginId());
     }
 
     /** 같은 대상에게 1분 안에 다시 메일을 보낼 수 없다 (메일 폭탄·무차별 요청 방지) */

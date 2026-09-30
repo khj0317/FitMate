@@ -31,6 +31,7 @@ public class SecurityConfig {
             "/error",
             "/api/auth/signup",
             "/api/auth/login",
+            "/api/auth/guest",
             "/api/auth/refresh",
             "/api/auth/logout",
             "/api/auth/find-login-id",

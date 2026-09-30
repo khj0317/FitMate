@@ -21,8 +21,8 @@ public class AdminQuery {
     public AdminDtos.Stats stats() {
         return jdbcClient.sql("""
                         SELECT
-                          (SELECT COUNT(*) FROM users) AS total_users,
-                          (SELECT COUNT(*) FROM users WHERE created_at > now() - interval '7 days') AS new_users,
+                          (SELECT COUNT(*) FROM users WHERE role <> 'GUEST') AS total_users, -- 체험 계정은 가입자가 아님
+                          (SELECT COUNT(*) FROM users WHERE role <> 'GUEST' AND created_at > now() - interval '7 days') AS new_users,
                           (SELECT COUNT(*) FROM match_requests WHERE status = 'ACCEPTED') AS matches,
                           (SELECT COUNT(*) FROM gatherings WHERE status IN ('RECRUITING', 'CLOSED') AND starts_at > now()) AS gatherings,
                           (SELECT COUNT(*) FROM posts WHERE created_at > now() - interval '7 days') AS posts,

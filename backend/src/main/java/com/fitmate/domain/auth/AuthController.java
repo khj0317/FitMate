@@ -53,6 +53,14 @@ public class AuthController {
         return deliver(tokens, servletRequest, servletResponse);
     }
 
+    @Operation(summary = "체험 계정으로 시작", description = "가입 없이 둘러볼 수 있는 1회용 계정을 만들고 로그인합니다. "
+            + "성수역 근처 프로필과 예시 채팅·받은 매칭 요청이 준비돼 있고, 이메일 변경·사진 올리기는 막혀 있으며 24시간 뒤 삭제됩니다.")
+    @RateLimited(name = "guest", limit = 5, windowSeconds = 3600, key = RateLimited.Key.IP)
+    @PostMapping("/guest")
+    public AuthResponses.Token startGuest(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        return deliver(authService.startGuest(), servletRequest, servletResponse);
+    }
+
     @Operation(summary = "토큰 재발급", description = "리프레시 토큰(본문 또는 쿠키)은 한 번만 쓸 수 있고 새 토큰으로 교체됩니다.")
     @PostMapping("/refresh")
     public AuthResponses.Token refresh(@RequestBody(required = false) AuthRequests.Refresh request,

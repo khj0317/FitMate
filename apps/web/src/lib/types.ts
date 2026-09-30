@@ -46,7 +46,8 @@ export interface MyProfile {
   mannerScore: number
   sports: UserSport[]
   availableTimes: AvailableTime[]
-  role: 'USER' | 'ADMIN'
+  /** GUEST: 로그인 화면의 "체험하기"로 만든 1회용 계정 (사진·이메일 변경 불가, 24시간 뒤 삭제) */
+  role: 'USER' | 'ADMIN' | 'GUEST'
 }
 
 export interface LocationInput {

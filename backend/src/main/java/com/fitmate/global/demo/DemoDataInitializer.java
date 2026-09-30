@@ -29,6 +29,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 로컬 개발용으로 성수역 주변에 데모 사용자·모임·게시글을 만든다 (local 프로필에서 켜짐, 배포에서는 꺼짐).
@@ -81,6 +83,13 @@ public class DemoDataInitializer implements ApplicationRunner {
     private final GatheringService gatheringService;
     private final PostRepository postRepository;
     private final CommunityService communityService;
+
+    /** 체험 계정으로 둘러볼 때 참여할 수 있는 모임이 늘 있도록 끝난 데모 모임을 채운다 */
+    @Scheduled(fixedDelay = 6, initialDelay = 6, timeUnit = TimeUnit.HOURS)
+    @Transactional
+    public void refreshGatherings() {
+        seedGatherings();
+    }
 
     /** 각 단계는 이미 데이터가 있으면 건너뛰므로 여러 번 실행해도 안전하다. */
     @Override
@@ -152,13 +161,9 @@ public class DemoDataInitializer implements ApplicationRunner {
 
     /**
      * 성수역 주변에 앞으로 열릴 모임 5개. demo01은 그중 하나에 참여해 있다.
-     * 배포 환경에서는 시간이 지나면 모임이 모두 끝나 버리므로, 다가오는 데모 모임이 없을 때마다(재시작 시) 새로 만든다.
+     * 시간이 지나면 모임이 끝나 버리므로, 모임장마다 다가오는 모임이 없으면 새로 만든다 (시작할 때와 6시간마다).
      */
     private void seedGatherings() {
-        User host = user(4);
-        if (gatheringRepository.existsByHostIdAndStartsAtAfter(host.getId(), Instant.now())) {
-            return;
-        }
         record Plan(int host, String sport, String title, String description, String place,
                     double dLat, double dLng, int daysLater, int hour, int capacity, int[] guests) {
         }
@@ -175,18 +180,25 @@ public class DemoDataInitializer implements ApplicationRunner {
                         "아차산역 2번 출구", 0.006, 0.037, 6, 6, 8, new int[]{14, 15, 16, 17}));
 
         ZonedDateTime today = ZonedDateTime.now(ZoneId.of("Asia/Seoul")).withMinute(0).withSecond(0).withNano(0);
+        int created = 0;
         for (Plan plan : plans) {
+            if (gatheringRepository.existsByHostIdAndStartsAtAfter(user(plan.host()).getId(), Instant.now())) {
+                continue;
+            }
             Short sportId = sportId(plan.sport());
             Instant startsAt = today.plusDays(plan.daysLater()).withHour(plan.hour()).toInstant();
-            GatheringDtos.Detail created = gatheringService.create(user(plan.host()).getId(), new GatheringDtos.Create(
+            GatheringDtos.Detail detail = gatheringService.create(user(plan.host()).getId(), new GatheringDtos.Create(
                     sportId, plan.title(), plan.description(), plan.place(),
                     new GatheringDtos.Point(CENTER_LAT + plan.dLat(), CENTER_LNG + plan.dLng()),
                     startsAt, (short) plan.capacity()));
             for (int guest : plan.guests()) {
-                gatheringService.join(user(guest).getId(), created.summary().id());
+                gatheringService.join(user(guest).getId(), detail.summary().id());
             }
+            created++;
         }
-        log.info("데모 모임 {}개를 만들었습니다.", plans.size());
+        if (created > 0) {
+            log.info("데모 모임 {}개를 만들었습니다.", created);
+        }
     }
 
     /** 동네 게시판 글과 댓글. demo01의 글에도 댓글이 달려 있다 */

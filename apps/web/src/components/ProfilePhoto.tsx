@@ -34,6 +34,15 @@ export function ProfilePhoto({ me, nickname }: { me: MyProfile; nickname: string
   })
   const busy = upload.isPending || remove.isPending
 
+  if (me.role === 'GUEST') {
+    return (
+      <div className="flex flex-col items-center gap-1.5">
+        <Avatar id={me.id} name={nickname} imageUrl={me.profileImageUrl} size="lg" />
+        <span className="text-xs text-ink-400">체험 계정은 사진 없이</span>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col items-center gap-1.5">
       <button

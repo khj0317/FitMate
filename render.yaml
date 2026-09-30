@@ -44,7 +44,7 @@ services:
       - key: STORAGE_TYPE
         value: s3
       - key: DEMO_DATA_ENABLED
-        value: "false"
+        value: "true"
       # ---- 메일 (Render 무료 플랜은 SMTP 포트를 막아서 Brevo HTTP API로 보낸다) ----
       - key: BREVO_API_KEY
         sync: false
