@@ -242,6 +242,7 @@ docker run --rm -i -e BASE_URL=http://host.docker.internal:8081 grafana/k6 run -
 - **웹은 HttpOnly 쿠키**: 리프레시 토큰을 JavaScript가 읽을 수 없는 쿠키(`HttpOnly; Secure; SameSite=Strict; Path=/api/auth`)로만 주고받고, 액세스 토큰은 메모리에만 둠 → XSS로 토큰을 훔쳐 갈 수 없음. 새로고침하면 쿠키로 다시 발급
   - 웹(vercel.app)과 API(onrender.com)는 다른 사이트라 쿠키가 서드파티 쿠키가 되어 **Safari가 막음** → Vercel이 `/api`를 API로 전달(rewrite)해서 같은 사이트로 만들고, 실시간 채팅(WebSocket)만 API에 직접 연결
   - 프록시 뒤에서는 API가 보는 IP가 Vercel이 되므로, Vercel 미들웨어가 사용자 IP를 헤더에 담아 보냄. 이 헤더는 API에 직접 요청하면 위조할 수 있어서(IP를 바꿔 가며 제한 우회) Vercel과 API만 아는 비밀값 헤더가 맞을 때만 믿고, 아니면 실제 접속 주소를 씀 (비교는 일정 시간 비교로 타이밍 공격 방지)
+  - **배포 서버에서 IP 제한이 동작하지 않던 버그**: Render 앞단의 Cloudflare 때문에 X-Forwarded-For가 "사용자, Cloudflare, Render 내부" 순인데, Tomcat은 사설 IP만 프록시로 믿어서 **Cloudflare 서버 주소를 사용자 IP로 착각**. Cloudflare 서버가 여러 대라 같은 사람이 135번 연속 요청해도 한도(분당 120번)에 안 걸렸음 → Cloudflare가 넣고 위조한 값은 덮어쓰는 `CF-Connecting-IP`를 Render에서만 사용. 배포 서버에 직접 요청해 한도 초과(429)와 헤더 위조 무시를 확인
   - 앱 등 다른 클라이언트는 헤더(`X-Auth-Mode: cookie`)를 안 보내면 지금처럼 응답 본문으로 받음. 예전 버전(localStorage)으로 로그인해 둔 사용자는 첫 방문 때 쿠키로 옮기고 localStorage를 지움
   - 탭 두 개가 동시에 재발급하면 한쪽은 이미 교체된 쿠키로 실패하므로, 잠시 뒤 한 번 더 시도
 - **가입 이메일 인증**: 6자리 코드 확인 → 30분짜리 1회용 인증 토큰 → 가입·이메일 변경 요청에 함께 보내면 `GETDEL`로 확인하고 지움. 인증 없이는 남의 이메일로 가입해서 계정 찾기 메일이 엉뚱한 곳으로 갈 수 있기 때문

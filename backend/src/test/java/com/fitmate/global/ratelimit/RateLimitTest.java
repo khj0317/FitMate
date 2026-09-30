@@ -65,7 +65,7 @@ class RateLimitTest extends IntegrationTest {
     @Test
     @DisplayName("비밀값이 맞을 때만(Vercel 미들웨어) 헤더의 사용자 IP를 믿고, 직접 보낸 위조 헤더는 무시한다")
     void clientIpFromTrustedProxyOnly() {
-        var clientIp = new com.fitmate.global.web.ClientIp("s3cret");
+        var clientIp = new com.fitmate.global.web.ClientIp("s3cret", "", false);
 
         var viaProxy = new org.springframework.mock.web.MockHttpServletRequest();
         viaProxy.setRemoteAddr("76.76.21.21"); // 프록시(Vercel) 주소
@@ -85,7 +85,23 @@ class RateLimitTest extends IntegrationTest {
         assertThat(clientIp.of(noSecret)).isEqualTo("198.51.100.1");
 
         // 비밀값을 설정하지 않은 서버(로컬 등)는 헤더를 전혀 믿지 않는다
-        assertThat(new com.fitmate.global.web.ClientIp("").of(viaProxy)).isEqualTo("76.76.21.21");
+        assertThat(new com.fitmate.global.web.ClientIp("", "", false).of(viaProxy)).isEqualTo("76.76.21.21");
+    }
+
+    @Test
+    @DisplayName("Render에서는 Cloudflare가 넣은 cf-connecting-ip를 사용자 IP로 쓴다")
+    void cloudflareIpOnRender() {
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setRemoteAddr("172.71.195.123"); // Tomcat이 X-Forwarded-For에서 고른 Cloudflare 서버 주소
+        request.addHeader("cf-connecting-ip", "81.97.145.24");
+        assertThat(new com.fitmate.global.web.ClientIp("", "", true).of(request)).isEqualTo("81.97.145.24");
+        // Render가 아니면 이 헤더를 믿지 않는다 (엣지를 거치지 않으면 누구나 보낼 수 있으므로)
+        assertThat(new com.fitmate.global.web.ClientIp("", "", false).of(request)).isEqualTo("172.71.195.123");
+
+        // Vercel 미들웨어가 보낸 IP가 우선 (Cloudflare 입장에서는 Vercel 서버가 사용자)
+        request.addHeader("x-fitmate-proxy-secret", "s3cret");
+        request.addHeader("x-fitmate-client-ip", "203.0.113.7");
+        assertThat(new com.fitmate.global.web.ClientIp("s3cret", "", true).of(request)).isEqualTo("203.0.113.7");
     }
 
     @Test

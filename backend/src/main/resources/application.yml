@@ -75,6 +75,8 @@ fitmate:
     cookie-secure: ${AUTH_COOKIE_SECURE:true}
   # Vercel 미들웨어와 나눠 가진 비밀값. 맞을 때만 미들웨어가 보낸 사용자 IP를 믿는다. 비우면 요청 주소 그대로
   proxy-secret: ${PROXY_SECRET:}
+  # CDN이 넣는 사용자 IP 헤더. 비우면 Render에서만 cf-connecting-ip (앞단 Cloudflare가 넣고, 위조한 값은 덮어씀)
+  edge-ip-header: ${EDGE_IP_HEADER:}
   # 관리자로 지정할 아이디 (쉼표로 여러 명). 서버가 뜰 때 이 사용자들의 권한을 ADMIN으로 맞춘다
   admin:
     login-ids: ${ADMIN_LOGIN_IDS:}
