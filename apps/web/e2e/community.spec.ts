@@ -30,8 +30,8 @@ test('글을 쓰면 다른 사람이 댓글·좋아요를 남길 수 있고, 글
   await expect(reader.getByText(comment)).toBeVisible()
 
   // 글쓴이: 새로고침 없이 알림 토스트가 뜨고, 알림 목록에서 눌러 글로 이동한다
-  await expect(author.getByText('박지은님이 내 글에 댓글을 남겼어요').first()).toBeVisible()
+  await expect(author.getByText('노란병아리님이 내 글에 댓글을 남겼어요').first()).toBeVisible()
   await author.getByRole('button', { name: /^알림/ }).first().click()
-  await author.getByRole('button', { name: /박지은님이 내 글에 댓글을 남겼어요/ }).first().click()
+  await author.getByRole('button', { name: /노란병아리님이 내 글에 댓글을 남겼어요/ }).first().click()
   await expect(author.getByText(comment)).toBeVisible()
 })

@@ -363,7 +363,7 @@ docker run --rm -i -e BASE_URL=http://host.docker.internal:8081 grafana/k6 run -
 ## 로컬 데모 데이터
 `./gradlew bootRun`으로 실행하면 `local` 프로필이 켜지고, 처음 한 번 성수역 주변 8km 안에 데모 사용자 30명이 생성됩니다.
 
-- 계정: 아이디 `demo01` ~ `demo30`, 비밀번호 `password123` (이메일 `demo01@fitmate.com` 등록됨). 닉네임은 성별에 맞춘 실제 이름 (`demo01` 김도현, `demo02` 이수아, `demo03` 박지은 …)
+- 계정: 아이디 `demo01` ~ `demo30`, 비밀번호 `password123` (이메일 `demo01@fitmate.com` 등록됨). 닉네임은 별명 (`demo01` 달리는판다, `demo02` 초록고래, `demo03` 노란병아리 …)
 - `demo01`은 성수역에 있고 헬스·러닝을 합니다. 이 계정으로 로그인해서 `GET /api/matching/recommendations`를 호출해 보세요.
 - `demo01` ↔ `demo02`는 이미 매칭되어 대화가 있고, `demo03` → `demo01`로 대기 중인 매칭 요청이 있습니다.
 - 성수역 주변에 앞으로 열릴 모임 5개(`demo01`은 "서울숲 저녁 5km 러닝"에 참여 중)와 댓글이 달린 커뮤니티 글 6개가 있습니다.
