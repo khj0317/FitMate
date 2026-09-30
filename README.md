@@ -2,14 +2,12 @@
 
 **내 주변에서 같이 운동할 사람을 찾는 서비스.** 위치·종목·실력·운동 시간으로 운동 메이트를 추천하고, 모임을 열어 함께 운동하고, 실시간 채팅으로 약속을 잡습니다.
 
-[![CI](https://github.com/khj0317/FitMate/actions/workflows/ci.yml/badge.svg)](https://github.com/khj0317/FitMate/actions/workflows/ci.yml)
-
 | | |
 |---|---|
 | **웹** | **https://fitmate-khj.vercel.app** (회원가입 후 이용) |
 | API 문서 | https://fitmate-api-dwrd.onrender.com/swagger-ui.html |
 
-> 무료 서버라 한동안 접속이 없었다면 첫 연결이 느릴 수 있어요. 화면 위에 "서버를 깨우는 중" 안내가 뜹니다.
+> 서버가 잠들어 있으면 첫 연결에 30초 정도 걸릴 수 있어요. 그동안 화면 위에 "서버를 깨우는 중" 안내가 뜹니다.
 
 ![운동 메이트 추천](docs/screenshots/matching.png)
 
@@ -59,7 +57,7 @@ flowchart LR
 | DB · Cache | PostgreSQL + PostGIS, Redis |
 | Web | React 19, TypeScript, Vite, Tailwind CSS v4, TanStack Query, React Router, STOMP.js, Leaflet |
 | Test | JUnit 5, Testcontainers(PostGIS · Redis · S3Mock), Playwright, k6 |
-| Infra | Docker, GitHub Actions, Vercel, Render, Supabase, Upstash — **전부 무료 플랜** |
+| Infra | Docker, GitHub Actions, Vercel, Render, Supabase, Upstash |
 
 ## 핵심 구현과 문제 해결
 
@@ -89,7 +87,7 @@ flowchart LR
 - **해결**: Cloudflare가 넣고 사용자가 위조할 수 없는 `CF-Connecting-IP`를 Render에서만 사용. 웹 요청은 Vercel 프록시를 거치므로, Vercel 미들웨어가 사용자 IP와 **비밀값**을 함께 보내고 API는 비밀값이 맞을 때만 그 IP를 믿음(일정 시간 비교)
 - **검증**: 배포 서버에 직접 요청해서 120번째 이후 429, IP 헤더 4종을 요청마다 바꿔 위조해도 똑같이 차단, Vercel을 거친 요청이 같은 IP로 합산되는 것까지 확인
 
-### 4. 무료 서버(메모리 512MB)에서 사진 업로드 버티기
+### 4. 메모리 512MB 서버에서 사진 업로드 버티기
 - 512MB로 제한한 컨테이너에 사진 업로드 부하를 걸었더니 **강제 종료(OOMKilled)**. 원인은 큰 사진 여러 장을 한꺼번에 원본 크기로 펼치는 이미지 처리와 힙 밖 메모리(클래스 정보·스레드·glibc arena 약 250MB)
 - 사진을 결과 크기의 2배까지만 줄여 읽기(`ImageReadParam` subsampling), 동시에 처리하는 사진 수 제한(Semaphore), 힙 40% · `MALLOC_ARENA_MAX=2` · Tomcat 스레드 30
 - 결과: 10명이 사진 4장씩 5번 동시에 올려도(200장) 모두 성공, 최대 462MB, 헬스 체크 지연 없음
@@ -103,7 +101,7 @@ flowchart LR
 - `geography(POINT)` + GIST 인덱스 + `ST_DWithin`으로 반경 검색 (`EXPLAIN`으로 인덱스 스캔 확인)
 - DB에서 가까운 순 200명까지 거르고 겹치는 운동 시간까지 계산 → 점수는 애플리케이션에서 계산해서 가중치를 바꾸기 쉽고 DB 없이 단위 테스트 가능
 - 거리는 0.5km 단위로 올려서 보여 줘서, 여러 곳에서 거리를 재 정확한 위치를 역추적(삼각측량)하기 어렵게 함
-- **시간대 버그**: `hibernate.jdbc.time_zone=UTC` 설정 때문에 운동 가능 시각(`time`)이 9시간 밀려 저장되던 문제를 발견. 설정을 없애고, CI(UTC)에서도 재현되도록 테스트 JVM을 KST로 고정한 회귀 테스트 추가
+- **시간대 버그**: `hibernate.jdbc.time_zone=UTC` 설정 때문에 운동 가능 시각(`time`)이 9시간 밀려 저장되던 문제를 발견. 설정을 없애고, 서버 시간대가 UTC인 환경에서도 재현되도록 테스트 JVM을 KST로 고정한 회귀 테스트 추가
 
 ## 테스트
 
@@ -112,7 +110,6 @@ flowchart LR
 | 백엔드 통합 테스트 **189개** | Testcontainers로 실제 PostGIS·Redis를 띄워 실행. 동시성(선착순·좋아요·매너 점수·중복 가입·토큰 재발급), WebSocket, 보안(남의 알림 큐 구독 차단 등) 포함 |
 | 브라우저 E2E (Playwright) | 회원가입(메일 인증 코드) · 두 브라우저 간 실시간 채팅과 읽음 표시 · 커뮤니티 댓글 → 실시간 알림 |
 | 부하 테스트 (k6) | 아래 표 |
-| CI (GitHub Actions) | 푸시마다 백엔드 테스트, 웹 빌드, Docker 이미지, E2E(PostGIS·Redis·Mailpit 서비스 컨테이너) |
 
 로그인한 사용자들이 추천·피드·모임·채팅방·알림을 동시에 불러오는 상황 (로컬 PC, 데모 데이터)
 
@@ -186,7 +183,7 @@ flowchart LR
 - **비밀번호 변경·정지·탈퇴 시 모든 기기 로그아웃**: 사용자별 리프레시 토큰 목록(Redis Set)을 한 번에 폐기
 - **회원 탈퇴**: 비밀번호 확인 후 개인정보 삭제(`ON DELETE CASCADE`), 상대방 채팅방의 대화는 남기고 보낸 사람만 비움(`SET NULL`), 사진 파일은 커밋 후 삭제
 - **차단**: 추천·요청·채팅·커뮤니티에서 서로 숨김. 대기 중인 요청은 한 번의 UPDATE로 취소하고, 상대에게 차단 사실을 알리지 않음
-- **메일**: Render 무료 플랜이 SMTP 포트를 막아서 배포는 Brevo HTTPS API, 로컬은 Mailpit(SMTP). 메일 내용과 발송 방법(`MailTransport`)을 분리해 설정으로 바꿔 끼움
+- **메일**: 호스팅(Render)이 SMTP 포트를 막아서 배포는 Brevo HTTPS API, 로컬은 Mailpit(SMTP). 메일 내용과 발송 방법(`MailTransport`)을 분리해 설정으로 바꿔 끼움
 </details>
 
 <details>
@@ -339,7 +336,7 @@ DB·Redis·Mailpit 컨테이너 → 백엔드(http://localhost:8081) → 웹(htt
 | `npm run test:e2e` | 브라우저 E2E (`npm run dev`가 켜져 있어야 함) |
 | `docker run --rm -i -e BASE_URL=http://host.docker.internal:8081 grafana/k6 run - < scripts/k6/browse.js` | 부하 테스트 |
 
-배포 방법은 **[DEPLOY.md](DEPLOY.md)** 에 있습니다 (전부 무료 플랜, `main`에 푸시하면 자동 배포).
+배포 방법은 **[DEPLOY.md](DEPLOY.md)** 에 있습니다 (`main`에 푸시하면 자동 배포).
 
 ## 프로젝트 구조
 
