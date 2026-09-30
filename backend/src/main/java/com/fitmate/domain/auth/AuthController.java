@@ -57,16 +57,10 @@ public class AuthController {
     @PostMapping("/refresh")
     public AuthResponses.Token refresh(@RequestBody(required = false) AuthRequests.Refresh request,
                                        HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        // 실패해도 쿠키를 지우지 않는다: 다른 탭이 방금 재발급해서 쿠키가 새것으로 바뀌었을 수 있는데,
+        // 이 응답이 쿠키를 지우면 그 새 쿠키까지 지워져서 모든 탭이 로그아웃된다
         String token = refreshTokenOf(request, servletRequest);
-        try {
-            return deliver(authService.refresh(new AuthRequests.Refresh(token)), servletRequest, servletResponse);
-        } catch (BusinessException e) {
-            // 쓸 수 없는 쿠키는 지워서 브라우저가 계속 보내지 않게 한다
-            if (refreshTokenCookie.wanted(servletRequest)) {
-                refreshTokenCookie.clear(servletResponse);
-            }
-            throw e;
-        }
+        return deliver(authService.refresh(new AuthRequests.Refresh(token)), servletRequest, servletResponse);
     }
 
     @Operation(summary = "로그아웃", description = "리프레시 토큰을 폐기하고 쿠키를 지웁니다.")

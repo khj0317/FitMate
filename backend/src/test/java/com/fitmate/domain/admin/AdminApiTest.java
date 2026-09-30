@@ -145,6 +145,24 @@ class AdminApiTest extends IntegrationTest {
                 .isEqualTo("PENDING"); // 실패하면 처리 기록도 롤백된다
     }
 
+    @Test
+    @DisplayName("영구 정지된 사람에게 7일 정지를 내려도 정지 기간이 줄지 않는다")
+    void shorterSuspensionDoesNotShortenExisting() throws Exception {
+        TestUser admin = admin();
+        TestUser target = signupAndLogin();
+        call(HttpMethod.POST, "/api/admin/reports/" + report(signupAndLogin(), target) + "/resolve", """
+                {"action": "SUSPEND_PERMANENT"}
+                """, admin.accessToken()).andExpect(status().isOk());
+        var permanent = jdbcTemplate.queryForObject("SELECT suspended_until FROM users WHERE id = ?",
+                java.sql.Timestamp.class, target.id());
+
+        call(HttpMethod.POST, "/api/admin/reports/" + report(signupAndLogin(), target) + "/resolve", """
+                {"action": "SUSPEND_7D"}
+                """, admin.accessToken()).andExpect(status().isOk());
+        assertThat(jdbcTemplate.queryForObject("SELECT suspended_until FROM users WHERE id = ?",
+                java.sql.Timestamp.class, target.id())).isEqualTo(permanent);
+    }
+
     private TestUser admin() throws Exception {
         TestUser user = signupAndLogin();
         jdbcTemplate.update("UPDATE users SET role = 'ADMIN' WHERE id = ?", user.id());

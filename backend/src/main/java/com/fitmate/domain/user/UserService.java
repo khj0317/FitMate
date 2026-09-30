@@ -83,9 +83,6 @@ public class UserService {
         if (request.nickname() != null) {
             applyNickname(user, request.nickname());
         }
-        if (request.email() != null) {
-            applyEmail(user, request.email(), request.emailVerificationToken());
-        }
         if (request.bio() != null) {
             user.changeBio(request.bio());
         }
@@ -97,6 +94,10 @@ public class UserService {
         }
         if (request.searchRadiusKm() != null) {
             user.changeSearchRadiusKm(request.searchRadiusKm());
+        }
+        // 이메일 인증 토큰은 1회용이라 다른 항목 검사가 모두 끝난 뒤에 쓴다 (다른 항목 때문에 실패하면 인증을 다시 해야 하므로)
+        if (request.email() != null) {
+            applyEmail(user, request.email(), request.emailVerificationToken());
         }
         return UserResponses.MyProfile.from(user);
     }
@@ -128,7 +129,6 @@ public class UserService {
     public UserResponses.MyProfile updateAll(Long userId, UserRequests.UpdateAll request) {
         User user = getUser(userId);
         applyNickname(user, request.nickname());
-        applyEmail(user, request.email(), request.emailVerificationToken());
         user.changeBio(request.bio() == null ? "" : request.bio());
         user.changeGender(request.gender());
         applyBirthDate(user, request.birthDate());
@@ -136,6 +136,7 @@ public class UserService {
         applyLocation(user, request.location());
         applySports(user, request.sports());
         applyAvailableTimes(user, request.availableTimes());
+        applyEmail(user, request.email(), request.emailVerificationToken()); // 1회용 토큰은 마지막에 쓴다
         return UserResponses.MyProfile.from(user);
     }
 

@@ -94,8 +94,13 @@ class EmailVerificationApiTest extends IntegrationTest {
         call(HttpMethod.PATCH, "/api/users/me", "{\"email\": \"%s\"}".formatted(newEmail), accessToken)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("EMAIL_NOT_VERIFIED"));
+        // 다른 항목(생일) 때문에 저장이 실패해도 1회용 인증 토큰은 남아 있어서, 고쳐서 다시 저장할 수 있다
+        String token = verify(newEmail);
+        call(HttpMethod.PATCH, "/api/users/me", "{\"email\": \"%s\", \"emailVerificationToken\": \"%s\", \"birthDate\": \"1800-01-01\"}"
+                .formatted(newEmail, token), accessToken)
+                .andExpect(status().isBadRequest());
         call(HttpMethod.PATCH, "/api/users/me", "{\"email\": \"%s\", \"emailVerificationToken\": \"%s\"}"
-                .formatted(newEmail, verify(newEmail)), accessToken)
+                .formatted(newEmail, token), accessToken)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(newEmail));
     }

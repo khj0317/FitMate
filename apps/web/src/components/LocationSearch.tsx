@@ -81,6 +81,7 @@ export function LocationSearch({
       event.preventDefault()
       select(results[active])
     } else if (event.key === 'Escape') {
+      event.stopPropagation() // 모달 안에서 써도 목록만 닫히게
       setOpen(false)
     }
   }

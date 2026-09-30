@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { LoaderCircle, MapPin, Search } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { loadKakaoMap } from '../lib/kakaoMap'
+import { LocationSearch } from './LocationSearch'
 
 export interface PickedPlace {
   latitude: number
@@ -32,6 +33,7 @@ export function PlacePicker({
   const mapRef = useRef<kakao.maps.Map | null>(null)
   const pinRef = useRef<kakao.maps.CustomOverlay | null>(null)
   const [ready, setReady] = useState(false)
+  const [failed, setFailed] = useState(false)
   // 어떤 검색어의 결과인지 함께 둬서, 입력이 바뀌면 이전 결과를 보여 주지 않고 "검색 중"으로 계산한다
   const [found, setFound] = useState<{ keyword: string; places: kakao.maps.services.PlaceResult[] }>({ keyword: '', places: [] })
   const [open, setOpen] = useState(false)
@@ -64,7 +66,9 @@ export function PlacePicker({
       observer.observe(container)
       mapRef.current = map
       setReady(true)
-    }).catch(() => undefined)
+    }).catch(() => {
+      if (!cancelled) setFailed(true) // 지도를 못 불러와도 모임은 만들 수 있게 지역 검색으로 대신한다
+    })
     return () => {
       cancelled = true
       observer?.disconnect()
@@ -124,6 +128,7 @@ export function PlacePicker({
       event.preventDefault()
       pick(results[active])
     } else if (event.key === 'Escape') {
+      event.stopPropagation() // 목록만 닫고, 모달까지 닫히지 않게
       setOpen(false)
     }
   }
@@ -139,7 +144,14 @@ export function PlacePicker({
             onPlaceNameChange(event.target.value)
             setOpen(true)
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={(event) => {
+            setOpen(true)
+            // 휴대폰에서는 키보드가 올라오면 아래로 펼쳐지는 검색 결과가 가려지므로 입력칸을 위로 올린다
+            const input = event.currentTarget
+            if (window.matchMedia('(max-width: 767px)').matches) {
+              setTimeout(() => input.scrollIntoView({ block: 'start', behavior: 'smooth' }), 300)
+            }
+          }}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           onKeyDown={onKeyDown}
           placeholder="장소 검색 (예: 뚝섬유원지역, 서울숲)"
@@ -189,10 +201,19 @@ export function PlacePicker({
           </ul>
         )}
       </div>
-      <div ref={containerRef} className="h-52 overflow-hidden rounded-2xl bg-ink-50 ring-1 ring-ink-100" aria-label="모임 장소 지도" />
-      <p className="text-xs text-ink-400">
-        {location ? '지도를 눌러 핀 위치를 옮길 수 있어요. 장소 이름은 "3번 출구 앞"처럼 고쳐 써도 돼요' : '장소를 검색하거나 지도를 눌러 위치를 골라 주세요'}
-      </p>
+      {failed ? (
+        <>
+          <LocationSearch value={null} onChange={(picked) => onLocationChange(picked)} />
+          <p className="text-xs text-ink-400">지도를 불러오지 못했어요. 지역을 검색해서 모임 위치를 골라 주세요</p>
+        </>
+      ) : (
+        <>
+          <div ref={containerRef} className="h-52 overflow-hidden rounded-2xl bg-ink-50 ring-1 ring-ink-100" aria-label="모임 장소 지도" />
+          <p className="text-xs text-ink-400">
+            {location ? '지도를 눌러 핀 위치를 옮길 수 있어요. 장소 이름은 "3번 출구 앞"처럼 고쳐 써도 돼요' : '장소를 검색하거나 지도를 눌러 위치를 골라 주세요'}
+          </p>
+        </>
+      )}
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   )

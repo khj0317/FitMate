@@ -14,12 +14,14 @@ export function loadKakaoMap(): Promise<typeof kakao> {
     const script = document.createElement('script')
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(KEY)}&libraries=services&autoload=false`
     script.async = true
-    script.onload = () => window.kakao.maps.load(() => resolve(window.kakao))
-    script.onerror = () => {
+    const fail = () => {
       loading = null // 네트워크 문제였으면 다음에 다시 시도할 수 있게
       script.remove()
       reject(new Error('카카오맵을 불러오지 못했어요'))
     }
+    // 등록하지 않은 도메인이면 스크립트 대신 오류 JSON이 와서, 불러오기는 성공해도 kakao 객체가 없다
+    script.onload = () => (window.kakao?.maps ? window.kakao.maps.load(() => resolve(window.kakao)) : fail())
+    script.onerror = fail
     document.head.appendChild(script)
   })
   return loading
@@ -60,6 +62,7 @@ declare global {
     }
     namespace event {
       function addListener(target: Map, type: 'click', handler: (event: { latLng: LatLng }) => void): void
+      function removeListener(target: Map, type: 'click', handler: (event: { latLng: LatLng }) => void): void
     }
     namespace services {
       enum Status {

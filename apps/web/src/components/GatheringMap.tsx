@@ -99,7 +99,10 @@ export function GatheringMap({ gatherings, center }: {
     }
     maps.event.addListener(map, 'click', closePopup)
     if (gatherings.length > 0) map.setBounds(bounds, 64, 48, 32, 48)
-    return () => overlays.forEach((overlay) => overlay.setMap(null))
+    return () => {
+      maps.event.removeListener(map, 'click', closePopup) // 목록이 바뀔 때마다 리스너가 쌓이지 않게
+      overlays.forEach((overlay) => overlay.setMap(null))
+    }
   }, [ready, gatherings, center.latitude, center.longitude, navigate])
 
   return (

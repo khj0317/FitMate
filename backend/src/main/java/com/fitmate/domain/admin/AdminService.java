@@ -129,7 +129,8 @@ public class AdminService {
         if (target.isAdmin()) {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "관리자 계정은 정지할 수 없어요.");
         }
-        jdbcClient.sql("UPDATE users SET suspended_until = :until WHERE id = :id")
+        // 이미 더 긴 정지(예: 영구 정지)가 걸려 있으면 줄이지 않는다
+        jdbcClient.sql("UPDATE users SET suspended_until = GREATEST(COALESCE(suspended_until, :until), :until) WHERE id = :id")
                 .param("until", java.sql.Timestamp.from(until))
                 .param("id", userId)
                 .update();

@@ -49,11 +49,15 @@ class AuthCookieApiTest extends IntegrationTest {
         Cookie second = refreshCookieOf(refreshed);
         assertThat(second.getValue()).isNotEqualTo(first.getValue());
 
-        // 이미 교체된 쿠키로는 안 되고, 쓸 수 없는 쿠키는 지우라고 응답한다
+        // 이미 교체된 쿠키로는 안 된다. 이때 쿠키를 지우라고 응답하면, 다른 탭이 방금 받은 새 쿠키까지
+        // 브라우저에서 지워져 모든 탭이 로그아웃되므로 Set-Cookie를 보내지 않는다
         MockHttpServletResponse reused = mockMvc.perform(cookieMode("/api/auth/refresh").cookie(first))
                 .andExpect(status().isUnauthorized())
                 .andReturn().getResponse();
-        assertThat(reused.getHeader(HttpHeaders.SET_COOKIE)).contains("Max-Age=0");
+        assertThat(reused.getHeader(HttpHeaders.SET_COOKIE)).isNull();
+        mockMvc.perform(cookieMode("/api/auth/refresh").cookie(second)).andExpect(status().isOk());
+        second = refreshCookieOf(mockMvc.perform(cookieMode("/api/auth/login")
+                .content(loginJson(user.loginId(), PASSWORD))).andReturn().getResponse());
 
         MockHttpServletResponse loggedOut = mockMvc.perform(cookieMode("/api/auth/logout").cookie(second))
                 .andExpect(status().isNoContent())
