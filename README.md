@@ -7,8 +7,6 @@
 | **웹** | **https://fitmate-khj.vercel.app** (회원가입 후 이용) |
 | API 문서 | https://fitmate-api-dwrd.onrender.com/swagger-ui.html |
 
-> 서버가 잠들어 있으면 첫 연결에 30초 정도 걸릴 수 있어요. 그동안 화면 위에 "서버를 깨우는 중" 안내가 뜹니다.
-
 ![매칭 요청부터 실시간 채팅까지](docs/screenshots/demo.gif)
 
 *두 사용자가 추천 목록에서 매칭 요청 → 실시간 알림 → 수락 → 1:1 채팅까지 (실제 화면 녹화)*
