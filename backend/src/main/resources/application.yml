@@ -70,6 +70,8 @@ fitmate:
   # 개발용 데모 사용자·모임·게시글 생성 (로컬은 application-local.yml에서 켬, 배포에서는 끔)
   demo-data:
     enabled: ${DEMO_DATA_ENABLED:false}
+    # 데모 계정(비밀번호가 저장소에 공개됨)으로 로그인 허용. 로컬·CI 전용, 배포에서는 끈다
+    login-enabled: ${DEMO_LOGIN_ENABLED:false}
   # 웹 리프레시 토큰 쿠키. https가 아닌 로컬 개발에서는 application-local.yml에서 false
   auth:
     cookie-secure: ${AUTH_COOKIE_SECURE:true}

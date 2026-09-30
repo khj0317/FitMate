@@ -3,6 +3,7 @@ package com.fitmate.domain.account;
 import com.fitmate.domain.auth.RefreshTokenStore;
 import com.fitmate.domain.user.User;
 import com.fitmate.domain.user.UserRepository;
+import com.fitmate.global.demo.DemoAccounts;
 import com.fitmate.global.error.BusinessException;
 import com.fitmate.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -32,12 +33,14 @@ public class AccountRecoveryService {
     private final RefreshTokenStore refreshTokenStore;
     private final AccountMailSender mailSender;
     private final StringRedisTemplate redisTemplate;
+    private final DemoAccounts demoAccounts;
 
     @Transactional(readOnly = true)
     public void sendLoginId(String rawEmail) {
         String email = normalize(rawEmail);
         checkCooldown("login-id:" + email);
         userRepository.findByEmail(email)
+                .filter(user -> !demoAccounts.locked(user.getLoginId()))
                 .ifPresent(user -> mailSender.sendLoginId(email, user.getLoginId()));
     }
 
@@ -48,6 +51,7 @@ public class AccountRecoveryService {
         checkCooldown("password:" + loginId);
         userRepository.findByLoginId(loginId)
                 .filter(user -> email.equals(user.getEmail()))
+                .filter(user -> !demoAccounts.locked(user.getLoginId())) // 데모 계정 메일(@fitmate.com)은 남의 도메인
                 .ifPresent(user -> mailSender.sendPasswordResetCode(email, codeStore.issue(VerificationCodeStore.Purpose.PASSWORD_RESET, loginId)));
     }
 

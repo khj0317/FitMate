@@ -6,6 +6,7 @@ import com.fitmate.domain.auth.dto.AuthResponses;
 import com.fitmate.domain.user.User;
 import com.fitmate.domain.user.UserRepository;
 import com.fitmate.global.error.BusinessException;
+import com.fitmate.global.demo.DemoAccounts;
 import com.fitmate.global.error.ErrorCode;
 import com.fitmate.global.util.GeoPoints;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class AuthService {
     private final RefreshTokenStore refreshTokenStore;
     private final LoginAttemptLimiter loginAttemptLimiter;
     private final EmailVerificationService emailVerificationService;
+    private final DemoAccounts demoAccounts;
 
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     /** 이보다 먼 정지는 영구 정지로 본다 */
@@ -70,6 +72,7 @@ public class AuthService {
         loginAttemptLimiter.checkAllowed(request.loginId(), clientIp);
         // 아이디 존재 여부를 노출하지 않도록 계정이 없을 때와 비밀번호가 틀릴 때 같은 에러를 준다
         User user = userRepository.findByLoginId(request.loginId())
+                .filter(found -> !demoAccounts.locked(found.getLoginId()))
                 .filter(found -> passwordEncoder.matches(request.password(), found.getPasswordHash()))
                 .orElse(null);
         if (user == null) {

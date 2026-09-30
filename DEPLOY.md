@@ -155,6 +155,7 @@ CORS_ALLOWED_ORIGINS=https://fitmate-xxxx.vercel.app
 
 - **도배 방지**: 글·댓글·채팅·매칭 요청·신고·회원가입 등에 요청 횟수 제한 (Redis, 서버가 여러 대여도 합산). 넘으면 429 + `Retry-After`
 - **데모 데이터**: 배포에서는 만들지 않음 (`DEMO_DATA_ENABLED=false`). 로컬 개발(`local` 프로필)에서만 생성
+- **데모 계정 로그인**: 비밀번호가 저장소에 공개돼 있으므로 배포에서는 막는다 (`DEMO_LOGIN_ENABLED` 기본 false, 로컬·CI만 켬)
 - **서버 깨우는 중 안내**: API 응답이 4초 넘게 없으면 웹 화면 위에 안내를 띄워서, 무료 서버가 깨어나는 동안 멈춘 것처럼 보이지 않게 함
 - **헬스 체크**: `/actuator/health` (DB·Redis 포함)
 - **자동 배포**: `main`에 푸시 → GitHub Actions(백엔드 테스트, 웹 빌드, Docker 이미지 빌드) → Render(백엔드가 바뀐 경우)·Vercel이 각각 자동 배포

@@ -89,6 +89,7 @@ jobs:
         working-directory: backend
         env:
           DEMO_DATA_ENABLED: "true"
+          DEMO_LOGIN_ENABLED: "true"
           RATE_LIMIT_ENABLED: "false"
         run: |
           ./gradlew bootJar -x test --console=plain

@@ -326,7 +326,7 @@ npm run dev
 DB·Redis·Mailpit 컨테이너 → 백엔드(http://localhost:8081) → 웹(http://localhost:5173)이 한 번에 뜹니다. Windows는 `dev.cmd`를 더블클릭해도 됩니다.
 
 - **데모 데이터**: 성수역 주변 8km에 사용자 30명, 모임 5개, 커뮤니티 글 6개, 채팅방이 만들어집니다
-  - 아이디 `demo01` ~ `demo30`, 비밀번호 `password123` (로그인 화면의 "데모 계정으로 로그인" 버튼은 개발 모드에만 있음)
+  - 아이디 `demo01` ~ `demo30`, 비밀번호 `password123` (로그인 화면의 "데모 계정으로 로그인" 버튼은 개발 모드에만 있음. 비밀번호가 공개돼 있으므로 배포 서버에서는 데모 계정 로그인·계정 찾기를 막음)
   - `demo01`(달리는판다)은 관리자이고, `demo02`(초록고래)와 대화 중, `demo03`(노란병아리)에게 매칭 요청을 받은 상태
 - Swagger http://localhost:8081/swagger-ui.html · 메일함(Mailpit) http://localhost:8025
 

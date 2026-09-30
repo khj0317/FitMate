@@ -194,4 +194,14 @@ class AuthApiTest extends IntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
     }
+
+    @Test
+    @DisplayName("데모 계정은 비밀번호가 공개돼 있으므로 배포 설정(데모 로그인 꺼짐)에서는 맞는 비밀번호로도 로그인할 수 없다")
+    void demoAccountLoginLocked() throws Exception {
+        post("/api/auth/signup", signupJson("demo77", PASSWORD, "데모칠칠")).andExpect(status().isCreated());
+
+        post("/api/auth/login", loginJson("demo77", PASSWORD))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+    }
 }

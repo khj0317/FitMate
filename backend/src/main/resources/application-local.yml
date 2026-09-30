@@ -2,6 +2,7 @@
 fitmate:
   demo-data:
     enabled: true
+    login-enabled: true
   # 로컬에서는 demo01이 관리자 (관리자 화면 확인용)
   admin:
     login-ids: demo01
