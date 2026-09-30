@@ -67,9 +67,11 @@
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
-/* 모임 지도 마커와 말풍선 (Leaflet이 직접 그리는 요소라 일반 CSS로 꾸민다) */
+/* 모임 지도 마커와 말풍선 (카카오맵 위에 직접 그리는 요소라 일반 CSS로 꾸민다) */
 .gathering-pin {
   display: flex;
+  cursor: pointer;
+  margin-bottom: 8px; /* 핀 끝이 위치를 가리키도록 */
   width: 40px;
   height: 40px;
   align-items: center;
@@ -91,6 +93,12 @@
 .gathering-popup {
   display: flex;
   min-width: 180px;
+  max-width: 240px;
+  margin-bottom: 60px; /* 핀 위에 띄운다 */
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 30px -8px rgb(26 24 22 / 0.35);
   flex-direction: column;
   gap: 2px;
   cursor: pointer;
@@ -112,6 +120,11 @@
   color: var(--color-brand-600);
   font-weight: 700;
 }
-.leaflet-popup-content-wrapper {
-  border-radius: 16px;
+.map-me {
+  width: 16px;
+  height: 16px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #0ea5e9;
+  box-shadow: 0 0 0 6px rgb(14 165 233 / 0.25);
 }

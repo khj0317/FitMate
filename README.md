@@ -15,7 +15,7 @@
 
 - **운동 메이트 추천**: 반경 안의 사람을 거리·실력·운동 시간·매너로 점수화(100점)해서 잘 맞는 순서로 보여 줌
 - **매칭 요청 → 1:1 채팅**: 요청을 수락하면 바로 채팅방이 생기고, 실시간 메시지·읽음 표시·사진·이모티콘·접속 상태 지원
-- **운동 모임**: 지도에서 근처 모임을 찾고 선착순으로 참여, 모임마다 단체 채팅방, 시작 1시간 전 리마인더
+- **운동 모임**: 카카오맵에서 근처 모임을 찾고 선착순으로 참여, 모임마다 단체 채팅방, 시작 1시간 전 리마인더
 - **동네 커뮤니티**: 내 반경 안의 글만 모아 보는 피드, 사진 4장, 좋아요, 댓글·답글
 - **매너 온도**: 함께 운동한 상대를 평가하고 칭찬 태그를 모음. 노쇼는 점수에 반영
 - **실시간 알림**: 매칭·모임·댓글·칭찬 알림을 토스트로 받고, 종류별로 끌 수 있음
@@ -55,7 +55,7 @@ flowchart LR
 |---|---|
 | Backend | Java 17, Spring Boot 4, Spring Data JPA, Spring Security (OAuth2 Resource Server, JWT), WebSocket(STOMP), Flyway |
 | DB · Cache | PostgreSQL + PostGIS, Redis |
-| Web | React 19, TypeScript, Vite, Tailwind CSS v4, TanStack Query, React Router, STOMP.js, Leaflet |
+| Web | React 19, TypeScript, Vite, Tailwind CSS v4, TanStack Query, React Router, STOMP.js, 카카오맵 JavaScript SDK |
 | Test | JUnit 5, Testcontainers(PostGIS · Redis · S3Mock), Playwright, k6 |
 | Infra | Docker, GitHub Actions, Vercel, Render, Supabase, Upstash |
 
