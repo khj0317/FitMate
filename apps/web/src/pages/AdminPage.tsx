@@ -9,7 +9,7 @@ import { errorMessage } from '../lib/api'
 import { REPORT_REASON_LABEL, timeAgo } from '../lib/format'
 import { useAdminReports, useAdminStats, useMe, useResolveReport, useUnsuspend } from '../lib/queries'
 import type { AdminAction, AdminReport } from '../lib/types'
-import { useToast } from '../providers/ToastProvider'
+import { useToast } from '../providers/toastContext'
 
 const ACTIONS: { value: AdminAction; label: string; description: string; variant: 'secondary' | 'danger' }[] = [
   { value: 'DISMISS', label: '문제 없음', description: '위반이 아니라고 판단해요. 신고자에게 결과를 알려요.', variant: 'secondary' },

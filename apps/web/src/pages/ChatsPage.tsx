@@ -4,7 +4,8 @@ import { ArrowLeft, ArrowUp, ChevronRight, ChevronUp, ImagePlus, Smile, UsersRou
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { Avatar } from '../components/Avatar'
-import { EmojiPicker, isBigEmoji } from '../components/EmojiPicker'
+import { EmojiPicker } from '../components/EmojiPicker'
+import { isBigEmoji } from '../lib/emoji'
 import { PhotoViewer } from '../components/PhotoViewer'
 import { SafetyMenu } from '../components/SafetyMenu'
 import { Button, EmptyState, Spinner } from '../components/ui'
@@ -13,8 +14,8 @@ import { compressImage, ImageError } from '../lib/image'
 import { clockTime, dayLabel, isSameDay, presenceLabel, timeAgo } from '../lib/format'
 import { fetchMessages, keys, useChatRooms, useMe, usePresence } from '../lib/queries'
 import type { ChatMessage, ChatRoom, Presence, ReadEvent } from '../lib/types'
-import { useChatSocket } from '../providers/ChatSocketProvider'
-import { useToast } from '../providers/ToastProvider'
+import { useChatSocket } from '../providers/chatSocketContext'
+import { useToast } from '../providers/toastContext'
 
 export function ChatsPage() {
   const { roomId } = useParams()

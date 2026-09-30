@@ -7,7 +7,7 @@ import { sportEmoji } from '../lib/format'
 import { compressImage, ImageError } from '../lib/image'
 import { useCreatePost, useSports, useUpdatePost } from '../lib/queries'
 import type { Post, PostCategory } from '../lib/types'
-import { useToast } from '../providers/ToastProvider'
+import { useToast } from '../providers/toastContext'
 import { Modal } from './Modal'
 import { Button, Chip, Textarea } from './ui'
 

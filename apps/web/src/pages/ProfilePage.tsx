@@ -14,8 +14,8 @@ import { ApiError, errorMessage } from '../lib/api'
 import { DAYS, SKILL_LABEL, SKILL_LEVELS, sportEmoji } from '../lib/format'
 import { useMe, useSaveProfile, useSports } from '../lib/queries'
 import type { AvailableTime, DayOfWeek, Gender, LocationInput, MyProfile, SkillLevel } from '../lib/types'
-import { useAuth } from '../providers/AuthProvider'
-import { useToast } from '../providers/ToastProvider'
+import { useAuth } from '../providers/authContext'
+import { useToast } from '../providers/toastContext'
 
 const MAX_SPORTS = 5
 

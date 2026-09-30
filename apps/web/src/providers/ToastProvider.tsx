@@ -1,14 +1,12 @@
 import { CheckCircle2, CircleAlert } from 'lucide-react'
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
+import { ToastContext, type ToastKind } from './toastContext'
 
-type ToastKind = 'success' | 'error'
 interface Toast {
   id: number
   kind: ToastKind
   message: string
 }
-
-const ToastContext = createContext<((message: string, kind?: ToastKind) => void) | null>(null)
 
 let nextId = 1
 
@@ -44,10 +42,4 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       </div>
     </ToastContext>
   )
-}
-
-export function useToast() {
-  const context = useContext(ToastContext)
-  if (!context) throw new Error('ToastProvider가 필요합니다')
-  return context
 }

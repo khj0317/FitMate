@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { errorMessage } from '../lib/api'
 import { useNotificationSettings, useSaveNotificationSettings } from '../lib/queries'
 import type { NotificationCategory } from '../lib/types'
-import { useToast } from '../providers/ToastProvider'
+import { useToast } from '../providers/toastContext'
 import { Card } from './ui'
 
 const CATEGORIES: { value: NotificationCategory; label: string; description: string }[] = [

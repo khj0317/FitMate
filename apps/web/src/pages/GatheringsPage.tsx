@@ -14,7 +14,7 @@ import { sportEmoji } from '../lib/format'
 import { dDay, gatheringTime, seatsLeft, STATUS_LABEL, STATUS_TONE } from '../lib/gathering'
 import { useCreateGathering, useMe, useMyGatherings, useNearbyGatherings, usePendingReviews, useSports } from '../lib/queries'
 import type { GatheringSummary, LocationInput, PendingReview } from '../lib/types'
-import { useToast } from '../providers/ToastProvider'
+import { useToast } from '../providers/toastContext'
 
 // 지도(Leaflet)는 무거워서 지도 보기를 누를 때 불러온다
 const GatheringMap = lazy(() => import('../components/GatheringMap').then((module) => ({ default: module.GatheringMap })))

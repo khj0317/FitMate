@@ -5,7 +5,7 @@ import { api, errorMessage } from '../lib/api'
 import { compressImage, ImageError } from '../lib/image'
 import { keys } from '../lib/queries'
 import type { MyProfile } from '../lib/types'
-import { useToast } from '../providers/ToastProvider'
+import { useToast } from '../providers/toastContext'
 import { Avatar } from './Avatar'
 
 /** 프로필 사진은 고르는 즉시 저장한다 (서버가 가운데를 정사각형으로 잘라 512px로 저장). */

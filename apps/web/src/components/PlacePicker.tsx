@@ -38,6 +38,7 @@ export function PlacePicker({
   const [found, setFound] = useState<{ keyword: string; places: kakao.maps.services.PlaceResult[] }>({ keyword: '', places: [] })
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
+  const latestKeyword = useRef('')
   // 처음 위치(내 활동 지역)로 지도를 한 번만 만든다. 지도 클릭 핸들러는 그때 한 번 등록되므로 콜백은 ref로 최신 값을 쓴다
   const initial = useRef(location)
   const onLocationChangeRef = useRef(onLocationChange)
@@ -89,12 +90,14 @@ export function PlacePicker({
   // 입력이 멈추면 지도 가운데 가까운 순으로 장소를 찾는다
   useEffect(() => {
     const keyword = placeName.trim()
+    latestKeyword.current = keyword
     if (!ready || !open || keyword.length < 2) return
     const timer = setTimeout(() => {
       const { maps } = window.kakao
       new maps.services.Places().keywordSearch(
         keyword,
         (data, status) => {
+          if (latestKeyword.current !== keyword) return // 그사이 입력이 바뀌었으면 늦게 온 결과는 버린다
           setFound({ keyword, places: status === maps.services.Status.OK ? data : [] })
           setActive(0)
         },

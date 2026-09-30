@@ -11,7 +11,7 @@ import { ApiError, errorMessage } from '../lib/api'
 import { formatMinutes, GENDER_LABEL, presenceLabel, SKILL_LABEL, sportEmoji } from '../lib/format'
 import { useMe, usePresence, useRecommendations, useSendMatchRequest } from '../lib/queries'
 import type { MatchCandidate, Presence } from '../lib/types'
-import { useToast } from '../providers/ToastProvider'
+import { useToast } from '../providers/toastContext'
 
 const RADIUS_OPTIONS = [1, 3, 5, 10, 20]
 

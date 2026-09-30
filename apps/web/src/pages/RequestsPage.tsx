@@ -8,7 +8,7 @@ import { errorMessage } from '../lib/api'
 import { sportEmoji, timeAgo } from '../lib/format'
 import { useHandleMatchRequest, useMatchRequests } from '../lib/queries'
 import type { MatchRequest, MatchRequestStatus } from '../lib/types'
-import { useToast } from '../providers/ToastProvider'
+import { useToast } from '../providers/toastContext'
 
 type Box = 'received' | 'sent'
 

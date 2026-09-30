@@ -1,20 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { AuthContext } from './authContext'
 import { api, onSessionChange, refreshTokens, setAccessToken } from '../lib/api'
 import type { SignupInput, Tokens } from '../lib/types'
-
-interface AuthContextValue {
-  /** 새로고침 직후 쿠키로 로그인 상태를 확인하는 동안은 false */
-  ready: boolean
-  loggedIn: boolean
-  /** 로그인 직후 이동할 경로. 회원가입이면 프로필 설정 화면으로 보낸다 */
-  afterLoginPath: string
-  login: (loginId: string, password: string) => Promise<void>
-  signup: (input: SignupInput) => Promise<void>
-  logout: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
@@ -68,10 +56,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext>
   )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) throw new Error('AuthProvider가 필요합니다')
-  return context
 }

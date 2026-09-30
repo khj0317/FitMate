@@ -12,7 +12,7 @@ import { errorMessage } from '../lib/api'
 import { timeAgo } from '../lib/format'
 import { useAddComment, useComments, useDeleteComment, useDeletePost, useHidePost, useMe, usePost } from '../lib/queries'
 import type { Post, PostComment } from '../lib/types'
-import { useToast } from '../providers/ToastProvider'
+import { useToast } from '../providers/toastContext'
 
 export function PostDetailPage() {
   const { postId } = useParams()

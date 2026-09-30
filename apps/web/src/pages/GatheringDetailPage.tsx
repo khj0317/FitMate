@@ -10,7 +10,7 @@ import { sportEmoji } from '../lib/format'
 import { dDay, gatheringTime, seatsLeft, STATUS_LABEL, STATUS_TONE } from '../lib/gathering'
 import { useGathering, useGatheringAction, usePendingReviews } from '../lib/queries'
 import type { PendingReview } from '../lib/types'
-import { useToast } from '../providers/ToastProvider'
+import { useToast } from '../providers/toastContext'
 
 export function GatheringDetailPage() {
   const { gatheringId } = useParams()

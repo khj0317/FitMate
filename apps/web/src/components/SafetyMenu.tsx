@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, errorMessage } from '../lib/api'
 import { REPORT_REASONS } from '../lib/format'
 import type { ReportReason } from '../lib/types'
-import { useToast } from '../providers/ToastProvider'
+import { useToast } from '../providers/toastContext'
 import { Modal } from './Modal'
 import { Button, Chip, Field, Textarea } from './ui'
 

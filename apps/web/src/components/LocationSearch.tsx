@@ -9,7 +9,7 @@ const DEBOUNCE_MS = 200
 /**
  * 네이버 검색창처럼 입력하는 대로 지역 후보를 보여주고, 고르면 좌표와 동 단위 지역명을 넘겨준다.
  * - 한글 조합 중에도 검색 (onChange는 조합 중에도 호출된다)
- * - 늦게 도착한 이전 검색 결과가 최신 결과를 덮어쓰지 않도록 요청 순서를 확인
+ * - 늦게 도착한 이전 검색 결과가 최신 결과를 덮어쓰지 않도록 지금 검색어의 결과만 반영
  * - ↑↓ 이동, Enter 선택, Esc 닫기
  */
 export function LocationSearch({
@@ -23,35 +23,28 @@ export function LocationSearch({
 }) {
   const listId = useId()
   const [query, setQuery] = useState(value?.areaName ?? '')
-  const [results, setResults] = useState<LocationSuggestion[]>([])
+  // 어떤 검색어의 결과인지 함께 둬서, "검색 중"과 결과는 그릴 때 계산한다
+  const [found, setFound] = useState<{ query: string; items: LocationSuggestion[] }>({ query: '', items: [] })
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [active, setActive] = useState(0)
-  const requestSeq = useRef(0)
+  const latestQuery = useRef('')
   const containerRef = useRef<HTMLDivElement>(null)
+  const trimmed = query.trim()
 
   // 입력이 멈추면 검색
   useEffect(() => {
-    const trimmed = query.trim()
-    if (!open || !trimmed) {
-      setResults([])
-      setLoading(false)
-      return
-    }
-    setLoading(true)
-    const seq = ++requestSeq.current
+    latestQuery.current = trimmed
+    if (!open || !trimmed) return
     const timer = setTimeout(() => {
-      searchLocations(trimmed)
-        .then((found) => {
-          if (seq !== requestSeq.current) return // 더 최근 요청이 있으면 버린다
-          setResults(found)
-          setActive(0)
-        })
-        .catch(() => seq === requestSeq.current && setResults([]))
-        .finally(() => seq === requestSeq.current && setLoading(false))
+      const save = (items: LocationSuggestion[]) => {
+        if (latestQuery.current !== trimmed) return // 그사이 입력이 바뀌었으면 늦게 온 결과는 버린다
+        setFound({ query: trimmed, items })
+        setActive(0)
+      }
+      searchLocations(trimmed).then(save, () => save([]))
     }, DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [query, open])
+  }, [trimmed, open])
 
   // 바깥을 클릭하면 닫는다
   useEffect(() => {
@@ -61,6 +54,11 @@ export function LocationSearch({
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
+
+  const selectedMatchesInput = value && query === value.areaName
+  const showList = open && trimmed.length > 0
+  const loading = showList && found.query !== trimmed
+  const results = found.query === trimmed ? found.items : []
 
   const select = (suggestion: LocationSuggestion) => {
     onChange({ latitude: suggestion.latitude, longitude: suggestion.longitude, areaName: suggestion.areaName })
@@ -85,9 +83,6 @@ export function LocationSearch({
       setOpen(false)
     }
   }
-
-  const selectedMatchesInput = value && query === value.areaName
-  const showList = open && query.trim().length > 0
 
   return (
     <div ref={containerRef} className="relative">

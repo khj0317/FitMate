@@ -33,8 +33,8 @@ test('이메일 인증을 마쳐야 가입할 수 있고, 가입하면 프로필
 
 test('없는 계정이나 틀린 비밀번호로는 로그인할 수 없다', async ({ page }) => {
   await page.goto('/login')
-  // 데모 계정으로 틀리면 5번째에 잠기므로(로그인 시도 제한) 없는 아이디로 확인한다. 응답 메시지는 같다
-  await page.getByPlaceholder('아이디').fill('no_such_user_e2e')
+  // 같은 아이디로 5번 틀리면 잠기므로(로그인 시도 제한) 실행할 때마다 새로운 없는 아이디로 확인한다. 응답 메시지는 같다
+  await page.getByPlaceholder('아이디').fill(uniqueId('nouser'))
   await page.getByPlaceholder('비밀번호').fill('wrong-password-1')
   await page.getByRole('button', { name: '로그인', exact: true }).click()
   await expect(page.getByText('아이디 또는 비밀번호가 올바르지 않습니다')).toBeVisible()

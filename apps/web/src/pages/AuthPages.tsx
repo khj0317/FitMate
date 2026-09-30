@@ -9,7 +9,7 @@ import { Logo } from '../components/Logo'
 import { Button, Field, Input, Segmented } from '../components/ui'
 import { ApiError, errorMessage } from '../lib/api'
 import type { Gender, LocationInput } from '../lib/types'
-import { useAuth } from '../providers/AuthProvider'
+import { useAuth } from '../providers/authContext'
 
 const FEATURES = [
   { icon: MapPin, title: '내 주변 운동 메이트', text: '활동 지역 반경 안에서 같은 운동을 하는 사람을 찾아요' },

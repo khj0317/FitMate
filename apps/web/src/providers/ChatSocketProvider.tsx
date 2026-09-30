@@ -1,22 +1,12 @@
 import { Client, type StompSubscription } from '@stomp/stompjs'
 import { useQueryClient } from '@tanstack/react-query'
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { SOCKET_BASE, api, getAccessToken, refreshTokens } from '../lib/api'
 import { keys, useChatRooms } from '../lib/queries'
 import type { AppNotification, ChatMessage } from '../lib/types'
-import { useAuth } from './AuthProvider'
-import { useToast } from './ToastProvider'
-
-interface ChatSocketValue {
-  connected: boolean
-  /** 모든 내 채팅방의 새 메시지를 구독한다. 반환값은 구독 해제 함수 */
-  onMessage: (listener: (message: ChatMessage) => void) => () => void
-  send: (roomId: number, content: string) => Promise<void>
-  /** 연결된 상태에서 토픽을 구독한다. 연결이 바뀌면(재연결) 다시 불러야 하므로 connected를 의존성에 넣어 쓴다 */
-  subscribe: (destination: string, handler: (body: string) => void) => () => void
-}
-
-const ChatSocketContext = createContext<ChatSocketValue | null>(null)
+import { useAuth } from './authContext'
+import { ChatSocketContext } from './chatSocketContext'
+import { useToast } from './toastContext'
 
 const RELATED_QUERIES: Record<AppNotification['type'], string[][]> = {
   MATCH_REQUEST_RECEIVED: [['matchRequests']],
@@ -132,10 +122,4 @@ export function ChatSocketProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return <ChatSocketContext value={{ connected, onMessage, send, subscribe }}>{children}</ChatSocketContext>
-}
-
-export function useChatSocket() {
-  const context = useContext(ChatSocketContext)
-  if (!context) throw new Error('ChatSocketProvider가 필요합니다')
-  return context
 }
