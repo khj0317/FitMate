@@ -22,7 +22,7 @@ export function ServerWakeNotice() {
         <div className="text-sm">
           <p className="font-semibold">서버를 깨우는 중이에요</p>
           <p className="mt-0.5 text-white/70">
-            무료 서버라 한동안 접속이 없으면 잠들어요. 처음 연결에 최대 1분 정도 걸릴 수 있어요.
+            한동안 접속이 없으면 서버가 잠들어요. 처음 연결에 최대 1분 정도 걸릴 수 있어요.
           </p>
         </div>
       </div>
