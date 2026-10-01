@@ -306,29 +306,6 @@ erDiagram
 **WebSocket (STOMP)** `/ws`: CONNECT 헤더에 `Authorization: Bearer <token>`. 구독 `/topic/chat-rooms/{id}`(메시지) · `/topic/chat-rooms/{id}/reads`(읽음) · `/user/queue/notifications`(알림), 전송 `/app/chat-rooms/{id}/messages`
 </details>
 
-## 로컬 실행
-
-Docker Desktop을 켜고, 처음 한 번 `npm install` 후:
-
-```bash
-npm run dev
-```
-
-DB·Redis·Mailpit 컨테이너 → 백엔드(http://localhost:8081) → 웹(http://localhost:5173)이 한 번에 뜹니다. Windows는 `dev.cmd`를 더블클릭해도 됩니다.
-
-- **데모 데이터**: 성수역 주변 8km에 사용자 30명, 모임 5개, 커뮤니티 글 6개, 채팅방이 만들어집니다
-  - 아이디 `demo01` ~ `demo30`, 비밀번호 `password123` (로그인 화면의 "데모 계정으로 로그인" 버튼은 개발 모드에만 있음. 비밀번호가 공개돼 있으므로 배포 서버에서는 데모 계정 로그인·계정 찾기를 막음)
-  - `demo01`(달리는판다)은 관리자이고, `demo02`(초록고래)와 대화 중, `demo03`(노란병아리)에게 매칭 요청을 받은 상태
-- Swagger http://localhost:8081/swagger-ui.html · 메일함(Mailpit) http://localhost:8025
-
-| 명령 | 설명 |
-|---|---|
-| `npm run test:api` | 백엔드 테스트 (Docker 필요) |
-| `npm run test:e2e` | 브라우저 E2E (`npm run dev`가 켜져 있어야 함) |
-| `docker run --rm -i -e BASE_URL=http://host.docker.internal:8081 grafana/k6 run - < scripts/k6/browse.js` | 부하 테스트 |
-
-배포 방법은 **[DEPLOY.md](DEPLOY.md)** 에 있습니다 (`main`에 푸시하면 자동 배포).
-
 ## 프로젝트 구조
 
 ```
