@@ -27,6 +27,7 @@ public class MatchCandidateQuery {
                 SELECT u.id, ST_Distance(u.activity_location, me.activity_location) AS distance_meters
                 FROM users u CROSS JOIN me
                 WHERE u.id <> me.id
+                  AND u.role <> 'GUEST' -- 체험 계정은 곧 사라지는 1회용이라 추천하지 않는다
                   AND u.activity_location IS NOT NULL
                   AND ST_DWithin(u.activity_location, me.activity_location, :radiusMeters)
                   AND EXISTS (

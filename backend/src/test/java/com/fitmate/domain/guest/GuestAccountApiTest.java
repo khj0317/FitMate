@@ -13,6 +13,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -156,6 +157,19 @@ class GuestAccountApiTest extends IntegrationTest {
         post("/api/auth/logout", refreshJson(guest.refreshToken())).andExpect(status().isNoContent());
 
         call(HttpMethod.GET, "/api/chat-rooms", null, member.accessToken()).andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("체험 계정은 다른 사람의 운동 메이트 추천에 나오지 않는다")
+    void guestsAreNotRecommended() throws Exception {
+        Guest first = newGuest();
+        Guest second = newGuest();
+
+        String body = call(HttpMethod.GET, "/api/matching/recommendations?radiusKm=20", null, second.accessToken())
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        List<Number> userIds = JsonPath.read(body, "$[*].userId");
+        assertThat(userIds).extracting(Number::longValue).doesNotContain(first.id());
     }
 
     @Test
