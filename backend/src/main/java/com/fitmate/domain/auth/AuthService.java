@@ -3,6 +3,7 @@ package com.fitmate.domain.auth;
 import com.fitmate.domain.account.EmailVerificationService;
 import com.fitmate.domain.auth.dto.AuthRequests;
 import com.fitmate.domain.auth.dto.AuthResponses;
+import com.fitmate.domain.guest.GuestAccountService;
 import com.fitmate.domain.user.User;
 import com.fitmate.domain.user.UserRepository;
 import com.fitmate.global.error.BusinessException;
@@ -29,6 +30,7 @@ public class AuthService {
     private final LoginAttemptLimiter loginAttemptLimiter;
     private final EmailVerificationService emailVerificationService;
     private final DemoAccounts demoAccounts;
+    private final GuestAccountService guestAccountService;
 
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     /** 이보다 먼 정지는 영구 정지로 본다 */
@@ -84,6 +86,11 @@ public class AuthService {
         return issueTokens(user.getId());
     }
 
+    /** 체험 계정을 새로 만들고 바로 로그인한다 */
+    public AuthResponses.Token startGuest() {
+        return issueTokens(guestAccountService.create());
+    }
+
     @Transactional(readOnly = true)
     public AuthResponses.Token refresh(AuthRequests.Refresh request) {
         User user = refreshTokenStore.consume(request.refreshToken())
@@ -103,8 +110,11 @@ public class AuthService {
                 "운영 정책 위반으로 이용이 정지된 계정이에요 (" + until + ").");
     }
 
+    /** 체험 계정은 로그아웃하면 다시 들어올 방법이 없으므로 바로 지운다 (체험하며 바꾼 데이터도 되돌림) */
     public void logout(AuthRequests.Refresh request) {
-        refreshTokenStore.revoke(request.refreshToken());
+        refreshTokenStore.consume(request.refreshToken())
+                .filter(userId -> userRepository.existsByIdAndRole(userId, User.Role.GUEST))
+                .ifPresent(guestAccountService::delete);
     }
 
     private AuthResponses.Token issueTokens(Long userId) {

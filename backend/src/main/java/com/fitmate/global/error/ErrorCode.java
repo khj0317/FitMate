@@ -33,6 +33,8 @@ public enum ErrorCode {
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, "이용이 정지된 계정이에요."),
     ADMIN_ONLY(HttpStatus.FORBIDDEN, "관리자만 할 수 있어요."),
+    GUEST_RESTRICTED(HttpStatus.FORBIDDEN, "체험 계정에서는 쓸 수 없는 기능이에요. 회원가입 후 이용해 주세요."),
+    GUEST_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "지금은 체험 계정을 만들 수 없어요. 잠시 후 다시 시도해 주세요."),
     REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "신고를 찾을 수 없어요."),
     REPORT_ALREADY_HANDLED(HttpStatus.CONFLICT, "이미 처리된 신고예요."),
     EMAIL_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "이메일 인증을 먼저 완료해 주세요."),

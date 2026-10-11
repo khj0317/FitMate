@@ -3,6 +3,7 @@ import { AlertTriangle, UserX } from 'lucide-react'
 import { useState } from 'react'
 import { api, errorMessage, setAccessToken } from '../lib/api'
 import { timeAgo } from '../lib/format'
+import { useIsGuest } from '../lib/queries'
 import type { BlockedUser } from '../lib/types'
 import { useToast } from '../providers/toastContext'
 import { Avatar } from './Avatar'
@@ -12,6 +13,7 @@ import { Button, Card, Field, Input } from './ui'
 /** 내 프로필 아래쪽: 차단한 사용자 관리 + 회원 탈퇴 */
 export function AccountSafetySection() {
   const toast = useToast()
+  const guest = useIsGuest()
   const queryClient = useQueryClient()
   const { data: blocks } = useQuery({
     queryKey: ['blocks'],
@@ -56,7 +58,8 @@ export function AccountSafetySection() {
           ))
         )}
       </div>
-      <WithdrawButton />
+      {/* 체험 계정은 비밀번호가 없고 24시간 뒤 자동으로 지워진다 */}
+      {!guest && <WithdrawButton />}
     </Card>
   )
 }
