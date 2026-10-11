@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +54,9 @@ public class AuthService {
         }
         if (userRepository.existsByEmail(request.email())) {
             throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
+        }
+        if (request.nickname().startsWith(User.GUEST_NICKNAME_PREFIX)) {
+            throw new BusinessException(ErrorCode.RESERVED_NICKNAME);
         }
         if (userRepository.existsByNickname(request.nickname())) {
             throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
@@ -110,11 +114,19 @@ public class AuthService {
                 "운영 정책 위반으로 이용이 정지된 계정이에요 (" + until + ").");
     }
 
-    /** 체험 계정은 로그아웃하면 다시 들어올 방법이 없으므로 바로 지운다 (체험하며 바꾼 데이터도 되돌림) */
+    /**
+     * 체험 계정은 로그아웃하면 다시 들어올 방법이 없으므로 바로 지운다 (체험하며 바꾼 데이터도 되돌림).
+     * 토큰을 먼저 폐기하지 않고 지우기부터 해서, 지우다 실패하면 토큰이 남아 로그아웃을 다시 시도할 수 있다
+     * (지우는 데 성공하면 UserService가 모든 토큰을 폐기한다)
+     */
     public void logout(AuthRequests.Refresh request) {
-        refreshTokenStore.consume(request.refreshToken())
-                .filter(userId -> userRepository.existsByIdAndRole(userId, User.Role.GUEST))
-                .ifPresent(guestAccountService::delete);
+        Optional<Long> guestId = refreshTokenStore.find(request.refreshToken())
+                .filter(userId -> userRepository.existsByIdAndRole(userId, User.Role.GUEST));
+        if (guestId.isPresent()) {
+            guestAccountService.delete(guestId.get());
+            return;
+        }
+        refreshTokenStore.revoke(request.refreshToken());
     }
 
     private AuthResponses.Token issueTokens(Long userId) {

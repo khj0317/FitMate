@@ -173,6 +173,27 @@ class GuestAccountApiTest extends IntegrationTest {
     }
 
     @Test
+    @DisplayName("체험 계정은 닉네임을 바꿀 수 없고, 일반 회원은 '체험러'로 시작하는 닉네임을 쓸 수 없다 (지울 때 닉네임으로 흔적을 찾으므로)")
+    void guestNicknameIsReserved() throws Exception {
+        Guest guest = newGuest();
+        call(HttpMethod.PATCH, "/api/users/me", """
+                {"nickname": "고래"}
+                """, guest.accessToken())
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("GUEST_RESTRICTED"));
+
+        TestUser member = signupAndLogin();
+        call(HttpMethod.PATCH, "/api/users/me", """
+                {"nickname": "체험러0001"}
+                """, member.accessToken())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("RESERVED_NICKNAME"));
+        post("/api/auth/signup", signupJson("u" + uniqueSuffix(), PASSWORD, "체험러왕"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("RESERVED_NICKNAME"));
+    }
+
+    @Test
     @DisplayName("일반 회원은 로그아웃해도 계정이 그대로 남는다")
     void memberLogoutKeepsAccount() throws Exception {
         TestUser member = signupAndLogin();

@@ -58,7 +58,7 @@ export function AccountSafetySection() {
           ))
         )}
       </div>
-      {/* 체험 계정은 비밀번호가 없고 24시간 뒤 자동으로 지워진다 */}
+      {/* 체험 계정은 비밀번호가 없고, 로그아웃하면 지워진다 */}
       {!guest && <WithdrawButton />}
     </Card>
   )

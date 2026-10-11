@@ -54,6 +54,11 @@ public class RefreshTokenStore {
         return userId;
     }
 
+    /** 토큰을 소비하지 않고 주인 userId만 확인한다. */
+    public Optional<Long> find(String token) {
+        return Optional.ofNullable(redisTemplate.opsForValue().get(KEY_PREFIX + sha256(token))).map(Long::valueOf);
+    }
+
     public void revoke(String token) {
         consume(token);
     }

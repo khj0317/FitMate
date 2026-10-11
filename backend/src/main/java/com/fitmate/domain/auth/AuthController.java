@@ -54,7 +54,7 @@ public class AuthController {
     }
 
     @Operation(summary = "체험 계정으로 시작", description = "가입 없이 둘러볼 수 있는 1회용 계정을 만들고 로그인합니다. "
-            + "성수역 근처 프로필과 예시 채팅·받은 매칭 요청이 준비돼 있고, 이메일 변경·사진 올리기는 막혀 있으며 24시간 뒤 삭제됩니다.")
+            + "성수역 근처 프로필과 예시 채팅·받은 매칭 요청이 준비돼 있고, 이메일·닉네임 변경과 사진 올리기는 막혀 있으며, 로그아웃하면 바로(아니면 24시간 뒤) 삭제됩니다.")
     @RateLimited(name = "guest", limit = 5, windowSeconds = 3600, key = RateLimited.Key.IP)
     @PostMapping("/guest")
     public AuthResponses.Token startGuest(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
@@ -76,12 +76,12 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@RequestBody(required = false) AuthRequests.Refresh request,
                        HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        refreshTokenCookie.clear(servletResponse);
         String token = request != null && request.refreshToken() != null && !request.refreshToken().isBlank()
                 ? request.refreshToken() : refreshTokenCookie.read(servletRequest).orElse(null);
         if (token != null) {
-            authService.logout(new AuthRequests.Refresh(token));
+            authService.logout(new AuthRequests.Refresh(token)); // 체험 계정 삭제가 실패하면 쿠키를 남겨 다시 시도할 수 있게 한다
         }
+        refreshTokenCookie.clear(servletResponse);
     }
 
     /** 웹이면 리프레시 토큰을 쿠키로 옮기고 본문에서는 뺀다 */

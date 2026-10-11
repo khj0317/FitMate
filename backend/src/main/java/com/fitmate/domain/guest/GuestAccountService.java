@@ -110,7 +110,7 @@ public class GuestAccountService {
     private String nickname() {
         String nickname;
         do {
-            nickname = "체험러%04d".formatted(random.nextInt(10_000));
+            nickname = User.GUEST_NICKNAME_PREFIX + "%04d".formatted(random.nextInt(10_000));
         } while (userRepository.existsByNickname(nickname));
         return nickname;
     }

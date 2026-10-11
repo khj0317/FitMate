@@ -113,7 +113,13 @@ public class User {
         this.mannerScore = INITIAL_MANNER_SCORE;
     }
 
-    /** GUEST: 로그인 화면의 "체험하기"로 만든 1회용 계정 (일부 기능 제한, 24시간 뒤 삭제) */
+    /**
+     * 체험 계정 닉네임(체험러1234)의 앞부분. 체험 계정을 지울 때 닉네임으로 흔적(입장 안내·알림)을 찾으므로
+     * 체험 계정은 닉네임을 바꿀 수 없고, 일반 회원은 이 이름으로 시작하는 닉네임을 쓸 수 없다
+     */
+    public static final String GUEST_NICKNAME_PREFIX = "체험러";
+
+    /** GUEST: 로그인 화면의 "체험하기"로 만든 1회용 계정 (일부 기능 제한, 로그아웃하거나 24시간 지나면 삭제) */
     public enum Role {
         USER, ADMIN, GUEST
     }

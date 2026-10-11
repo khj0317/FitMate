@@ -181,6 +181,12 @@ public class UserService {
         if (nickname.equals(user.getNickname())) {
             return;
         }
+        if (user.isGuest()) {
+            throw new BusinessException(ErrorCode.GUEST_RESTRICTED); // 지울 때 닉네임으로 흔적을 찾으므로 고정
+        }
+        if (nickname.startsWith(User.GUEST_NICKNAME_PREFIX)) {
+            throw new BusinessException(ErrorCode.RESERVED_NICKNAME);
+        }
         if (userRepository.existsByNickname(nickname)) {
             throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
         }

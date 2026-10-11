@@ -42,6 +42,7 @@ public enum ErrorCode {
     PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "비밀번호 확인이 일치하지 않습니다."),
     INVALID_BIRTH_DATE(HttpStatus.BAD_REQUEST, "생년월일이 올바르지 않습니다."),
     DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
+    RESERVED_NICKNAME(HttpStatus.BAD_REQUEST, "'체험러'로 시작하는 닉네임은 쓸 수 없어요."),
     OVERLAPPING_AVAILABLE_TIMES(HttpStatus.BAD_REQUEST, "같은 요일에 겹치는 시간대가 있습니다."),
     DUPLICATE_SPORT(HttpStatus.BAD_REQUEST, "같은 운동 종목을 중복으로 등록할 수 없습니다."),
 

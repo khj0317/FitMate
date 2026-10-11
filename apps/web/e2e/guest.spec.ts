@@ -24,3 +24,25 @@ test('체험 계정으로 가입 없이 바로 둘러볼 수 있고, 준비된 �
   await page.getByRole('button', { name: '로그아웃' }).first().click()
   await expect(page).toHaveURL(/\/login/)
 })
+
+test('체험 계정 로그아웃이 실패하면 로그인 상태로 남고, 성공하면 다른 탭도 함께 로그아웃된다', async ({ page, context }) => {
+  await page.goto('/login')
+  await page.getByRole('button', { name: '체험 계정으로 둘러보기' }).click()
+  await expect(page.getByText('체험 계정으로 둘러보는 중이에요')).toBeVisible()
+  const other = await context.newPage()
+  await other.goto('/chats')
+  await expect(other.getByText('초록고래').first()).toBeVisible()
+
+  // 서버가 응답하지 못하면 체험 데이터가 지워지지 않았으므로 로그아웃하지 않고 다시 시도하게 한다
+  page.on('dialog', (dialog) => void dialog.accept())
+  await page.route('**/api/auth/logout', (route) => route.abort())
+  await page.getByRole('button', { name: '로그아웃' }).first().click()
+  await expect(page.getByText('로그아웃하지 못했어요')).toBeVisible()
+  await expect(page.getByText('체험 계정으로 둘러보는 중이에요')).toBeVisible()
+
+  await page.unroute('**/api/auth/logout')
+  await page.getByRole('button', { name: '로그아웃' }).first().click()
+  await expect(page).toHaveURL(/\/login/)
+  await expect(other).toHaveURL(/\/login/)
+  await expect(other.getByText('다른 창에서 로그아웃해서 체험 계정이 삭제됐어요')).toBeVisible()
+})

@@ -50,6 +50,40 @@ export function onSessionChange(listener: (loggedIn: boolean) => void) {
   }
 }
 
+// ---------- 계정 삭제 감지 ----------
+
+/**
+ * 계정이 지워졌는데(다른 탭에서 체험 계정 로그아웃, 체험 계정 24시간 만료) 액세스 토큰이 아직 살아 있으면
+ * 요청마다 USER_NOT_FOUND가 온다. 남의 프로필도 같은 에러를 주므로 내 정보를 다시 조회해 확인한 뒤 로그아웃한다
+ */
+const accountGoneListeners = new Set<() => void>()
+let checkingAccount = false
+
+export function onAccountGone(listener: () => void) {
+  accountGoneListeners.add(listener)
+  return () => {
+    accountGoneListeners.delete(listener)
+  }
+}
+
+async function checkAccountGone(token: string, path: string) {
+  if (checkingAccount) return
+  checkingAccount = true
+  try {
+    const gone =
+      path === '/api/users/me' ||
+      (await fetch('/api/users/me', { headers: { ...AUTH_MODE_HEADER, Authorization: `Bearer ${token}` } })
+        .then(async (res) => res.status === 404 && ((await res.json()) as ApiErrorBody).code === 'USER_NOT_FOUND')
+        .catch(() => false))
+    if (gone && getAccessToken() === token) {
+      accountGoneListeners.forEach((listener) => listener())
+      setAccessToken(null)
+    }
+  } finally {
+    checkingAccount = false
+  }
+}
+
 // ---------- 느린 응답 감지 (무료 서버가 잠들었다 깨어나는 중) ----------
 
 /** 이 시간 안에 응답이 없으면 "서버를 깨우는 중" 안내를 띄운다 */
@@ -154,6 +188,7 @@ async function request<T>(method: string, path: string, body?: unknown, retry = 
 
   if (!res.ok) {
     const error = (await res.json().catch(() => null)) as ApiErrorBody | null
+    if (error?.code === 'USER_NOT_FOUND' && token) void checkAccountGone(token, path)
     throw new ApiError(error ?? { status: res.status, code: 'NETWORK_ERROR', message: '요청을 처리하지 못했어요.' })
   }
   // 204뿐 아니라 202처럼 본문 없이 성공하는 응답도 있으므로 상태 코드가 아니라 본문으로 판단한다

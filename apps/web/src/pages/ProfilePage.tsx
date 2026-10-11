@@ -255,8 +255,14 @@ function ProfileForm({ me }: { me: MyProfile }) {
               needsVerification={emailChanged}
               error={errors.email}
             />}
-            <Field label="닉네임" error={errors.nickname}>
-              <Input value={draft.nickname} onChange={(e) => set('nickname', e.target.value)} maxLength={20} />
+            <Field label="닉네임" error={errors.nickname} hint={me.role === 'GUEST' ? '체험 계정은 닉네임을 바꿀 수 없어요' : undefined}>
+              <Input
+                value={draft.nickname}
+                onChange={(e) => set('nickname', e.target.value)}
+                maxLength={20}
+                disabled={me.role === 'GUEST'}
+                className={clsx(me.role === 'GUEST' && 'cursor-not-allowed text-ink-500')}
+              />
             </Field>
             <Field label="생년월일">
               <BirthDateInput value={draft.birthDate} onChange={(iso) => set('birthDate', iso)} error={errors.birthDate} />
